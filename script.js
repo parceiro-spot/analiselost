@@ -859,7 +859,39 @@ function sortBtnLabel(mode){
   return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h10M4 18h5"/></svg> Ordem: Valor';
 }
 function abrirModalOcultarDias(entries, contexto){
-  openExportConfig(entries);
+  const dias=Array.from(new Set((entries||[]).map(e=>Math.floor(diasParado(e))).filter(Number.isFinite))).sort((a,b)=>a-b);
+  if(!dias.length){ baixarRetorno(entries,contexto); return; }
+  document.getElementById('hideDaysModal')?.remove();
+  const modal=document.createElement('div'); modal.id='hideDaysModal'; modal.className='hide-days-modal';
+  const options=()=>dias.map(d=>'<label><input type="checkbox" value="'+d+'"> <strong>'+d+' dia'+(d===1?'':'s')+'</strong></label>').join('');
+  modal.innerHTML='<div class="hide-days-card" role="dialog" aria-modal="true" aria-labelledby="hideDaysTitle">'
+    +'<div class="hide-days-head"><div><h3 id="hideDaysTitle">OCULTAR DIAS POR ABA</h3><p>Escolha os dias que não devem aparecer em cada aba regional.</p></div><button type="button" class="overlay-close" data-hide-days-close>Fechar</button></div>'
+    +'<div class="hide-days-group" data-hide-group="1"><h4>PRIMEIRA ABA — OCULTAR:</h4><div class="hide-days-options">'+options()+'</div></div>'
+    +'<button type="button" class="btn-reset hide-days-add" data-add-hide-group>+ ADICIONAR SEGUNDA ABA</button>'
+    +'<div class="hide-days-help">Os números são os dias de pacote parado encontrados nos pacotes selecionados. Cada aba pode ter uma seleção independente.</div>'
+    +'<div class="hide-days-actions"><button type="button" class="btn-reset" data-hide-days-close>Cancelar</button><button type="button" class="btn-primary" data-hide-days-confirm>Baixar planilha</button></div>'
+    +'</div>';
+  document.body.appendChild(modal);
+  const close=()=>{modal.remove();document.removeEventListener('keydown',esc);};
+  const esc=(ev)=>{if(ev.key==='Escape')close();};
+  document.addEventListener('keydown',esc);
+  modal.addEventListener('click',ev=>{
+    if(ev.target===modal||ev.target.closest('[data-hide-days-close]')){close();return;}
+    if(ev.target.closest('[data-add-hide-group]')){
+      const count=modal.querySelectorAll('.hide-days-group').length+1;
+      const group=document.createElement('div'); group.className='hide-days-group'; group.dataset.hideGroup=String(count);
+      group.innerHTML='<h4>'+(['PRIMEIRA','SEGUNDA','TERCEIRA','QUARTA'][count-1]||count+'ª')+' ABA — VAI OCULTAR:</h4><div class="hide-days-options">'+options()+'</div><button type="button" class="btn-reset hide-days-remove" data-remove-hide-group>Remover esta aba</button>';
+      modal.querySelector('[data-add-hide-group]').before(group);
+      if(count>=4)ev.target.remove();
+      return;
+    }
+    if(ev.target.closest('[data-remove-hide-group]')){ev.target.closest('.hide-days-group').remove();return;}
+    if(ev.target.closest('[data-hide-days-confirm]')){
+      const ocultos=new Set(); modal.querySelectorAll('.hide-days-group input:checked').forEach(input=>ocultos.add(Number(input.value)));
+      const filtrados=(entries||[]).filter(e=>!ocultos.has(Math.floor(diasParado(e))));
+      close(); baixarRetorno(filtrados,contexto+(ocultos.size?' · dias ocultos: '+Array.from(ocultos).sort((a,b)=>a-b).join(', '):''));
+    }
+  });
 }
 function renderOverlayBody(){
   const driverDetail=document.getElementById('overlayDriverDetail'); if(driverDetail) driverDetail.remove();
@@ -993,7 +1025,8 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
   if(e.target.closest('#overlayDownload')){
     const lista=overlayFiltered();
     const contexto=overlayCtx.title+(overlayCtx.buckets?.length?' · '+overlayCtx.buckets.map(b=>BUCKET_LABELS[b]).join(' + '):'');
-    openExportConfig(lista);
+    if(overlayCtx.title==='Pacotes por dias parado') abrirModalOcultarDias(lista,contexto);
+    else baixarRetorno(lista,contexto);
     return;
   }
   const periodBtn=e.target.closest('.period-preset');
