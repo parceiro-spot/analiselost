@@ -1790,10 +1790,10 @@ function abrirModalOcultarDias(entries, contexto){
   const modal=document.createElement('div'); modal.id='hideDaysModal'; modal.className='hide-days-modal';
   const options=()=>faixas.map(bucket=>'<label><input type="checkbox" value="'+bucket+'"> <strong>'+escHtml(BUCKET_LABELS[bucket])+'</strong></label>').join('');
   modal.innerHTML='<div class="hide-days-card" role="dialog" aria-modal="true" aria-labelledby="hideDaysTitle">'
-    +'<div class="hide-days-head"><div><h3 id="hideDaysTitle">OCULTAR DIAS POR ABA</h3><p>Marque as faixas que não devem aparecer em cada aba regional.</p></div><button type="button" class="overlay-close" data-hide-days-close>Fechar</button></div>'
-    +'<div class="hide-days-group" data-hide-group="1"><h4>PRIMEIRA ABA — NÃO CONTER:</h4><div class="hide-days-options">'+options()+'</div></div>'
+    +'<div class="hide-days-head"><div><h3 id="hideDaysTitle">CONFIGURAR ABAS DA PLANILHA</h3><p>Cada bloco abaixo cria novamente as abas ES, MG, BA, SP e RJ no mesmo arquivo.</p></div><button type="button" class="overlay-close" data-hide-days-close>Fechar</button></div>'
+    +'<div class="hide-days-group" data-hide-group="1"><h4>PRIMEIRA ABA/BLOCO — NÃO CONTER:</h4><div class="hide-days-options">'+options()+'</div><small>Vai gerar: ES, MG, BA, SP e RJ</small></div>'
     +'<button type="button" class="btn-reset hide-days-add" data-add-hide-group>ADICIONAR MAIS</button>'
-    +'<div class="hide-days-help">Você pode marcar 1–2 dias e 3–6 dias ao mesmo tempo. Cada aba tem uma seleção independente.</div>'
+    +'<div class="hide-days-help">A segunda aba/bloco será criada no mesmo arquivo e terá novamente ES, MG, BA, SP e RJ, com os dias que você selecionar para ela.</div>'
     +'<div class="hide-days-actions"><button type="button" class="btn-reset" data-hide-days-close>Cancelar</button><button type="button" class="btn-primary" data-hide-days-confirm>Baixar planilha</button></div>'
     +'</div>';
   document.body.appendChild(modal);
@@ -1805,7 +1805,7 @@ function abrirModalOcultarDias(entries, contexto){
     if(ev.target.closest('[data-add-hide-group]')){
       const count=modal.querySelectorAll('.hide-days-group').length+1;
       const group=document.createElement('div'); group.className='hide-days-group'; group.dataset.hideGroup=String(count);
-      group.innerHTML='<h4>'+(['PRIMEIRA','SEGUNDA','TERCEIRA','QUARTA'][count-1]||count+'ª')+' ABA — NÃO CONTER:</h4><div class="hide-days-options">'+options()+'</div><button type="button" class="btn-reset hide-days-remove" data-remove-hide-group>Remover esta aba</button>';
+      group.innerHTML='<h4>'+(['PRIMEIRA','SEGUNDA','TERCEIRA','QUARTA'][count-1]||count+'ª')+' ABA/BLOCO — NÃO CONTER:</h4><div class="hide-days-options">'+options()+'</div><small>Vai gerar: ES, MG, BA, SP e RJ</small><button type="button" class="btn-reset hide-days-remove" data-remove-hide-group>Remover esta aba</button>';
       modal.querySelector('[data-add-hide-group]').before(group);
       if(count>=4)ev.target.remove();
       return;
