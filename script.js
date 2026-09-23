@@ -184,8 +184,8 @@ function findReturnHeader(rows){
   const max=Math.min(rows?.length||0,60);
   for(let rowIndex=0;rowIndex<max;rowIndex++){
     const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader);
-    const hasPackage=keys.some(k=>['PACOTE','PACOTES','PACOTE_ID','PACOTE_DO_PEDIDO','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE','SHIPMENT_ID'].includes(k));
-    const hasJust=keys.some(k=>['JUSTIFICATIVA','JUSTIFICATIVA_DO_PACOTE','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO','MOTIVO_DA_NAO_ENTREGA'].includes(k));
+    const hasPackage=keys.some(k=>k==='ID'||k.includes('PACOTE')||k.includes('SHIPMENT'));
+    const hasJust=keys.some(k=>k.includes('JUSTIFIC')||k.includes('OBSERV')||k.includes('MOTIVO')||k.includes('RAZAO'));
     if(hasPackage&&hasJust) return {rowIndex,keys};
   }
   return null;
@@ -193,16 +193,16 @@ function findReturnHeader(rows){
 function buildReturnRowsFromRawRows(rows){
   if(!rows||!rows.length) return null;
   const headers=[];
-  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(k=>['PACOTE','PACOTES','PACOTE_ID','PACOTE_DO_PEDIDO','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE','SHIPMENT_ID'].includes(k)); const hasJust=keys.some(k=>['JUSTIFICATIVA','JUSTIFICATIVA_DO_PACOTE','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO','MOTIVO_DA_NAO_ENTREGA'].includes(k)); if(hasPackage&&hasJust) headers.push({rowIndex,keys}); }
+  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(k=>k==='ID'||k.includes('PACOTE')||k.includes('SHIPMENT')); const hasJust=keys.some(k=>k.includes('JUSTIFIC')||k.includes('OBSERV')||k.includes('MOTIVO')||k.includes('RAZAO')); if(hasPackage&&hasJust) headers.push({rowIndex,keys}); }
   if(!headers.length) return null;
   const out=[];
   headers.forEach((header,headerIndex)=>{
     const idx={}; header.keys.forEach((key,i)=>{if(key&&!Object.prototype.hasOwnProperty.call(idx,key)) idx[key]=i;});
-    const colPacote=idx['PACOTE']!==undefined?idx['PACOTE']:(idx['PACOTES']!==undefined?idx['PACOTES']:(idx['PACOTE_ID']!==undefined?idx['PACOTE_ID']:(idx['PACOTE_DO_PEDIDO']!==undefined?idx['PACOTE_DO_PEDIDO']:(idx['SHP_SHIPMENT_ID']!==undefined?idx['SHP_SHIPMENT_ID']:(idx['ID_DO_PACOTE']!==undefined?idx['ID_DO_PACOTE']:(idx['ID_PACOTE']!==undefined?idx['ID_PACOTE']:idx['SHIPMENT_ID']))))));
+    const colPacote=idx['PACOTE']!==undefined?idx['PACOTE']:(Object.keys(idx).find(k=>k==='ID'||k.includes('PACOTE')||k.includes('SHIPMENT'))!==undefined?idx[Object.keys(idx).find(k=>k==='ID'||k.includes('PACOTE')||k.includes('SHIPMENT'))]:undefined);
     const colBase=idx['BASE']!==undefined?idx['BASE']:(idx['SHP_LG_FACILITY_ID']!==undefined?idx['SHP_LG_FACILITY_ID']:undefined);
     const colRota=idx['ROTA']!==undefined?idx['ROTA']:(idx['ID_DA_ROTA']!==undefined?idx['ID_DA_ROTA']:(idx['SHP_LG_ROUTE_ID']!==undefined?idx['SHP_LG_ROUTE_ID']:idx['ROUTE']));
     const colDriver=idx['MOTORISTA']!==undefined?idx['MOTORISTA']:(idx['ID_DO_MOTORISTA']!==undefined?idx['ID_DO_MOTORISTA']:(idx['SHP_LG_DRIVER_ID']!==undefined?idx['SHP_LG_DRIVER_ID']:idx['DRIVER']));
-    const colJust=idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(idx['JUSTIFICATIVA_DO_PACOTE']!==undefined?idx['JUSTIFICATIVA_DO_PACOTE']:(idx['OBSERVACAO']!==undefined?idx['OBSERVACAO']:(idx['OBSERVACAO_DO_PACOTE']!==undefined?idx['OBSERVACAO_DO_PACOTE']:(idx['MOTIVO']!==undefined?idx['MOTIVO']:idx['MOTIVO_DA_NAO_ENTREGA']))));
+    const colJust=idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(Object.keys(idx).find(k=>k.includes('JUSTIFIC')||k.includes('OBSERV')||k.includes('MOTIVO')||k.includes('RAZAO'))!==undefined?idx[Object.keys(idx).find(k=>k.includes('JUSTIFIC')||k.includes('OBSERV')||k.includes('MOTIVO')||k.includes('RAZAO'))]:undefined);
     if(colPacote===undefined || colJust===undefined) return;
     const end=headerIndex+1<headers.length?headers[headerIndex+1].rowIndex:rows.length;
     for(let r=header.rowIndex+1;r<end;r++){
@@ -1307,7 +1307,7 @@ document.getElementById('exportConfigCancel').addEventListener('click',closeExpo
 document.getElementById('exportSelectAllDays').addEventListener('click',()=>document.querySelectorAll('#exportDaysList input').forEach(i=>i.checked=true));
 function toggleCustomAge(select,box){const custom=box.querySelector('.export-custom-age');if(custom)custom.hidden=select.value!=='CUSTOM';}
 document.getElementById('exportMainAge').addEventListener('change',function(){document.getElementById('exportMainCustomAge').hidden=this.value!=='CUSTOM';});
-document.getElementById('exportAddAgeGroup').addEventListener('click',()=>{const box=document.getElementById('exportExtraAgeGroups');const row=document.createElement('div');row.className='export-extra-age-row';row.innerHTML='<label>Aba regional adicional</label>'+ageSelectHtml('1_2')+'<button type="button" class="btn-reset export-remove-age">Remover</button>';const select=row.querySelector('.export-extra-age');select.addEventListener('change',()=>toggleCustomAge(select,row));row.querySelector('.export-remove-age').addEventListener('click',()=>row.remove());box.appendChild(row);});
+document.getElementById('exportAddAgeGroup').addEventListener('click',()=>{const box=document.getElementById('exportExtraAgeGroups');const row=document.createElement('div');row.className='export-extra-age-row';const blockNumber=box.querySelectorAll('.export-extra-age-row').length+2;row.innerHTML='<label>'+blockNumber+'º bloco · ES / MG / BA / SP / RJ</label>'+ageSelectHtml('1_2')+'<button type="button" class="btn-reset export-remove-age">Remover</button>';const select=row.querySelector('.export-extra-age');select.addEventListener('change',()=>toggleCustomAge(select,row));row.querySelector('.export-remove-age').addEventListener('click',()=>row.remove());box.appendChild(row);});
 document.getElementById('exportConfigConfirm').addEventListener('click',()=>{
   const selected=Array.from(document.querySelectorAll('#exportDaysList input:checked')).map(i=>i.value); if(!selected.length){alert('Selecione pelo menos um dia.');return;}
   const order=document.getElementById('exportOrder').value; const chunk=Math.max(1,Number(document.getElementById('exportChunkSize').value)||1); const imports=IMPORTS.filter(i=>selected.includes(i.importDate)); let entries=[];
