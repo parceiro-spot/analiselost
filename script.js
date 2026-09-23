@@ -859,28 +859,7 @@ function sortBtnLabel(mode){
   return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h10M4 18h5"/></svg> Ordem: Valor';
 }
 function abrirModalOcultarDias(entries, contexto){
-  const dias=Array.from(new Set((entries||[]).map(e=>Math.floor(diasParado(e))))).sort((a,b)=>a-b);
-  if(!dias.length){ baixarRetorno(entries,contexto); return; }
-  document.getElementById('hideDaysModal')?.remove();
-  const modal=document.createElement('div'); modal.id='hideDaysModal'; modal.className='hide-days-modal';
-  modal.innerHTML='<div class="hide-days-card" role="dialog" aria-modal="true" aria-labelledby="hideDaysTitle">'
-    +'<div class="hide-days-head"><div><h3 id="hideDaysTitle">OCULTAR DIAS</h3><p>Marque os dias que não devem aparecer na planilha baixada.</p></div><button type="button" class="overlay-close" data-hide-days-close>Fechar</button></div>'
-    +'<div class="hide-days-options">'+dias.map(d=>'<label><input type="checkbox" value="'+d+'"> <strong>'+d+' dia'+(d===1?'':'s')+'</strong></label>').join('')+'</div>'
-    +'<div class="hide-days-help">Exemplo: selecionando a faixa <strong>3 a 6 dias</strong> e ocultando o dia <strong>3</strong>, serão baixados somente os dias 4, 5 e 6.</div>'
-    +'<div class="hide-days-actions"><button type="button" class="btn-reset" data-hide-days-close>Cancelar</button><button type="button" class="btn-primary" data-hide-days-confirm>Baixar planilha</button></div>'
-    +'</div>';
-  document.body.appendChild(modal);
-  const close=()=>{modal.remove();document.removeEventListener('keydown',esc);};
-  const esc=(ev)=>{if(ev.key==='Escape')close();};
-  document.addEventListener('keydown',esc);
-  modal.addEventListener('click',ev=>{
-    if(ev.target===modal||ev.target.closest('[data-hide-days-close]')){close();return;}
-    if(ev.target.closest('[data-hide-days-confirm]')){
-      const ocultos=new Set(Array.from(modal.querySelectorAll('input[type="checkbox"]:checked')).map(input=>Number(input.value)));
-      const filtrados=(entries||[]).filter(e=>!ocultos.has(Math.floor(diasParado(e))));
-      close(); baixarRetorno(filtrados,contexto+(ocultos.size?' · dias ocultos: '+Array.from(ocultos).sort((a,b)=>a-b).join(', '):''));
-    }
-  });
+  openExportConfig(entries);
 }
 function renderOverlayBody(){
   const driverDetail=document.getElementById('overlayDriverDetail'); if(driverDetail) driverDetail.remove();
