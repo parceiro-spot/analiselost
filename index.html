@@ -1797,7 +1797,7 @@ function abrirModalOcultarDias(entries, contexto){
     +'<div class="hide-days-actions"><button type="button" class="btn-reset" data-hide-days-close>Cancelar</button><button type="button" class="btn-primary" data-hide-days-confirm>Baixar planilha</button></div>'
     +'</div>';
   document.body.appendChild(modal);
-  const close=()=>{modal.remove();document.removeEventListener('keydown',esc);};
+  const close=()=>{modal.remove();document.getElementById('baseOverlay')?.classList.remove('show');document.removeEventListener('keydown',esc);};
   const esc=(ev)=>{if(ev.key==='Escape')close();};
   document.addEventListener('keydown',esc);
   modal.addEventListener('click',ev=>{
@@ -1812,9 +1812,15 @@ function abrirModalOcultarDias(entries, contexto){
     }
     if(ev.target.closest('[data-remove-hide-group]')){ev.target.closest('.hide-days-group').remove();return;}
     if(ev.target.closest('[data-hide-days-confirm]')){
-      const ocultos=new Set(); modal.querySelectorAll('.hide-days-group input:checked').forEach(input=>ocultos.add(input.value));
-      const filtrados=(entries||[]).filter(e=>!ocultos.has(bucketOf(diasParado(e))));
-      close(); baixarRetorno(filtrados,contexto+(ocultos.size?' · faixas não contidas: '+Array.from(ocultos).map(bucket=>BUCKET_LABELS[bucket]).join(', '):''));
+      const ranges={ATE2:[[0,2]],'3A6':[[3,6]],'7A10':[[7,10]],MAIS11:[[11,999]]};
+      const ageGroups=[];
+      modal.querySelectorAll('.hide-days-group').forEach((group,index)=>{
+        const ocultos=new Set(Array.from(group.querySelectorAll('input:checked')).map(input=>input.value));
+        const incluidos=BUCKET_KEYS.filter(bucket=>!ocultos.has(bucket)).flatMap(bucket=>ranges[bucket]||[]);
+        if(incluidos.length)ageGroups.push({key:'CUSTOM',label:(index===0?'1ª aba':' '+(index+1)+'ª aba')+' · não contém '+(ocultos.size?Array.from(ocultos).map(bucket=>BUCKET_LABELS[bucket]).join(' + '):'nenhuma faixa'),ranges:incluidos});
+      });
+      if(!ageGroups.length){alert('Deixe pelo menos uma faixa disponível em uma das abas.');return;}
+      close(); baixarRetornoFormatado(entries,{ageGroups,orderMode:'VALOR',dateOrder:[]});
     }
   });
 }
