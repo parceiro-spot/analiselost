@@ -862,34 +862,9 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
       <div class="history-empty" id="importsHistEmpty">Nenhuma importação ainda.</div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="section-title return-history-title" style="flex:1;margin:36px 0 16px;"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg> Planilhas de retorno importadas</div>
-      <button type="button" class="btn-reset" id="btnToggleReturnHist" style="margin:36px 0 16px;" title="Minimizar/expandir planilhas de retorno"><svg class="ico" id="returnHistCaret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg></button>
-    </div>
-    <div class="card return-history-card" id="returnHistoryCard">
-      <p class="return-history-help">Aqui ficam todos os arquivos de retorno. Cada linha informa o dia, as abas reconhecidas, as justificativas e as planilhas de pacotes às quais o retorno está vinculado.</p>
-      <div class="history-month-toolbar"><svg class="ico history-calendar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></svg><label for="returnHistMonth">Selecionar mês e ano</label><input type="month" id="returnHistMonth" title="Selecionar mês e ano"><button type="button" class="btn-reset" id="btnClearReturnMonth">Todos os meses</button><div class="history-sheets-folder"><button type="button" class="history-sheets-folder-title" id="btnToggleReturnFolder" aria-expanded="false" title="Abrir pasta Retornos"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/></svg> Retornos <span class="folder-caret">▸</span></button><div class="history-month-chips folder-closed" id="returnMonthChips"></div></div></div>
-      <div class="table-scroll"><table><thead><tr><th>Dia</th><th>Arquivo de retorno</th><th>Abas</th><th>Justificativas</th><th>Vinculada às planilhas de pacotes</th><th>Importado em</th><th></th></tr></thead><tbody id="returnHistoryBody"></tbody></table></div>
-      <div class="history-empty" id="returnHistoryEmpty">Nenhuma planilha de retorno importada.</div>
-    </div>
-
 
 
 </main>
-
-<div class="overlay export-config-overlay" id="exportConfigOverlay">
-  <div class="export-config-panel">
-    <div class="overlay-head"><div><h2>Configurar planilha do dashboard</h2><div class="osub">Escolha os dias, as exclusões e a ordem. As abas continuarão separadas por regional.</div></div><button class="overlay-close" id="exportConfigClose" type="button">Fechar</button></div>
-    <div class="export-config-grid">
-      <div class="export-config-field"><label for="exportOrder">Ordem da planilha</label><select id="exportOrder"><option value="DATA_ASC">Mais antigos → mais recentes</option><option value="DATA_DESC">Mais recentes → mais antigos</option><option value="MANHA_TARDE">Manhã → Tarde</option><option value="TARDE_MANHA">Tarde → Manhã</option><option value="TODAS">Todas juntas (sem separar por dia)</option></select></div>
-      <div class="export-config-field"><label for="exportChunkSize">Quantidade de dias por bloco</label><input type="number" id="exportChunkSize" min="1" value="1"><small>Use 1 para ordenar dia a dia; 2, 3 etc. para agrupar períodos.</small></div>
-    </div>
-    <div class="export-age-config"><div class="export-days-head"><strong>Faixa de dias parado para estas abas</strong><button type="button" class="btn-reset" id="exportAddAgeGroup">+ Adicionar mais abas regionais</button></div><div class="export-age-row"><label for="exportMainAge">Abas principais</label><select id="exportMainAge"><option value="TODOS">Todos os dias em atraso</option><option value="3_7">3–7 dias</option><option value="1_2">1–2 dias</option><option value="8_10">8–10 dias</option><option value="11_PLUS">11 dias ou mais</option></select></div><div id="exportExtraAgeGroups"></div><small class="export-age-help">As abas são criadas sempre nesta ordem: Espírito Santo, Minas Gerais, Bahia, São Paulo e Rio de Janeiro. Você pode adicionar outra faixa para aparecer ao lado.</small></div>
-    <div class="export-days-head"><strong>Dias da planilha</strong><button type="button" class="btn-reset" id="exportSelectAllDays">Selecionar todos</button></div>
-    <div class="export-days-list" id="exportDaysList"></div>
-    <div class="export-config-actions"><button type="button" class="btn-reset" id="exportConfigCancel">Cancelar</button><button type="button" class="btn-primary" id="exportConfigConfirm">Baixar XLSX</button></div>
-  </div>
-</div>
 
 <div class="overlay" id="baseOverlay">
   <div class="overlay-panel">
