@@ -33,9 +33,12 @@ const offendersCollapsedRegionals=new Set();
 let regionalNav={level:'list', regional:null};
 let regionalSearch='';
 let regionalBaseBucket='TODOS';
+let regionalAgeFilter='TODOS';
 let selectedImportId=null;
 let importsHistCollapsed=false;
 let historyDayFilters=new Set();
+let returnHistMonth='';
+let returnHistCollapsed=false;
 let importsHistMonth='';
 let pendingImportFile=null;
 let pendingReturnFile=null;
@@ -181,8 +184,8 @@ function findReturnHeader(rows){
   const max=Math.min(rows?.length||0,60);
   for(let rowIndex=0;rowIndex<max;rowIndex++){
     const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader);
-    const hasPackage=keys.some(k=>['PACOTE','PACOTES','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE'].includes(k));
-    const hasJust=keys.some(k=>['JUSTIFICATIVA','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO'].includes(k));
+    const hasPackage=keys.some(k=>['PACOTE','PACOTES','PACOTE_ID','PACOTE_DO_PEDIDO','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE','SHIPMENT_ID'].includes(k));
+    const hasJust=keys.some(k=>['JUSTIFICATIVA','JUSTIFICATIVA_DO_PACOTE','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO','MOTIVO_DA_NAO_ENTREGA'].includes(k));
     if(hasPackage&&hasJust) return {rowIndex,keys};
   }
   return null;
@@ -190,16 +193,16 @@ function findReturnHeader(rows){
 function buildReturnRowsFromRawRows(rows){
   if(!rows||!rows.length) return null;
   const headers=[];
-  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(k=>['PACOTE','PACOTES','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE'].includes(k)); const hasJust=keys.some(k=>['JUSTIFICATIVA','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO'].includes(k)); if(hasPackage&&hasJust) headers.push({rowIndex,keys}); }
+  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(k=>['PACOTE','PACOTES','PACOTE_ID','PACOTE_DO_PEDIDO','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE','SHIPMENT_ID'].includes(k)); const hasJust=keys.some(k=>['JUSTIFICATIVA','JUSTIFICATIVA_DO_PACOTE','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO','MOTIVO_DA_NAO_ENTREGA'].includes(k)); if(hasPackage&&hasJust) headers.push({rowIndex,keys}); }
   if(!headers.length) return null;
   const out=[];
   headers.forEach((header,headerIndex)=>{
     const idx={}; header.keys.forEach((key,i)=>{if(key&&!Object.prototype.hasOwnProperty.call(idx,key)) idx[key]=i;});
-    const colPacote=idx['PACOTE']!==undefined?idx['PACOTE']:(idx['PACOTES']!==undefined?idx['PACOTES']:(idx['SHP_SHIPMENT_ID']!==undefined?idx['SHP_SHIPMENT_ID']:(idx['ID_DO_PACOTE']!==undefined?idx['ID_DO_PACOTE']:idx['ID_PACOTE'])));
+    const colPacote=idx['PACOTE']!==undefined?idx['PACOTE']:(idx['PACOTES']!==undefined?idx['PACOTES']:(idx['PACOTE_ID']!==undefined?idx['PACOTE_ID']:(idx['PACOTE_DO_PEDIDO']!==undefined?idx['PACOTE_DO_PEDIDO']:(idx['SHP_SHIPMENT_ID']!==undefined?idx['SHP_SHIPMENT_ID']:(idx['ID_DO_PACOTE']!==undefined?idx['ID_DO_PACOTE']:(idx['ID_PACOTE']!==undefined?idx['ID_PACOTE']:idx['SHIPMENT_ID']))))));
     const colBase=idx['BASE']!==undefined?idx['BASE']:(idx['SHP_LG_FACILITY_ID']!==undefined?idx['SHP_LG_FACILITY_ID']:undefined);
     const colRota=idx['ROTA']!==undefined?idx['ROTA']:(idx['ID_DA_ROTA']!==undefined?idx['ID_DA_ROTA']:(idx['SHP_LG_ROUTE_ID']!==undefined?idx['SHP_LG_ROUTE_ID']:idx['ROUTE']));
     const colDriver=idx['MOTORISTA']!==undefined?idx['MOTORISTA']:(idx['ID_DO_MOTORISTA']!==undefined?idx['ID_DO_MOTORISTA']:(idx['SHP_LG_DRIVER_ID']!==undefined?idx['SHP_LG_DRIVER_ID']:idx['DRIVER']));
-    const colJust=idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(idx['OBSERVACAO']!==undefined?idx['OBSERVACAO']:(idx['OBSERVACAO_DO_PACOTE']!==undefined?idx['OBSERVACAO_DO_PACOTE']:idx['MOTIVO']));
+    const colJust=idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(idx['JUSTIFICATIVA_DO_PACOTE']!==undefined?idx['JUSTIFICATIVA_DO_PACOTE']:(idx['OBSERVACAO']!==undefined?idx['OBSERVACAO']:(idx['OBSERVACAO_DO_PACOTE']!==undefined?idx['OBSERVACAO_DO_PACOTE']:(idx['MOTIVO']!==undefined?idx['MOTIVO']:idx['MOTIVO_DA_NAO_ENTREGA']))));
     if(colPacote===undefined || colJust===undefined) return;
     const end=headerIndex+1<headers.length?headers[headerIndex+1].rowIndex:rows.length;
     for(let r=header.rowIndex+1;r<end;r++){
@@ -218,6 +221,7 @@ function buildReturnRowsFromWorkbook(wb){
     if(!ws) return;
     const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true});
     const parsed=buildReturnRowsFromRawRows(rows);
+    if(parsed?.length) parsed.forEach(row=>{ row._sheetName=sheetName; });
     if(parsed?.length) combined.push(...parsed);
   });
   return combined.length?combined:null;
@@ -361,6 +365,7 @@ function updateImportUI(){
   if(driverFileName){ dbox.style.display='block'; document.getElementById('lastImportDriverDt').textContent=driverSavedAt?new Date(driverSavedAt).toLocaleString('pt-BR'):'—'; document.getElementById('lastImportDriverMeta').innerHTML=fmtInt(driverRows)+' motorista(s) mapeados<br><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5 16.2c.6-1.4 2-2.2 3.5-2.2s2.9.8 3.5 2.2M15 10h4M15 13.5h4"/></svg> '+escHtml(driverFileName); }
   else { dbox.style.display='none'; }
   renderImportsHistory();
+  renderReturnHistory();
 }
 function renderImportsHistory(){
   const tbody=document.getElementById('importsHistBody'); const empty=document.getElementById('importsHistEmpty'); const monthInput=document.getElementById('importsHistMonth');
@@ -384,11 +389,43 @@ function renderImportsHistory(){
       +`</tr>`;
   }).join('');
 }
+function linkedReturnImports(sheet){
+  const saved=Array.isArray(sheet?.linkedImports)?sheet.linkedImports:[];
+  const candidates=IMPORTS.filter(imp=>imp.importDate===sheet?.importDate);
+  const list=saved.length?saved.map(x=>IMPORTS.find(imp=>imp.id===x.id)||x):candidates;
+  return list.map(imp=>{
+    const rows=sheet?.rows||[]; const ids=new Set(rows.map(r=>normalizePackageKey(r.pacote)).filter(Boolean));
+    const count=(imp.entries||[]).filter(e=>ids.has(normalizePackageKey(e.pacote))).length;
+    return {...imp,linkedCount:count};
+  });
+}
+function renderReturnHistory(){
+  const body=document.getElementById('returnHistoryBody'), empty=document.getElementById('returnHistoryEmpty'); if(!body||!empty)return;
+  const list=RETURN_SHEETS.slice().sort((a,b)=>String(b.importDate||'').localeCompare(String(a.importDate||''))||String(b.savedAt||'').localeCompare(String(a.savedAt||''))).filter(s=>!returnHistMonth||String(s.importDate||'').slice(0,7)===returnHistMonth);
+  empty.style.display=list.length?'none':'block';
+  body.innerHTML=list.map(sheet=>{
+    const links=linkedReturnImports(sheet); const linked=links.length?links.map(imp=>'<span class="return-link-chip">'+escHtml(imp.fileName||'Arquivo')+' · '+escHtml(imp.turno||'Turno')+' <b>'+fmtInt(imp.linkedCount||0)+' pacotes</b></span>').join(''):'<span class="return-no-link">Nenhuma planilha de pacotes no mesmo dia.</span>';
+    const tabs=(sheet.sheetNames||Array.from(new Set((sheet.rows||[]).map(r=>r._sheetName).filter(Boolean))));
+    return '<tr data-return-id="'+escHtml(sheet.id)+'"><td>'+escHtml(String(sheet.importDate||'').split('-').reverse().join('/'))+'</td><td><strong>'+escHtml(sheet.fileName||'Arquivo sem nome')+'</strong></td><td><div class="return-tabs">'+(tabs.length?tabs.map(t=>'<span>'+escHtml(t)+'</span>').join(''):'—')+'</div></td><td>'+fmtInt((sheet.rows||[]).filter(r=>String(r.justificativa||'').trim()).length)+' / '+fmtInt((sheet.rows||[]).length)+'</td><td><div class="return-linked-list">'+linked+'</div></td><td>'+escHtml(new Date(sheet.savedAt).toLocaleString('pt-BR'))+'</td><td><button type="button" class="del-btn" data-del-return="'+escHtml(sheet.id)+'" title="Excluir esta planilha de retorno"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l-1-13M10 11v5M14 11v5"/></svg></button></td></tr>';
+  }).join('');
+  renderReturnMonthChips();
+}
+function renderReturnMonthChips(){
+  const box=document.getElementById('returnMonthChips'); if(!box)return;
+  const months=Array.from(new Set(RETURN_SHEETS.map(s=>String(s.importDate||'').slice(0,7)).filter(Boolean))).sort().reverse();
+  box.innerHTML=months.map(month=>{const [y,m]=month.split('-');const label=new Date(Number(y),Number(m)-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase();return '<span class="history-month-folder '+(returnHistMonth===month?'active':'')+'"><button type="button" class="month-select" data-return-month="'+month+'">▰ '+label+' '+y+'</button><button type="button" class="month-delete" data-delete-return-month="'+month+'" title="Excluir retornos do mês"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l-1-13M10 11v5M14 11v5"/></svg></button></span>';}).join('');
+}
 function renderImportsMonthChips(){
   const box=document.getElementById('importsMonthChips'); if(!box)return;
   const months=Array.from(new Set(IMPORTS.map(i=>String(i.importDate||'').slice(0,7)).filter(Boolean))).sort().reverse();
   box.innerHTML=months.map(month=>{const [y,m]=month.split('-');const label=new Date(Number(y),Number(m)-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase();return `<span class="history-month-folder ${importsHistMonth===month?'active':''}"><button type="button" class="month-select" data-month-select="${month}" title="Abrir pasta ${label}/${y}">▰ ${label} ${y}</button><button type="button" class="month-delete" data-delete-month="${month}" title="Excluir somente este mês" aria-label="Excluir a pasta ${label} ${y}"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg></button></span>`;}).join('');
 }
+document.getElementById('returnHistMonth').addEventListener('change',e=>{returnHistMonth=e.target.value||'';renderReturnHistory();});
+document.getElementById('btnClearReturnMonth').addEventListener('click',()=>{returnHistMonth='';renderReturnHistory();});
+document.getElementById('btnToggleReturnFolder').addEventListener('click',function(){const open=this.getAttribute('aria-expanded')==='true';this.setAttribute('aria-expanded',String(!open));document.getElementById('returnMonthChips').classList.toggle('folder-closed',open);});
+document.getElementById('returnMonthChips').addEventListener('click',e=>{const monthBtn=e.target.closest('[data-return-month]');if(monthBtn){returnHistMonth=monthBtn.dataset.returnMonth;renderReturnHistory();return;}const del=e.target.closest('[data-delete-return-month]');if(!del)return;const month=del.dataset.deleteReturnMonth;if(!confirm('Excluir todas as planilhas de retorno deste mês? Esta ação não pode ser desfeita.'))return;RETURN_SHEETS=RETURN_SHEETS.filter(s=>String(s.importDate||'').slice(0,7)!==month);if(returnHistMonth===month)returnHistMonth='';persistReturnSheets();updateImportUI();});
+document.getElementById('returnHistoryBody').addEventListener('click',e=>{const del=e.target.closest('[data-del-return]');if(!del)return;e.stopPropagation();if(!confirm('Excluir esta planilha de retorno e suas justificativas? Esta ação não pode ser desfeita.'))return;RETURN_SHEETS=RETURN_SHEETS.filter(s=>s.id!==del.dataset.delReturn);persistReturnSheets();updateImportUI();if(Object.keys(STATE_DATA).length)renderAll();});
+document.getElementById('btnToggleReturnHist').addEventListener('click',function(){returnHistCollapsed=!returnHistCollapsed;document.getElementById('returnHistoryCard').style.display=returnHistCollapsed?'none':'block';document.getElementById('returnHistCaret').style.transform=returnHistCollapsed?'rotate(-90deg)':'rotate(0)';});
 document.getElementById('importsHistMonth').addEventListener('change',function(e){ importsHistMonth=e.target.value||''; renderImportsHistory(); });
 document.getElementById('btnClearImportsMonth').addEventListener('click',function(){ importsHistMonth=''; renderImportsHistory(); });
 document.getElementById('btnToggleSheetsFolder').addEventListener('click',function(){ const open=this.getAttribute('aria-expanded')==='true'; this.setAttribute('aria-expanded',String(!open)); this.title=open?'Abrir pasta Planilhas':'Fechar pasta Planilhas'; document.getElementById('importsMonthChips').classList.toggle('folder-closed',open); });
@@ -408,7 +445,7 @@ document.getElementById('importsHistBody').addEventListener('click', function(e)
   const row=e.target.closest('[data-import-id]');
   if(row){
     selectedImportId=row.dataset.importId; saveSelectedImport();
-    currentTab='TODOS'; currentBaseFilter='TODAS'; topBasesMode='TODOS';
+    currentTab='TODOS'; currentBaseFilter='TODAS'; topBasesMode='TODOS'; regionalAgeFilter='TODOS';
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));
     renderImportsHistory();
     if(Object.keys(STATE_DATA).length) renderAll();
@@ -481,11 +518,12 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
       const previous=merged.get(fallbackKey)||findManualReturnRecord(pacote,row.rota)||{};
       const incomingJust=String(row.justificativa||'').trim();
       merged.delete(fallbackKey);
-      merged.set(exactKey,{...previous,pacote,rota:normalizePackageKey(row.rota)||previous.rota||'',base:incomingBase||previous.base||'',driverId:normalizePackageKey(row.driverId)||previous.driverId||'',justificativa:incomingJust||previous.justificativa||'',photo:previous.photo||null,updatedAt:new Date().toISOString()});
+      merged.set(exactKey,{...previous,pacote,rota:normalizePackageKey(row.rota)||previous.rota||'',base:incomingBase||previous.base||'',driverId:normalizePackageKey(row.driverId)||previous.driverId||'',justificativa:incomingJust||previous.justificativa||'',photo:previous.photo||null,_sheetName:row._sheetName||previous._sheetName||'',updatedAt:new Date().toISOString()});
     });
     const mergedRows=Array.from(merged.values());
-    if(old) RETURN_SHEETS=RETURN_SHEETS.filter(x=>x.id!==old.id);
-    RETURN_SHEETS.push({id:old?.id||'ret-'+Date.now(),importDate,fileName:file.name,savedAt:new Date().toISOString(),rows:mergedRows});
+    const linkedImports=IMPORTS.filter(imp=>imp.importDate===importDate).map(imp=>({id:imp.id,fileName:imp.fileName,turno:imp.turno,entries:(imp.entries||[]).length}));
+    const sheetNames=Array.from(new Set(mergedRows.map(row=>row._sheetName).filter(Boolean)));
+    RETURN_SHEETS.push({id:'ret-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),importDate,fileName:file.name,savedAt:new Date().toISOString(),rows:mergedRows,sheetNames,linkedImports});
     persistReturnSheets(); updateImportUI(); if(Object.keys(STATE_DATA).length) renderAll();
   };
   if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildReturnRowsFromRawRows(parseDelimitedText(text,delim)));}catch(err){console.error(err);alert('Erro ao carregar a planilha_retorno.');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
@@ -1145,7 +1183,7 @@ function diasStyle(dias){ if(dias<=2) return 5; if(dias===3) return 6; if(dias==
 function buildSheetXml(grupos, contexto){
   let rows='', merges=[], r=0;
   const linhaVazia=()=>{ r++; rows+='<row r="'+r+'"/>'; };
-  r++; rows+='<row r="'+r+'" ht="20" customHeight="1">'+cTxt(0,r,'Planilha de retorno — Parceiro Spot · '+fmtDateFullBR(new Date())+(contexto?' · '+contexto:''),1)+'</row>';
+  r++; rows+='<row r="'+r+'" ht="20" customHeight="1">'+cTxt(0,r,'Planilha de retorno — Parceiro Spot · '+fmtDateFullBR(new Date())+(contexto?(typeof contexto==='string'?contexto:(contexto.selectedDays?.length?'Dias '+contexto.selectedDays.map(d=>d.split('-').reverse().join('/')).join(', '):'')):''),1)+'</row>';
   merges.push('A'+r+':J'+r);
   grupos.forEach(g=>{
     const linhas=g.linhas;
@@ -1208,26 +1246,68 @@ function baixarRetorno(entries, contexto){
 function baixarRetornoFormatado(entries, contexto){
   if(!entries||!entries.length){ alert('Nenhum pacote no filtro atual para exportar.'); return; }
   if(typeof JSZip==='undefined'){ alert('Não consegui gerar o Excel: a biblioteca de compactação não carregou.'); return; }
-  const porReg={}; entries.forEach(e=>{const reg=regionalFromBasePrefix(e.base)||'OUTROS';(porReg[reg]=porReg[reg]||[]).push(e);});
-  const ordem=REGIONAL_ORDER.filter(r=>porReg[r]).concat(Object.keys(porReg).filter(r=>!REGIONAL_ORDER.includes(r)));
-  const sheets=[]; ordem.forEach(reg=>{const porBase={};(porReg[reg]||[]).forEach(e=>(porBase[e.base]=porBase[e.base]||[]).push(e));const grupos=Object.keys(porBase).sort().map(base=>({regional:base,linhas:porBase[base].sort((a,b)=>(b.valor||0)-(a.valor||0)).map(e=>({base,e}))}));sheets.push({reg,xml:buildSheetXml(grupos,contexto)});});
+  const ageGroups=contexto?.ageGroups?.length?contexto.ageGroups:[{key:'TODOS',label:'Todos os dias'}];
+  const sheets=[];
+  ageGroups.forEach(group=>{
+    const groupEntries=entries.filter(e=>group.key==='TODOS'||(group.key==='3_7'?diasParado(e)>=3&&diasParado(e)<=7:group.key==='1_2'?diasParado(e)<=2:group.key==='8_10'?diasParado(e)>=8&&diasParado(e)<=10:group.key==='11_PLUS'?diasParado(e)>=11:true));
+    const porReg={}; REGIONAL_ORDER.forEach(reg=>porReg[reg]=[]); groupEntries.forEach(e=>{const reg=regionalFromBasePrefix(e.base)||'OUTROS';(porReg[reg]=porReg[reg]||[]).push(e);});
+    const ordem=REGIONAL_ORDER.concat(Object.keys(porReg).filter(r=>!REGIONAL_ORDER.includes(r)));
+    ordem.forEach(reg=>{const porBase={};(porReg[reg]||[]).forEach(e=>(porBase[e.base]=porBase[e.base]||[]).push(e));const grupos=Object.keys(porBase).sort().map(base=>({regional:base,linhas:porBase[base].slice().sort((a,b)=>{const da=(contexto?.dateOrder||[]).indexOf(a._exportDate),db=(contexto?.dateOrder||[]).indexOf(b._exportDate);return (da<0?999:da)-(db<0?999:db)||((b.valor||0)-(a.valor||0));}).map(e=>({base:e.base,e}))}));sheets.push({reg,groupKey:group.key,groupLabel:group.label,xml:buildSheetXml(grupos,contexto)});});
+  });
   const zip=new JSZip(); const sheetOverrides=sheets.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('');
   zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheetOverrides+'</Types>');
   zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-  const xl=zip.folder('xl'), names=sheets.map((s,i)=>{const label=(REGIONAL_LABELS[s.reg]||s.reg).replace(/[\\/*?:\[\]]/g,' ').trim().slice(0,31)||('Regional '+(i+1));return {label,i};});
+  const short={'ESPÍRITO SANTO':'ES','MINAS GERAIS':'MG','BAHIA':'BA','SÃO PAULO':'SP','RIO DE JANEIRO':'RJ'}; const xl=zip.folder('xl'), names=sheets.map((s,i)=>{const label=((s.groupKey==='TODOS'?(REGIONAL_LABELS[s.reg]||s.reg):((short[s.reg]||s.reg)+' '+s.groupLabel))).replace(/[\/*?:\[\]]/g,' ').trim().slice(0,31)||('Regional '+(i+1));return {label,i};});
   xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'" sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets></workbook>');
   xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   xl.file('styles.xml',STYLES_XML); const wsFolder=xl.folder('worksheets'); sheets.forEach((s,i)=>wsFolder.file('sheet'+(i+1)+'.xml',s.xml));
-  zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'}).then(blob=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='planilha_retorno_'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);alert('Não foi possível gerar o arquivo neste navegador.');});
+  zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'}).then(blob=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='planilha_dashboard_'+(contexto?.selectedDays?.length?contexto.selectedDays[0]+'_'+contexto.selectedDays[contexto.selectedDays.length-1]:new Date().toISOString().slice(0,10))+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);alert('Não foi possível gerar o arquivo neste navegador.');});
 }
-document.getElementById('btnDownloadOfensores').addEventListener('click', function(){
-  if(!getActiveEntries().length){ alert('Importe uma planilha antes de baixar o retorno.'); return; }
-  const entries=[];
-  computeOffendersData().forEach(reg=>{ visibleBasesFor(reg).forEach(b=>entries.push(...b.entries)); });
-  const bucket=getOffendersBucket();
-  baixarRetornoFormatado(entries, bucket==='TODOS'?'':BUCKET_LABELS[bucket]);
+const EXPORT_AGE_OPTIONS=[['3_7','3–7 dias'],['1_2','1–2 dias'],['8_10','8–10 dias'],['11_PLUS','11 dias ou mais'],['TODOS','Todos os dias em atraso']];
+function ageSelectHtml(value){return '<select class="export-extra-age">'+EXPORT_AGE_OPTIONS.map(o=>'<option value="'+o[0]+'" '+(o[0]===value?'selected':'')+'>'+o[1]+'</option>').join('')+'</select>';}
+function renderExtraAgeGroups(){const box=document.getElementById('exportExtraAgeGroups');if(!box)return;box.innerHTML=Array.from(box.querySelectorAll('.export-extra-age-row')).length?box.innerHTML:'';}
+function openExportConfig(){
+  if(!IMPORTS.length){alert('Importe uma planilha de pacotes antes de baixar o retorno.');return;}
+  const box=document.getElementById('exportDaysList'); const days=availableImportDates();
+  document.getElementById('exportMainAge').value='TODOS'; document.getElementById('exportExtraAgeGroups').innerHTML='';
+  box.innerHTML=days.map(day=>{const dayImports=IMPORTS.filter(i=>i.importDate===day);return '<label class="export-day-option"><input type="checkbox" value="'+day+'" checked><span><strong>'+day.split('-').reverse().join('/')+'</strong><small>'+dayImports.map(i=>escHtml(i.turno||'Turno')+' · '+escHtml(i.fileName||'Arquivo')).join(' | ')+'</small></span></label>';}).join('');
+  document.getElementById('exportConfigOverlay').classList.add('show');
+}
+function closeExportConfig(){document.getElementById('exportConfigOverlay').classList.remove('show');}
+document.getElementById('btnDownloadOfensores').addEventListener('click',openExportConfig);
+document.getElementById('exportConfigClose').addEventListener('click',closeExportConfig);
+document.getElementById('exportConfigCancel').addEventListener('click',closeExportConfig);
+document.getElementById('exportSelectAllDays').addEventListener('click',()=>document.querySelectorAll('#exportDaysList input').forEach(i=>i.checked=true));
+document.getElementById('exportAddAgeGroup').addEventListener('click',()=>{const box=document.getElementById('exportExtraAgeGroups');const row=document.createElement('div');row.className='export-extra-age-row';row.innerHTML='<label>Aba regional adicional</label>'+ageSelectHtml('1_2')+'<button type="button" class="btn-reset export-remove-age">Remover</button>';row.querySelector('.export-remove-age').addEventListener('click',()=>row.remove());box.appendChild(row);});
+document.getElementById('exportConfigConfirm').addEventListener('click',()=>{
+  const selected=Array.from(document.querySelectorAll('#exportDaysList input:checked')).map(i=>i.value); if(!selected.length){alert('Selecione pelo menos um dia.');return;}
+  const order=document.getElementById('exportOrder').value; const chunk=Math.max(1,Number(document.getElementById('exportChunkSize').value)||1); const imports=IMPORTS.filter(i=>selected.includes(i.importDate)); let entries=[];
+  imports.forEach(imp=>{let list=(imp.entries||[]).slice();if(currentTab!=='TODOS')list=list.filter(e=>regionalFromBasePrefix(e.base)===currentTab);if(currentBaseFilter!=='TODAS')list=list.filter(e=>e.base===currentBaseFilter);entries.push(...list.map(e=>({...e,_exportDate:imp.importDate,_exportTurno:imp.turno})));});
+  if(!entries.length){alert('Nenhum pacote encontrado nos dias e filtros selecionados.');return;}
+  const bucket=getOffendersBucket(); if(bucket!=='TODOS')entries=entries.filter(e=>bucketOf(diasParado(e))===bucket);
+  const dateOrder=selected.slice().sort((a,b)=>order==='DATA_DESC'?b.localeCompare(a):a.localeCompare(b));
+  if(order==='TODAS') entries.sort((a,b)=>{const ra=regionalFromBasePrefix(a.base)||'';const rb=regionalFromBasePrefix(b.base)||'';return ra.localeCompare(rb)||String(a.base).localeCompare(String(b.base));});
+  else entries.sort((a,b)=>{const da=dateOrder.indexOf(a._exportDate),db=dateOrder.indexOf(b._exportDate);if(da!==db)return da-db;const ta=a._exportTurno==='Manhã'?0:1,tb=b._exportTurno==='Manhã'?0:1;if(order==='TARDE_MANHA'&&ta!==tb)return tb-ta;if(order==='MANHA_TARDE'&&ta!==tb)return ta-tb;return Number(b.valor||0)-Number(a.valor||0);});
+  const ageGroups=[{key:document.getElementById('exportMainAge').value,label:document.getElementById('exportMainAge').selectedOptions[0].textContent}];
+  document.querySelectorAll('.export-extra-age').forEach(sel=>{const key=sel.value;if(!ageGroups.some(g=>g.key===key))ageGroups.push({key,label:sel.selectedOptions[0].textContent});});
+  closeExportConfig();baixarRetornoFormatado(entries,{dateOrder,orderMode:order,chunkSize:chunk,selectedDays:selected,ageGroups});
 });
 
+/* Filtros rápidos da aba Regionais, no mesmo padrão da faixa operacional. */
+const REGIONAL_SHORT_LABELS={'ESPÍRITO SANTO':'ES','MINAS GERAIS':'MG','BAHIA':'BA','SÃO PAULO':'SP','RIO DE JANEIRO':'RJ'};
+function regionalAgeMatches(entry, filter){
+  if(!filter||filter==='TODOS') return true;
+  const [regional,range]=String(filter).split('|');
+  if(regional && regionalFromBasePrefix(entry.base)!==regional) return false;
+  const days=diasParado(entry);
+  return range==='3_7' ? days>=3&&days<=7 : range==='1_2' ? days<=2 : true;
+}
+function renderRegionalAgeTabs(){
+  const buttons=[{value:'TODOS',label:'TODOS OS DIAS',cls:'all'}];
+  REGIONAL_ORDER.forEach(r=>{buttons.push({value:r+'|3_7',label:(REGIONAL_SHORT_LABELS[r]||r)+' 3-7 DIAS',cls:'late'});});
+  REGIONAL_ORDER.forEach(r=>{buttons.push({value:r+'|1_2',label:(REGIONAL_SHORT_LABELS[r]||r)+' 1-2 DIAS',cls:'early'});});
+  return '<div class="regional-age-tabs" aria-label="Filtrar regionais por dias em atraso">'+buttons.map(b=>'<button type="button" class="regional-age-tab '+b.cls+(regionalAgeFilter===b.value?' active':'')+'" data-regional-age="'+escHtml(b.value)+'">'+escHtml(b.label)+'</button>').join('')+'</div>';
+}
 /* ===== REGIONAL E BASE ===== */
 function renderRegionalPage(){
   const crumb=document.getElementById('regionalBreadcrumb'); const content=document.getElementById('regionalContent');
@@ -1236,17 +1316,19 @@ function renderRegionalPage(){
   if(!activeEntries.length){ crumb.innerHTML=''; content.innerHTML='<div class="history-empty" style="padding:40px 0;">Importe uma planilha para ver as regionais.</div>'; return; }
   const query=regionalSearch.trim().toUpperCase();
   const visibleEntries=query?activeEntries.filter(e=>String(e.pacote||'').toUpperCase().includes(query)||String(e.rota||'').toUpperCase().includes(query)||getDriverName(e.driverId).toUpperCase().includes(query)):activeEntries;
+  const regionalEntries=visibleEntries.filter(e=>regionalAgeMatches(e,regionalAgeFilter));
   const activeData={};
-  visibleEntries.forEach(e=>{const regional=regionalFromBasePrefix(e.base)||'OUTROS';if(!activeData[regional])activeData[regional]={entries:[]};activeData[regional].entries.push(e);});
+  regionalEntries.forEach(e=>{const regional=regionalFromBasePrefix(e.base)||'OUTROS';if(!activeData[regional])activeData[regional]={entries:[]};activeData[regional].entries.push(e);});
   if(regionalNav.level==='list'){
     const turnosDoDia=activeImp?labelTurnosDoDia(activeImp.importDate):'';
     crumb.innerHTML='<strong>Todas as regionais</strong><label class="regional-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="regionalSearch" type="search" value="'+escHtml(regionalSearch)+'" placeholder="Buscar ID do pacote, rota ou motorista..." autocomplete="off"></label>'+(activeImp?'<span class="active-planilha-badge" style="margin-left:auto;"><b>'+(turnosDoDia==='Manhã - Tarde'?'PLANILHAS':'PLANILHA')+'</b> '+activeImp.importDate.split('-').reverse().join('/')+' · '+turnosDoDia+'</span>':'');
-    const totalVal=visibleEntries.reduce((a,e)=>a+Number(e.valor||0),0);
-    let html='<div class="regional-grid">';
-    const allJust=justifiedCount(visibleEntries); html+=`<div class="regional-card" data-r="TODAS"><div class="rname">Todas as bases</div><div class="rsub">${fmtInt(visibleEntries.length)} pacote(s)${query?' encontrados':''} · Soma somente da planilha ativa</div><div class="rval">${fmtBRL(totalVal)}</div><button type="button" class="regional-justified-btn" data-reg-just="TODAS">JUSTIFICADOS <span>${fmtInt(allJust)} / ${fmtInt(visibleEntries.length)} (${percentLabel(allJust,visibleEntries.length)})</span></button></div>`;
+    const totalVal=regionalEntries.reduce((a,e)=>a+Number(e.valor||0),0);
+    let html=renderRegionalAgeTabs()+'<div class="regional-grid">';
+    const allJust=justifiedCount(regionalEntries); html+=`<div class="regional-card" data-r="TODAS"><div class="rname">Todas as bases</div><div class="rsub">${fmtInt(regionalEntries.length)} pacote(s)${query?' encontrados':''} · Soma somente da planilha ativa</div><div class="rval">${fmtBRL(totalVal)}</div><button type="button" class="regional-justified-btn" data-reg-just="TODAS">JUSTIFICADOS <span>${fmtInt(allJust)} / ${fmtInt(visibleEntries.length)} (${percentLabel(allJust,visibleEntries.length)})</span></button></div>`;
     REGIONAL_ORDER.forEach(r=>{ if(!activeData[r]) return; const d=activeData[r]; const val=d.entries.reduce((a,e)=>a+Number(e.valor||0),0); const justCount=justifiedCount(d.entries); html+=`<div class="regional-card" data-r="${escHtml(r)}"><div class="rname">${escHtml(REGIONAL_LABELS[r]||r)}</div><div class="rsub">${fmtInt(d.entries.length)} pacote(s) · somente esta planilha</div><div class="rval">${fmtBRL(val)}</div><button type="button" class="regional-justified-btn" data-reg-just="${escHtml(r)}">JUSTIFICADOS <span>${fmtInt(justCount)} / ${fmtInt(d.entries.length)} (${percentLabel(justCount,d.entries.length)})</span></button></div>`; });
     html+='</div>';
     content.innerHTML=html;
+    content.querySelectorAll('[data-regional-age]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();regionalAgeFilter=btn.dataset.regionalAge;renderRegionalPage();}));
     const searchInput=document.getElementById('regionalSearch'); if(searchInput){searchInput.addEventListener('input',()=>{regionalSearch=searchInput.value;renderRegionalPage();});}
     content.querySelectorAll('.regional-justified-btn').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();const r=btn.dataset.regJust;const entries=r==='TODAS'?visibleEntries:(activeData[r]?.entries||[]);const label=r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||r);openOverlayEntries('Justificados · '+label,'',entries,'TODOS');overlayCtx.period='JUSTIFICADOS';renderOverlayBody();}));
     content.querySelectorAll('.regional-card').forEach(c=>c.addEventListener('click', ()=>{ regionalNav={level:'bases',regional:c.dataset.r}; renderRegionalPage(); }));
