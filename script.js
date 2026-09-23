@@ -352,6 +352,7 @@ function importDisplayTime(imp){ return extractFileTime(imp.fileName) || new Dat
 
 /* ===== IMPORTAÇÃO ===== */
 function updateImportUI(){
+  renderDashboardImportSelector();
   const returnBox=document.getElementById('lastImportReturn'); const returnSheet=returnSheetForDate(document.getElementById('impDia')?.value||getSelectedImport()?.importDate||'')||latestReturnSheet();
   if(returnBox){ returnBox.style.display=returnSheet?'block':'none'; if(returnSheet){ document.getElementById('lastImportReturnDt').textContent=new Date(returnSheet.savedAt).toLocaleString('pt-BR'); document.getElementById('lastImportReturnMeta').innerHTML=fmtInt((returnSheet.rows||[]).length)+' justificativa(s)<br>'+escHtml(returnSheet.fileName)+'<br>Vinculada ao dia '+String(returnSheet.importDate).split('-').reverse().join('/'); } }
   const box=document.getElementById('lastImportRisco');
@@ -367,6 +368,20 @@ function updateImportUI(){
   renderImportsHistory();
   renderReturnHistory();
 }
+function renderDashboardImportSelector(){
+  const select=document.getElementById('dashboardImportSelect'); if(!select)return;
+  const ordered=IMPORTS.slice().sort((a,b)=>String(b.importDate||'').localeCompare(String(a.importDate||''))||({'Manhã':0,'Tarde':1}[a.turno]??9)-({'Manhã':0,'Tarde':1}[b.turno]??9)||String(b.savedAt||'').localeCompare(String(a.savedAt||'')));
+  select.innerHTML=ordered.length?ordered.map(imp=>'<option value="'+escHtml(imp.id)+'">'+escHtml(String(imp.importDate||'').split('-').reverse().join('/')+' · '+(imp.turno||'Turno')+' · '+(imp.fileName||'Arquivo'))+'</option>').join(''):'<option value="">Nenhuma planilha importada</option>';
+  select.value=selectedImportId&&ordered.some(imp=>imp.id===selectedImportId)?selectedImportId:(ordered[0]?.id||'');
+  if(select.value && select.value!==selectedImportId){ selectedImportId=select.value; saveSelectedImport(); }
+}
+function returnLinksForImport(imp){
+  return RETURN_SHEETS.filter(sheet=>sheet.importDate===imp?.importDate).map(sheet=>{
+    const ids=new Set((sheet.rows||[]).map(row=>normalizePackageKey(row.pacote)).filter(Boolean));
+    const count=(imp?.entries||[]).filter(entry=>ids.has(normalizePackageKey(entry.pacote))).length;
+    return {sheet,count};
+  });
+}
 function renderImportsHistory(){
   const tbody=document.getElementById('importsHistBody'); const empty=document.getElementById('importsHistEmpty'); const monthInput=document.getElementById('importsHistMonth');
   renderImportsMonthChips();
@@ -378,12 +393,14 @@ function renderImportsHistory(){
   let lastMonth='';
   tbody.innerHTML=list.map(imp=>{
     const isActive=imp.id===selectedImportId;
-    const month=String(imp.importDate||'').slice(0,7); const [yy,mm]=month.split('-'); const monthLabel=month?new Date(Number(yy),Number(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Mês não informado'; const separator=month!==lastMonth?`<tr class="history-month-row"><td colspan="6">${escHtml(monthLabel)}</td></tr>`:''; lastMonth=month;
+    const month=String(imp.importDate||'').slice(0,7); const [yy,mm]=month.split('-'); const monthLabel=month?new Date(Number(yy),Number(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Mês não informado'; const separator=month!==lastMonth?`<tr class="history-month-row"><td colspan="7">${escHtml(monthLabel)}</td></tr>`:''; lastMonth=month;
+    const linked=returnLinksForImport(imp); const linkedHtml=linked.length?linked.map(item=>'<span class="return-link-chip">'+escHtml(item.sheet.fileName||'Retorno')+' <b>'+fmtInt(item.count)+' pacotes</b></span>').join(''):'<span class="return-no-link">Nenhum retorno no dia</span>';
     return separator+`<tr class="${isActive?'active-import-row':''}" data-import-id="${escHtml(imp.id)}" title="Clique para exibir esta planilha na Visão Geral">`
       +`<td>${imp.importDate.split('-').reverse().join('/')}${isActive?' <span class="tag dias-ok">ATUAL</span>':''}</td>`
       +`<td>${escHtml(imp.turno)}</td>`
       +`<td>${escHtml(imp.fileName)}</td>`
       +`<td>${fmtInt(imp.entries.length)}</td>`
+      +`<td><div class="return-linked-list">${linkedHtml}</div></td>`
       +`<td>${new Date(imp.savedAt).toLocaleString('pt-BR')}</td>`
       +`<td><button type="button" class="del-btn" data-del-import="${escHtml(imp.id)}" title="Excluir esta importação"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg></button></td>`
       +`</tr>`;
@@ -401,7 +418,7 @@ function linkedReturnImports(sheet){
 }
 function renderReturnHistory(){
   const body=document.getElementById('returnHistoryBody'), empty=document.getElementById('returnHistoryEmpty'); if(!body||!empty)return;
-  const list=RETURN_SHEETS.slice().sort((a,b)=>String(b.importDate||'').localeCompare(String(a.importDate||''))||String(b.savedAt||'').localeCompare(String(a.savedAt||''))).filter(s=>!returnHistMonth||String(s.importDate||'').slice(0,7)===returnHistMonth);
+  const list=RETURN_SHEETS.slice().sort((a,b)=>String(b.importDate||'').localeCompare(String(a.importDate||''))||Number(b.historyOrder||0)-Number(a.historyOrder||0)||String(b.savedAt||'').localeCompare(String(a.savedAt||''))).filter(s=>!returnHistMonth||String(s.importDate||'').slice(0,7)===returnHistMonth);
   empty.style.display=list.length?'none':'block';
   body.innerHTML=list.map(sheet=>{
     const links=linkedReturnImports(sheet); const linked=links.length?links.map(imp=>'<span class="return-link-chip">'+escHtml(imp.fileName||'Arquivo')+' · '+escHtml(imp.turno||'Turno')+' <b>'+fmtInt(imp.linkedCount||0)+' pacotes</b></span>').join(''):'<span class="return-no-link">Nenhuma planilha de pacotes no mesmo dia.</span>';
@@ -450,6 +467,13 @@ document.getElementById('importsHistBody').addEventListener('click', function(e)
     renderImportsHistory();
     if(Object.keys(STATE_DATA).length) renderAll();
   }
+});
+document.getElementById('dashboardImportSelect').addEventListener('change',function(e){
+  const id=e.target.value; if(!id)return;
+  selectedImportId=id; saveSelectedImport(); currentTab='TODOS'; currentBaseFilter='TODAS'; topBasesMode='TODOS'; regionalAgeFilter='TODOS';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));
+  if(Object.keys(STATE_DATA).length) renderAll();
+  renderImportsHistory();
 });
 function deleteImport(id){
   IMPORTS=IMPORTS.filter(imp=>imp.id!==id);
@@ -506,24 +530,13 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   const importDate=document.getElementById('impDia').value || getSelectedImport()?.importDate || todayStr(); const reader=new FileReader();
   const finish=(rows)=>{
     if(!rows){ alert('Não reconheci as colunas PACOTE e JUSTIFICATIVA na planilha_retorno.'); return; }
-    const old=returnSheetForDate(importDate);
-    const previousRows=old?.rows||[];
-    const merged=new Map();
-    previousRows.forEach(row=>{ const pacote=normalizePackageKey(row.pacote); const key=pacote+'|'+normalizeBaseCode(row.base); if(pacote) merged.set(key,{...row,pacote}); });
-    rows.forEach(row=>{
-      const pacote=normalizePackageKey(row.pacote); if(!pacote) return;
-      const incomingBase=normalizeBaseCode(row.base);
-      const exactKey=pacote+'|'+incomingBase;
-      const fallbackKey=Array.from(merged.keys()).find(key=>normalizePackageKey(key.split('|')[0])===pacote) || exactKey;
-      const previous=merged.get(fallbackKey)||findManualReturnRecord(pacote,row.rota)||{};
-      const incomingJust=String(row.justificativa||'').trim();
-      merged.delete(fallbackKey);
-      merged.set(exactKey,{...previous,pacote,rota:normalizePackageKey(row.rota)||previous.rota||'',base:incomingBase||previous.base||'',driverId:normalizePackageKey(row.driverId)||previous.driverId||'',justificativa:incomingJust||previous.justificativa||'',photo:previous.photo||null,_sheetName:row._sheetName||previous._sheetName||'',updatedAt:new Date().toISOString()});
-    });
-    const mergedRows=Array.from(merged.values());
+    const normalizedRows=rows.filter(row=>normalizePackageKey(row.pacote)).map(row=>({...row,pacote:normalizePackageKey(row.pacote),base:normalizeBaseCode(row.base),rota:normalizePackageKey(row.rota),driverId:normalizePackageKey(row.driverId),justificativa:String(row.justificativa||'').trim(),updatedAt:new Date().toISOString()}));
     const linkedImports=IMPORTS.filter(imp=>imp.importDate===importDate).map(imp=>({id:imp.id,fileName:imp.fileName,turno:imp.turno,entries:(imp.entries||[]).length}));
-    const sheetNames=Array.from(new Set(mergedRows.map(row=>row._sheetName).filter(Boolean)));
-    RETURN_SHEETS.push({id:'ret-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),importDate,fileName:file.name,savedAt:new Date().toISOString(),rows:mergedRows,sheetNames,linkedImports});
+    const sheetNames=Array.from(new Set(normalizedRows.map(row=>row._sheetName).filter(Boolean)));
+    const sameFileIndex=RETURN_SHEETS.findIndex(sheet=>sheet.importDate===importDate&&String(sheet.fileName||'').trim().toLowerCase()===String(file.name||'').trim().toLowerCase());
+    const previous=sameFileIndex>=0?RETURN_SHEETS[sameFileIndex]:null;
+    const replacement={id:previous?.id||'ret-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),historyOrder:previous?.historyOrder||Date.now(),importDate,fileName:file.name,savedAt:new Date().toISOString(),rows:normalizedRows,sheetNames,linkedImports};
+    if(sameFileIndex>=0) RETURN_SHEETS.splice(sameFileIndex,1,replacement); else RETURN_SHEETS.push(replacement);
     persistReturnSheets(); updateImportUI(); if(Object.keys(STATE_DATA).length) renderAll();
   };
   if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildReturnRowsFromRawRows(parseDelimitedText(text,delim)));}catch(err){console.error(err);alert('Erro ao carregar a planilha_retorno.');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
@@ -1249,7 +1262,7 @@ function baixarRetornoFormatado(entries, contexto){
   const ageGroups=contexto?.ageGroups?.length?contexto.ageGroups:[{key:'TODOS',label:'Todos os dias'}];
   const sheets=[];
   ageGroups.forEach(group=>{
-    const groupEntries=entries.filter(e=>group.key==='TODOS'||(group.key==='3_7'?diasParado(e)>=3&&diasParado(e)<=7:group.key==='1_2'?diasParado(e)<=2:group.key==='8_10'?diasParado(e)>=8&&diasParado(e)<=10:group.key==='11_PLUS'?diasParado(e)>=11:true));
+    const groupEntries=entries.filter(e=>ageGroupMatches(e,group));
     const porReg={}; REGIONAL_ORDER.forEach(reg=>porReg[reg]=[]); groupEntries.forEach(e=>{const reg=regionalFromBasePrefix(e.base)||'OUTROS';(porReg[reg]=porReg[reg]||[]).push(e);});
     const ordem=REGIONAL_ORDER.concat(Object.keys(porReg).filter(r=>!REGIONAL_ORDER.includes(r)));
     ordem.forEach(reg=>{const porBase={};(porReg[reg]||[]).forEach(e=>(porBase[e.base]=porBase[e.base]||[]).push(e));const grupos=Object.keys(porBase).sort().map(base=>({regional:base,linhas:porBase[base].slice().sort((a,b)=>{const da=(contexto?.dateOrder||[]).indexOf(a._exportDate),db=(contexto?.dateOrder||[]).indexOf(b._exportDate);return (da<0?999:da)-(db<0?999:db)||((b.valor||0)-(a.valor||0));}).map(e=>({base:e.base,e}))}));sheets.push({reg,groupKey:group.key,groupLabel:group.label,xml:buildSheetXml(grupos,contexto)});});
@@ -1257,19 +1270,33 @@ function baixarRetornoFormatado(entries, contexto){
   const zip=new JSZip(); const sheetOverrides=sheets.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('');
   zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheetOverrides+'</Types>');
   zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-  const short={'ESPÍRITO SANTO':'ES','MINAS GERAIS':'MG','BAHIA':'BA','SÃO PAULO':'SP','RIO DE JANEIRO':'RJ'}; const xl=zip.folder('xl'), names=sheets.map((s,i)=>{const label=((s.groupKey==='TODOS'?(REGIONAL_LABELS[s.reg]||s.reg):((short[s.reg]||s.reg)+' '+s.groupLabel))).replace(/[\/*?:\[\]]/g,' ').trim().slice(0,31)||('Regional '+(i+1));return {label,i};});
+  const short={'ESPÍRITO SANTO':'ES','MINAS GERAIS':'MG','BAHIA':'BA','SÃO PAULO':'SP','RIO DE JANEIRO':'RJ'}; const xl=zip.folder('xl'), names=sheets.map((s,i)=>{const label=((short[s.reg]||s.reg)+(s.groupKey==='TODOS'?'':' '+s.groupLabel)).replace(/[\/*?:\[\]]/g,' ').trim().slice(0,31)||('Regional '+(i+1));return {label,i};});
   xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'" sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets></workbook>');
   xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   xl.file('styles.xml',STYLES_XML); const wsFolder=xl.folder('worksheets'); sheets.forEach((s,i)=>wsFolder.file('sheet'+(i+1)+'.xml',s.xml));
   zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'}).then(blob=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='planilha_dashboard_'+(contexto?.selectedDays?.length?contexto.selectedDays[0]+'_'+contexto.selectedDays[contexto.selectedDays.length-1]:new Date().toISOString().slice(0,10))+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);alert('Não foi possível gerar o arquivo neste navegador.');});
 }
-const EXPORT_AGE_OPTIONS=[['3_7','3–7 dias'],['1_2','1–2 dias'],['8_10','8–10 dias'],['11_PLUS','11 dias ou mais'],['TODOS','Todos os dias em atraso']];
-function ageSelectHtml(value){return '<select class="export-extra-age">'+EXPORT_AGE_OPTIONS.map(o=>'<option value="'+o[0]+'" '+(o[0]===value?'selected':'')+'>'+o[1]+'</option>').join('')+'</select>';}
+const EXPORT_AGE_OPTIONS=[['3_7','3–7 dias'],['1_2','1–2 dias'],['8_10','8–10 dias'],['11_PLUS','11 dias ou mais'],['TODOS','Todos os dias em atraso'],['CUSTOM','Escolher dias específicos']];
+function parseManualAgeSpec(value){
+  const raw=String(value||'').trim(); if(!raw)return null; const ranges=[];
+  for(const part of raw.split(',')){const token=part.trim();if(!token)continue;const match=token.match(/^(\d+)\s*(?:-|–|a)\s*(\d+)$/i);if(match){const min=Number(match[1]),max=Number(match[2]);if(max<min)return null;ranges.push([min,max]);}else if(/^\d+$/.test(token)){const n=Number(token);ranges.push([n,n]);}else return null;}
+  return ranges.length?ranges:null;
+}
+function manualAgeMatches(days,spec){return (spec||[]).some(([min,max])=>days>=min&&days<=max);}
+function ageGroupMatches(entry,group){
+  const days=diasParado(entry); if(!group||group.key==='TODOS')return true;
+  if(group.key==='3_7')return days>=3&&days<=7;
+  if(group.key==='1_2')return days<=2;
+  if(group.key==='8_10')return days>=8&&days<=10;
+  if(group.key==='11_PLUS')return days>=11;
+  return group.key==='CUSTOM' ? manualAgeMatches(days,group.ranges) : true;
+}
+function ageSelectHtml(value){return '<select class="export-extra-age">'+EXPORT_AGE_OPTIONS.map(o=>'<option value="'+o[0]+'" '+(o[0]===value?'selected':'')+'>'+o[1]+'</option>').join('')+'</select><div class="export-custom-age" hidden><span>dias:</span><input type="text" class="export-age-days" placeholder="ex.: 3, 5, 7-9"><small>use vírgula e/ou intervalo</small></div>';}
 function renderExtraAgeGroups(){const box=document.getElementById('exportExtraAgeGroups');if(!box)return;box.innerHTML=Array.from(box.querySelectorAll('.export-extra-age-row')).length?box.innerHTML:'';}
 function openExportConfig(){
   if(!IMPORTS.length){alert('Importe uma planilha de pacotes antes de baixar o retorno.');return;}
   const box=document.getElementById('exportDaysList'); const days=availableImportDates();
-  document.getElementById('exportMainAge').value='TODOS'; document.getElementById('exportExtraAgeGroups').innerHTML='';
+  document.getElementById('exportMainAge').value='TODOS'; document.getElementById('exportMainCustomAge').hidden=true; document.getElementById('exportExtraAgeGroups').innerHTML='';
   box.innerHTML=days.map(day=>{const dayImports=IMPORTS.filter(i=>i.importDate===day);return '<label class="export-day-option"><input type="checkbox" value="'+day+'" checked><span><strong>'+day.split('-').reverse().join('/')+'</strong><small>'+dayImports.map(i=>escHtml(i.turno||'Turno')+' · '+escHtml(i.fileName||'Arquivo')).join(' | ')+'</small></span></label>';}).join('');
   document.getElementById('exportConfigOverlay').classList.add('show');
 }
@@ -1278,7 +1305,9 @@ document.getElementById('btnDownloadOfensores').addEventListener('click',openExp
 document.getElementById('exportConfigClose').addEventListener('click',closeExportConfig);
 document.getElementById('exportConfigCancel').addEventListener('click',closeExportConfig);
 document.getElementById('exportSelectAllDays').addEventListener('click',()=>document.querySelectorAll('#exportDaysList input').forEach(i=>i.checked=true));
-document.getElementById('exportAddAgeGroup').addEventListener('click',()=>{const box=document.getElementById('exportExtraAgeGroups');const row=document.createElement('div');row.className='export-extra-age-row';row.innerHTML='<label>Aba regional adicional</label>'+ageSelectHtml('1_2')+'<button type="button" class="btn-reset export-remove-age">Remover</button>';row.querySelector('.export-remove-age').addEventListener('click',()=>row.remove());box.appendChild(row);});
+function toggleCustomAge(select,box){const custom=box.querySelector('.export-custom-age');if(custom)custom.hidden=select.value!=='CUSTOM';}
+document.getElementById('exportMainAge').addEventListener('change',function(){document.getElementById('exportMainCustomAge').hidden=this.value!=='CUSTOM';});
+document.getElementById('exportAddAgeGroup').addEventListener('click',()=>{const box=document.getElementById('exportExtraAgeGroups');const row=document.createElement('div');row.className='export-extra-age-row';row.innerHTML='<label>Aba regional adicional</label>'+ageSelectHtml('1_2')+'<button type="button" class="btn-reset export-remove-age">Remover</button>';const select=row.querySelector('.export-extra-age');select.addEventListener('change',()=>toggleCustomAge(select,row));row.querySelector('.export-remove-age').addEventListener('click',()=>row.remove());box.appendChild(row);});
 document.getElementById('exportConfigConfirm').addEventListener('click',()=>{
   const selected=Array.from(document.querySelectorAll('#exportDaysList input:checked')).map(i=>i.value); if(!selected.length){alert('Selecione pelo menos um dia.');return;}
   const order=document.getElementById('exportOrder').value; const chunk=Math.max(1,Number(document.getElementById('exportChunkSize').value)||1); const imports=IMPORTS.filter(i=>selected.includes(i.importDate)); let entries=[];
@@ -1288,8 +1317,12 @@ document.getElementById('exportConfigConfirm').addEventListener('click',()=>{
   const dateOrder=selected.slice().sort((a,b)=>order==='DATA_DESC'?b.localeCompare(a):a.localeCompare(b));
   if(order==='TODAS') entries.sort((a,b)=>{const ra=regionalFromBasePrefix(a.base)||'';const rb=regionalFromBasePrefix(b.base)||'';return ra.localeCompare(rb)||String(a.base).localeCompare(String(b.base));});
   else entries.sort((a,b)=>{const da=dateOrder.indexOf(a._exportDate),db=dateOrder.indexOf(b._exportDate);if(da!==db)return da-db;const ta=a._exportTurno==='Manhã'?0:1,tb=b._exportTurno==='Manhã'?0:1;if(order==='TARDE_MANHA'&&ta!==tb)return tb-ta;if(order==='MANHA_TARDE'&&ta!==tb)return ta-tb;return Number(b.valor||0)-Number(a.valor||0);});
-  const ageGroups=[{key:document.getElementById('exportMainAge').value,label:document.getElementById('exportMainAge').selectedOptions[0].textContent}];
-  document.querySelectorAll('.export-extra-age').forEach(sel=>{const key=sel.value;if(!ageGroups.some(g=>g.key===key))ageGroups.push({key,label:sel.selectedOptions[0].textContent});});
+  const mainSelect=document.getElementById('exportMainAge'); const mainKey=mainSelect.value; const mainSpec=document.getElementById('exportMainAgeDays')?.value||''; const mainRanges=mainKey==='CUSTOM'?parseManualAgeSpec(mainSpec):null;
+  if(mainKey==='CUSTOM'&&!mainRanges){alert('Informe dias válidos, por exemplo: 3, 5, 7-9.');return;}
+  const ageGroups=[{key:mainKey,label:mainKey==='CUSTOM'?mainSpec:mainSelect.selectedOptions[0].textContent,ranges:mainRanges}];
+  let invalidExtra=false;
+  document.querySelectorAll('.export-extra-age-row').forEach(row=>{const sel=row.querySelector('.export-extra-age');const key=sel.value;const spec=row.querySelector('.export-age-days')?.value||'';const ranges=key==='CUSTOM'?parseManualAgeSpec(spec):null;if(key==='CUSTOM'&&!ranges){invalidExtra=true;return;}if(!ageGroups.some(g=>g.key===key&&JSON.stringify(g.ranges||[])===JSON.stringify(ranges||[])))ageGroups.push({key,label:key==='CUSTOM'?spec:sel.selectedOptions[0].textContent,ranges});});
+  if(invalidExtra){alert('Informe uma faixa válida para cada aba regional adicional.');return;}
   closeExportConfig();baixarRetornoFormatado(entries,{dateOrder,orderMode:order,chunkSize:chunk,selectedDays:selected,ageGroups});
 });
 
