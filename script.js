@@ -43,6 +43,7 @@ let importsHistMonth='';
 let pendingImportFile=null;
 let pendingReturnFile=null;
 let pendingDriverFile=null;
+let exportSeedEntries=null;
 let chartAnaliseDia=null, chartAnaliseRegional=null, chartAnaliseOfensoras=null;
 let revStatusFilter='TODOS';
 let motoristaSelecionado='';
@@ -353,7 +354,7 @@ function importDisplayTime(imp){ return extractFileTime(imp.fileName) || new Dat
 /* ===== IMPORTAÇÃO ===== */
 function updateImportUI(){
   renderDashboardImportSelector();
-  const returnBox=document.getElementById('lastImportReturn'); const returnSheet=returnSheetForDate(document.getElementById('impDia')?.value||getSelectedImport()?.importDate||'')||latestReturnSheet();
+  const returnBox=document.getElementById('lastImportReturn'); const returnSheet=latestReturnSheet()||returnSheetForDate(document.getElementById('impDia')?.value||getSelectedImport()?.importDate||'');
   if(returnBox){ returnBox.style.display=returnSheet?'block':'none'; if(returnSheet){ document.getElementById('lastImportReturnDt').textContent=new Date(returnSheet.savedAt).toLocaleString('pt-BR'); document.getElementById('lastImportReturnMeta').innerHTML=fmtInt((returnSheet.rows||[]).length)+' justificativa(s)<br>'+escHtml(returnSheet.fileName)+'<br>Vinculada ao dia '+String(returnSheet.importDate).split('-').reverse().join('/'); } }
   const box=document.getElementById('lastImportRisco');
   if(IMPORTS.length){
@@ -523,24 +524,36 @@ document.getElementById('btnConfirmImport').addEventListener('click',function(){
 });
 document.getElementById('fileInputReturn').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingReturnFile=file; document.getElementById('btnConfirmReturn').disabled=false; document.getElementById('btnConfirmReturn').textContent='OK';
-  const dateFromName=extractFileDate(file.name); if(dateFromName) document.getElementById('impDia').value=dateFromName; e.target.value='';
+  e.target.value='';
 });
 document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   const file=pendingReturnFile; if(!file)return; this.disabled=true; this.textContent='Lendo...';
-  const importDate=document.getElementById('impDia').value || getSelectedImport()?.importDate || todayStr(); const reader=new FileReader();
-  const finish=(rows)=>{
-    if(!rows){ alert('Não reconheci as colunas PACOTE e JUSTIFICATIVA na planilha_retorno.'); return; }
-    const normalizedRows=rows.filter(row=>normalizePackageKey(row.pacote)).map(row=>({...row,pacote:normalizePackageKey(row.pacote),base:normalizeBaseCode(row.base),rota:normalizePackageKey(row.rota),driverId:normalizePackageKey(row.driverId),justificativa:String(row.justificativa||'').trim(),updatedAt:new Date().toISOString()}));
+  const importDate=todayStr(); const reader=new FileReader();
+  const finish=(rows,parseError)=>{
+    const normalizedRows=(Array.isArray(rows)?rows:[]).filter(row=>normalizePackageKey(row.pacote)).map(row=>({...row,pacote:normalizePackageKey(row.pacote),base:normalizeBaseCode(row.base),rota:normalizePackageKey(row.rota),driverId:normalizePackageKey(row.driverId),justificativa:String(row.justificativa||'').trim(),updatedAt:new Date().toISOString()}));
     const linkedImports=IMPORTS.filter(imp=>imp.importDate===importDate).map(imp=>({id:imp.id,fileName:imp.fileName,turno:imp.turno,entries:(imp.entries||[]).length}));
     const sheetNames=Array.from(new Set(normalizedRows.map(row=>row._sheetName).filter(Boolean)));
-    const sameFileIndex=RETURN_SHEETS.findIndex(sheet=>sheet.importDate===importDate&&String(sheet.fileName||'').trim().toLowerCase()===String(file.name||'').trim().toLowerCase());
-    const previous=sameFileIndex>=0?RETURN_SHEETS[sameFileIndex]:null;
+    const incomingIds=new Set(normalizedRows.map(row=>normalizePackageKey(row.pacote)).filter(Boolean));
+    const incomingName=String(file.name||'').trim().toLowerCase();
+    const sameFileIndex=RETURN_SHEETS.findIndex(sheet=>sheet.importDate===importDate&&String(sheet.fileName||'').trim().toLowerCase()===incomingName);
+    let replacementIndex=sameFileIndex;
+    if(replacementIndex<0&&incomingIds.size){
+      let bestOverlap=0;
+      RETURN_SHEETS.forEach((sheet,index)=>{
+        if(sheet.importDate!==importDate)return;
+        const oldIds=new Set((sheet.rows||[]).map(row=>normalizePackageKey(row.pacote)).filter(Boolean));
+        const overlap=Array.from(incomingIds).filter(id=>oldIds.has(id)).length;
+        if(overlap>bestOverlap){bestOverlap=overlap;replacementIndex=index;}
+      });
+    }
+    const previous=replacementIndex>=0?RETURN_SHEETS[replacementIndex]:null;
     const replacement={id:previous?.id||'ret-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),historyOrder:previous?.historyOrder||Date.now(),importDate,fileName:file.name,savedAt:new Date().toISOString(),rows:normalizedRows,sheetNames,linkedImports};
-    if(sameFileIndex>=0) RETURN_SHEETS.splice(sameFileIndex,1,replacement); else RETURN_SHEETS.push(replacement);
+    if(replacementIndex>=0) RETURN_SHEETS.splice(replacementIndex,1,replacement); else RETURN_SHEETS.push(replacement);
     persistReturnSheets(); updateImportUI(); if(Object.keys(STATE_DATA).length) renderAll();
+    if(parseError) alert('O arquivo foi salvo no histórico de hoje, mas algumas colunas não foram reconhecidas: '+parseError);
   };
-  if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildReturnRowsFromRawRows(parseDelimitedText(text,delim)));}catch(err){console.error(err);alert('Erro ao carregar a planilha_retorno.');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
-  else { reader.onload=e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});finish(buildReturnRowsFromWorkbook(wb));}catch(err){console.error(err);alert('Erro ao carregar a planilha_retorno.');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
+  if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';const rows=buildReturnRowsFromRawRows(parseDelimitedText(text,delim));finish(rows,rows?'':'Não encontrei uma linha com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do CSV');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
+  else { reader.onload=e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=buildReturnRowsFromWorkbook(wb);finish(rows,rows?'':'Não encontrei uma aba com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
 });
 document.getElementById('fileInputDrivers').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingDriverFile=file; document.getElementById('btnConfirmDrivers').disabled=false; document.getElementById('btnConfirmDrivers').textContent='OK'; e.target.value='';
@@ -1001,7 +1014,7 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
   if(e.target.closest('#overlayDownload')){
     const lista=overlayFiltered();
     const contexto=overlayCtx.title+(overlayCtx.buckets?.length?' · '+overlayCtx.buckets.map(b=>BUCKET_LABELS[b]).join(' + '):'');
-    if(overlayCtx.buckets?.length) abrirModalOcultarDias(lista,contexto); else baixarRetorno(lista,contexto);
+    openExportConfig(lista);
     return;
   }
   const periodBtn=e.target.closest('.period-preset');
@@ -1293,11 +1306,14 @@ function ageGroupMatches(entry,group){
 }
 function ageSelectHtml(value){return '<select class="export-extra-age">'+EXPORT_AGE_OPTIONS.map(o=>'<option value="'+o[0]+'" '+(o[0]===value?'selected':'')+'>'+o[1]+'</option>').join('')+'</select><div class="export-custom-age" hidden><span>dias:</span><input type="text" class="export-age-days" placeholder="ex.: 3, 5, 7-9"><small>use vírgula e/ou intervalo</small></div>';}
 function renderExtraAgeGroups(){const box=document.getElementById('exportExtraAgeGroups');if(!box)return;box.innerHTML=Array.from(box.querySelectorAll('.export-extra-age-row')).length?box.innerHTML:'';}
-function openExportConfig(){
+function openExportConfig(seedEntries=null){
   if(!IMPORTS.length){alert('Importe uma planilha de pacotes antes de baixar o retorno.');return;}
+  exportSeedEntries=Array.isArray(seedEntries)&&seedEntries.length?seedEntries.map(e=>({...e})):null;
   const box=document.getElementById('exportDaysList'); const days=availableImportDates();
   document.getElementById('exportMainAge').value='TODOS'; document.getElementById('exportMainCustomAge').hidden=true; document.getElementById('exportExtraAgeGroups').innerHTML='';
   box.innerHTML=days.map(day=>{const dayImports=IMPORTS.filter(i=>i.importDate===day);return '<label class="export-day-option"><input type="checkbox" value="'+day+'" checked><span><strong>'+day.split('-').reverse().join('/')+'</strong><small>'+dayImports.map(i=>escHtml(i.turno||'Turno')+' · '+escHtml(i.fileName||'Arquivo')).join(' | ')+'</small></span></label>';}).join('');
+  const agingEntries=exportSeedEntries||IMPORTS.flatMap(i=>i.entries||[]); const agingDays=Array.from(new Set(agingEntries.map(e=>Math.floor(diasParado(e))).filter(Number.isFinite))).sort((a,b)=>a-b);
+  document.getElementById('exportAgingExcludeList').innerHTML=agingDays.length?agingDays.map(day=>'<label class="export-day-option"><input type="checkbox" value="'+day+'"><span><strong>'+day+' dia'+(day===1?'':'s')+'</strong><small>pacotes parados</small></span></label>').join(''):'<small class="export-age-help">Não há dias de pacote parado disponíveis para excluir.</small>';
   document.getElementById('exportConfigOverlay').classList.add('show');
 }
 function closeExportConfig(){document.getElementById('exportConfigOverlay').classList.remove('show');}
@@ -1305,15 +1321,18 @@ document.getElementById('btnDownloadOfensores').addEventListener('click',openExp
 document.getElementById('exportConfigClose').addEventListener('click',closeExportConfig);
 document.getElementById('exportConfigCancel').addEventListener('click',closeExportConfig);
 document.getElementById('exportSelectAllDays').addEventListener('click',()=>document.querySelectorAll('#exportDaysList input').forEach(i=>i.checked=true));
+document.getElementById('exportClearAgingExclude').addEventListener('click',()=>document.querySelectorAll('#exportAgingExcludeList input').forEach(i=>i.checked=false));
 function toggleCustomAge(select,box){const custom=box.querySelector('.export-custom-age');if(custom)custom.hidden=select.value!=='CUSTOM';}
 document.getElementById('exportMainAge').addEventListener('change',function(){document.getElementById('exportMainCustomAge').hidden=this.value!=='CUSTOM';});
 document.getElementById('exportAddAgeGroup').addEventListener('click',()=>{const box=document.getElementById('exportExtraAgeGroups');const row=document.createElement('div');row.className='export-extra-age-row';const blockNumber=box.querySelectorAll('.export-extra-age-row').length+2;row.innerHTML='<label>'+blockNumber+'º bloco · ES / MG / BA / SP / RJ</label>'+ageSelectHtml('1_2')+'<button type="button" class="btn-reset export-remove-age">Remover</button>';const select=row.querySelector('.export-extra-age');select.addEventListener('change',()=>toggleCustomAge(select,row));row.querySelector('.export-remove-age').addEventListener('click',()=>row.remove());box.appendChild(row);});
 document.getElementById('exportConfigConfirm').addEventListener('click',()=>{
   const selected=Array.from(document.querySelectorAll('#exportDaysList input:checked')).map(i=>i.value); if(!selected.length){alert('Selecione pelo menos um dia.');return;}
   const order=document.getElementById('exportOrder').value; const chunk=Math.max(1,Number(document.getElementById('exportChunkSize').value)||1); const imports=IMPORTS.filter(i=>selected.includes(i.importDate)); let entries=[];
-  imports.forEach(imp=>{let list=(imp.entries||[]).slice();if(currentTab!=='TODOS')list=list.filter(e=>regionalFromBasePrefix(e.base)===currentTab);if(currentBaseFilter!=='TODAS')list=list.filter(e=>e.base===currentBaseFilter);entries.push(...list.map(e=>({...e,_exportDate:imp.importDate,_exportTurno:imp.turno})));});
+  if(exportSeedEntries){entries=exportSeedEntries.map(e=>({...e,_exportDate:e._exportDate||getSelectedImport()?.importDate||selected[selected.length-1],_exportTurno:e._exportTurno||getSelectedImport()?.turno||''}));}
+  else imports.forEach(imp=>{let list=(imp.entries||[]).slice();if(currentTab!=='TODOS')list=list.filter(e=>regionalFromBasePrefix(e.base)===currentTab);if(currentBaseFilter!=='TODAS')list=list.filter(e=>e.base===currentBaseFilter);entries.push(...list.map(e=>({...e,_exportDate:imp.importDate,_exportTurno:imp.turno})));});
   if(!entries.length){alert('Nenhum pacote encontrado nos dias e filtros selecionados.');return;}
   const bucket=getOffendersBucket(); if(bucket!=='TODOS')entries=entries.filter(e=>bucketOf(diasParado(e))===bucket);
+  const excludedAging=new Set(Array.from(document.querySelectorAll('#exportAgingExcludeList input:checked')).map(i=>Number(i.value))); if(excludedAging.size)entries=entries.filter(e=>!excludedAging.has(Math.floor(diasParado(e))));
   const dateOrder=selected.slice().sort((a,b)=>order==='DATA_DESC'?b.localeCompare(a):a.localeCompare(b));
   if(order==='TODAS') entries.sort((a,b)=>{const ra=regionalFromBasePrefix(a.base)||'';const rb=regionalFromBasePrefix(b.base)||'';return ra.localeCompare(rb)||String(a.base).localeCompare(String(b.base));});
   else entries.sort((a,b)=>{const da=dateOrder.indexOf(a._exportDate),db=dateOrder.indexOf(b._exportDate);if(da!==db)return da-db;const ta=a._exportTurno==='Manhã'?0:1,tb=b._exportTurno==='Manhã'?0:1;if(order==='TARDE_MANHA'&&ta!==tb)return tb-ta;if(order==='MANHA_TARDE'&&ta!==tb)return ta-tb;return Number(b.valor||0)-Number(a.valor||0);});
