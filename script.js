@@ -180,12 +180,18 @@ function buildEntriesFromRawRows(rows){
 function normalizeReturnHeader(v){
   return norm(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
+function isReturnPackageKey(k){
+  const s=String(k||''); return ['PACOTE','PACOTES','PACOTE_ID','PACOTE_DO_PEDIDO','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE','SHIPMENT_ID','SHIPMENT','PACKAGE','PACKAGE_ID'].includes(s) || s.includes('PACOTE') || s.includes('SHIPMENT');
+}
+function isReturnJustKey(k){
+  const s=String(k||''); return ['JUSTIFICATIVA','JUSTIFICATIVA_DO_PACOTE','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO','MOTIVO_DA_NAO_ENTREGA','JUSTIFICATION','REASON','COMMENTS','COMENTARIO'].includes(s) || s.includes('JUSTIFIC') || s.includes('OBSERV') || s.includes('MOTIVO') || s.includes('REASON') || s.includes('COMMENT');
+}
 function findReturnHeader(rows){
   const max=Math.min(rows?.length||0,60);
   for(let rowIndex=0;rowIndex<max;rowIndex++){
     const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader);
-    const hasPackage=keys.some(k=>['PACOTE','PACOTES','PACOTE_ID','PACOTE_DO_PEDIDO','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE','SHIPMENT_ID'].includes(k));
-    const hasJust=keys.some(k=>['JUSTIFICATIVA','JUSTIFICATIVA_DO_PACOTE','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO','MOTIVO_DA_NAO_ENTREGA'].includes(k));
+    const hasPackage=keys.some(isReturnPackageKey);
+    const hasJust=keys.some(isReturnJustKey);
     if(hasPackage&&hasJust) return {rowIndex,keys};
   }
   return null;
@@ -193,16 +199,16 @@ function findReturnHeader(rows){
 function buildReturnRowsFromRawRows(rows){
   if(!rows||!rows.length) return null;
   const headers=[];
-  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(k=>['PACOTE','PACOTES','PACOTE_ID','PACOTE_DO_PEDIDO','SHP_SHIPMENT_ID','ID_DO_PACOTE','ID_PACOTE','SHIPMENT_ID'].includes(k)); const hasJust=keys.some(k=>['JUSTIFICATIVA','JUSTIFICATIVA_DO_PACOTE','OBSERVACAO','OBSERVACAO_DO_PACOTE','MOTIVO','MOTIVO_DA_NAO_ENTREGA'].includes(k)); if(hasPackage&&hasJust) headers.push({rowIndex,keys}); }
+  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(isReturnPackageKey); const hasJust=keys.some(isReturnJustKey); if(hasPackage&&hasJust) headers.push({rowIndex,keys}); }
   if(!headers.length) return null;
   const out=[];
   headers.forEach((header,headerIndex)=>{
     const idx={}; header.keys.forEach((key,i)=>{if(key&&!Object.prototype.hasOwnProperty.call(idx,key)) idx[key]=i;});
-    const colPacote=idx['PACOTE']!==undefined?idx['PACOTE']:(idx['PACOTES']!==undefined?idx['PACOTES']:(idx['PACOTE_ID']!==undefined?idx['PACOTE_ID']:(idx['PACOTE_DO_PEDIDO']!==undefined?idx['PACOTE_DO_PEDIDO']:(idx['SHP_SHIPMENT_ID']!==undefined?idx['SHP_SHIPMENT_ID']:(idx['ID_DO_PACOTE']!==undefined?idx['ID_DO_PACOTE']:(idx['ID_PACOTE']!==undefined?idx['ID_PACOTE']:idx['SHIPMENT_ID']))))));
+    const colPacote=idx['PACOTE']!==undefined?idx['PACOTE']:(Object.keys(idx).find(isReturnPackageKey)!==undefined?idx[Object.keys(idx).find(isReturnPackageKey)]:undefined);
     const colBase=idx['BASE']!==undefined?idx['BASE']:(idx['SHP_LG_FACILITY_ID']!==undefined?idx['SHP_LG_FACILITY_ID']:undefined);
     const colRota=idx['ROTA']!==undefined?idx['ROTA']:(idx['ID_DA_ROTA']!==undefined?idx['ID_DA_ROTA']:(idx['SHP_LG_ROUTE_ID']!==undefined?idx['SHP_LG_ROUTE_ID']:idx['ROUTE']));
     const colDriver=idx['MOTORISTA']!==undefined?idx['MOTORISTA']:(idx['ID_DO_MOTORISTA']!==undefined?idx['ID_DO_MOTORISTA']:(idx['SHP_LG_DRIVER_ID']!==undefined?idx['SHP_LG_DRIVER_ID']:idx['DRIVER']));
-    const colJust=idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(idx['JUSTIFICATIVA_DO_PACOTE']!==undefined?idx['JUSTIFICATIVA_DO_PACOTE']:(idx['OBSERVACAO']!==undefined?idx['OBSERVACAO']:(idx['OBSERVACAO_DO_PACOTE']!==undefined?idx['OBSERVACAO_DO_PACOTE']:(idx['MOTIVO']!==undefined?idx['MOTIVO']:idx['MOTIVO_DA_NAO_ENTREGA']))));
+    const colJust=idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(Object.keys(idx).find(isReturnJustKey)!==undefined?idx[Object.keys(idx).find(isReturnJustKey)]:undefined);
     if(colPacote===undefined || colJust===undefined) return;
     const end=headerIndex+1<headers.length?headers[headerIndex+1].rowIndex:rows.length;
     for(let r=header.rowIndex+1;r<end;r++){
@@ -406,6 +412,7 @@ function renderReturnHistory(){
   body.innerHTML=list.map(sheet=>{
     const links=linkedReturnImports(sheet); const linked=links.length?links.map(imp=>'<span class="return-link-chip">'+escHtml(imp.fileName||'Arquivo')+' · '+escHtml(imp.turno||'Turno')+' <b>'+fmtInt(imp.linkedCount||0)+' pacotes</b></span>').join(''):'<span class="return-no-link">Nenhuma planilha de pacotes no mesmo dia.</span>';
     const tabs=(sheet.sheetNames||Array.from(new Set((sheet.rows||[]).map(r=>r._sheetName).filter(Boolean))));
+    const warning=sheet.parseWarning?'<div class="return-no-link">'+escHtml(sheet.parseWarning)+'</div>':'';
     return '<tr data-return-id="'+escHtml(sheet.id)+'"><td>'+escHtml(String(sheet.importDate||'').split('-').reverse().join('/'))+'</td><td><strong>'+escHtml(sheet.fileName||'Arquivo sem nome')+'</strong></td><td><div class="return-tabs">'+(tabs.length?tabs.map(t=>'<span>'+escHtml(t)+'</span>').join(''):'—')+'</div></td><td>'+fmtInt((sheet.rows||[]).filter(r=>String(r.justificativa||'').trim()).length)+' / '+fmtInt((sheet.rows||[]).length)+'</td><td><div class="return-linked-list">'+linked+'</div></td><td>'+escHtml(new Date(sheet.savedAt).toLocaleString('pt-BR'))+'</td><td><button type="button" class="del-btn" data-del-return="'+escHtml(sheet.id)+'" title="Excluir esta planilha de retorno"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l-1-13M10 11v5M14 11v5"/></svg></button></td></tr>';
   }).join('');
   renderReturnMonthChips();
@@ -505,7 +512,11 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   const file=pendingReturnFile; if(!file)return; this.disabled=true; this.textContent='Lendo...';
   const importDate=document.getElementById('impDia').value || getSelectedImport()?.importDate || todayStr(); const reader=new FileReader();
   const finish=(rows)=>{
-    if(!rows){ alert('Não reconheci as colunas PACOTE e JUSTIFICATIVA na planilha_retorno.'); return; }
+    if(!rows){
+      const emptySheet={id:'ret-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),importDate,fileName:file.name,savedAt:new Date().toISOString(),rows:[],sheetNames:[],linkedImports:[],parseWarning:'Não foram encontradas colunas de pacote e justificativa.'};
+      RETURN_SHEETS.push(emptySheet); persistReturnSheets(); updateImportUI();
+      alert('O arquivo foi salvo no histórico, mas não encontrei colunas reconhecidas de pacote e justificativa. Verifique os nomes dos cabeçalhos.'); return;
+    }
     const old=returnSheetForDate(importDate);
     const previousRows=old?.rows||[];
     const merged=new Map();
