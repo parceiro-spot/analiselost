@@ -469,13 +469,6 @@ document.getElementById('importsHistBody').addEventListener('click', function(e)
     if(Object.keys(STATE_DATA).length) renderAll();
   }
 });
-document.getElementById('dashboardImportSelect').addEventListener('change',function(e){
-  const id=e.target.value; if(!id)return;
-  selectedImportId=id; saveSelectedImport(); currentTab='TODOS'; currentBaseFilter='TODAS'; topBasesMode='TODOS'; regionalAgeFilter='TODOS';
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));
-  if(Object.keys(STATE_DATA).length) renderAll();
-  renderImportsHistory();
-});
 function deleteImport(id){
   IMPORTS=IMPORTS.filter(imp=>imp.id!==id);
   persistImports();
@@ -859,12 +852,14 @@ function sortBtnLabel(mode){
   return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h10M4 18h5"/></svg> Ordem: Valor';
 }
 function abrirModalOcultarDias(entries, contexto){
-  const disponiveis=new Set((entries||[]).map(e=>bucketOf(diasParado(e))).filter(Boolean));
-  const faixas=BUCKET_KEYS.filter(bucket=>disponiveis.has(bucket));
-  if(!faixas.length){ baixarRetorno(entries,contexto); return; }
+  const diasDisponiveis=Array.from(new Set((entries||[]).map(e=>Math.floor(diasParado(e))).filter(Number.isFinite))).sort((a,b)=>a-b);
+  const faixas=BUCKET_KEYS.slice();
+  const diasOpcoes=Array.from(new Set([1,2,3,4,5,6,...diasDisponiveis])).sort((a,b)=>a-b);
+  if(!(entries||[]).length){ baixarRetorno(entries,contexto); return; }
   document.getElementById('hideDaysModal')?.remove();
   const modal=document.createElement('div'); modal.id='hideDaysModal'; modal.className='hide-days-modal';
-  const options=()=>faixas.map(bucket=>'<label><input type="checkbox" value="'+bucket+'"> <strong>'+escHtml(BUCKET_LABELS[bucket])+'</strong></label>').join('');
+  const faixaNome={ATE2:'1–2 DIAS','3A6':'3–6 DIAS','7A10':'7–10 DIAS',MAIS11:'11+ DIAS'};
+  const options=()=>'<div class="hide-days-option-title">FAIXAS</div>'+faixas.map(bucket=>'<label><input type="checkbox" value="bucket:'+bucket+'"> <strong>'+faixaNome[bucket]+'</strong></label>').join('')+'<div class="hide-days-option-title">DIAS AVULSOS</div>'+diasOpcoes.map(day=>'<label><input type="checkbox" value="day:'+day+'"> <strong>'+day+' DIA'+(day===1?'':'S')+'</strong></label>').join('');
   modal.innerHTML='<div class="hide-days-card" role="dialog" aria-modal="true" aria-labelledby="hideDaysTitle">'
     +'<div class="hide-days-head"><div><h3 id="hideDaysTitle">CONFIGURAR ABAS DA PLANILHA</h3><p>Cada bloco abaixo cria novamente as abas ES, MG, BA, SP e RJ no mesmo arquivo.</p></div><button type="button" class="overlay-close" data-hide-days-close>Fechar</button></div>'
     +'<div class="hide-days-group" data-hide-group="1"><h4>PRIMEIRA ABA/BLOCO — NÃO CONTER:</h4><div class="hide-days-options">'+options()+'</div><small>Vai gerar: ES, MG, BA, SP e RJ</small></div>'
@@ -888,12 +883,15 @@ function abrirModalOcultarDias(entries, contexto){
     }
     if(ev.target.closest('[data-remove-hide-group]')){ev.target.closest('.hide-days-group').remove();return;}
     if(ev.target.closest('[data-hide-days-confirm]')){
-      const ranges={ATE2:[[0,2]],'3A6':[[3,6]],'7A10':[[7,10]],MAIS11:[[11,999]]};
       const ageGroups=[];
       modal.querySelectorAll('.hide-days-group').forEach((group,index)=>{
-        const ocultos=new Set(Array.from(group.querySelectorAll('input:checked')).map(input=>input.value));
-        const incluidos=BUCKET_KEYS.filter(bucket=>!ocultos.has(bucket)).flatMap(bucket=>ranges[bucket]||[]);
-        if(incluidos.length)ageGroups.push({key:'CUSTOM',label:(index===0?'1ª aba':' '+(index+1)+'ª aba')+' · não contém '+(ocultos.size?Array.from(ocultos).map(bucket=>BUCKET_LABELS[bucket]).join(' + '):'nenhuma faixa'),ranges:incluidos});
+        const marcados=Array.from(group.querySelectorAll('input:checked')).map(input=>input.value);
+        const ocultosFaixas=new Set(marcados.filter(value=>value.startsWith('bucket:')).map(value=>value.slice(7)));
+        const ocultosDias=new Set(marcados.filter(value=>value.startsWith('day:')).map(value=>Number(value.slice(4))));
+        const incluidos=diasDisponiveis.filter(day=>!ocultosFaixas.has(bucketOf(day))&&!ocultosDias.has(day)).map(day=>[day,day]);
+        const nomes=marcados.map(value=>value.startsWith('bucket:')?faixaNome[value.slice(7)]:value.slice(4)+' DIA'+(value==='day:1'?'':'S'));
+        const label=nomes.length?nomes.join(' + '):'TODOS OS DIAS';
+        if(incluidos.length)ageGroups.push({key:'CUSTOM',label,ranges:incluidos});
       });
       if(!ageGroups.length){alert('Deixe pelo menos uma faixa disponível em uma das abas.');return;}
       close(); baixarRetornoFormatado(entries,{ageGroups,orderMode:'VALOR',dateOrder:[]});
@@ -1302,7 +1300,7 @@ function baixarRetornoFormatado(entries, contexto){
   const zip=new JSZip(); const sheetOverrides=sheets.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('');
   zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheetOverrides+'</Types>');
   zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-  const short={'ESPÍRITO SANTO':'ES','MINAS GERAIS':'MG','BAHIA':'BA','SÃO PAULO':'SP','RIO DE JANEIRO':'RJ'}; const xl=zip.folder('xl'), names=sheets.map((s,i)=>{const label=((short[s.reg]||s.reg)+(s.groupKey==='TODOS'?'':' '+s.groupLabel)).replace(/[\/*?:\[\]]/g,' ').trim().slice(0,31)||('Regional '+(i+1));return {label,i};});
+  const short={'ESPÍRITO SANTO':'ES','MINAS GERAIS':'MG','BAHIA':'BA','SÃO PAULO':'SP','RIO DE JANEIRO':'RJ'}; const xl=zip.folder('xl'), usados=new Set(), names=sheets.map((s,i)=>{const base=((short[s.reg]||s.reg)+(s.groupKey==='TODOS'?'':' '+s.groupLabel)).replace(/[\/*?:\[\]]/g,' ').trim().slice(0,31)||('Regional '+(i+1));let label=base,n=2;while(usados.has(label)){const sufixo=' '+n++;label=base.slice(0,31-sufixo.length)+sufixo;}usados.add(label);return {label,i};});
   xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'" sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets></workbook>');
   xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   xl.file('styles.xml',STYLES_XML); const wsFolder=xl.folder('worksheets'); sheets.forEach((s,i)=>wsFolder.file('sheet'+(i+1)+'.xml',s.xml));
@@ -1397,7 +1395,7 @@ function renderRegionalPage(){
     const turnosDoDia=activeImp?labelTurnosDoDia(activeImp.importDate):'';
     crumb.innerHTML='<strong>Todas as regionais</strong><label class="regional-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="regionalSearch" type="search" value="'+escHtml(regionalSearch)+'" placeholder="Buscar ID do pacote, rota ou motorista..." autocomplete="off"></label>'+(activeImp?'<span class="active-planilha-badge" style="margin-left:auto;"><b>'+(turnosDoDia==='Manhã - Tarde'?'PLANILHAS':'PLANILHA')+'</b> '+activeImp.importDate.split('-').reverse().join('/')+' · '+turnosDoDia+'</span>':'');
     const totalVal=regionalEntries.reduce((a,e)=>a+Number(e.valor||0),0);
-    let html=renderRegionalAgeTabs()+'<div class="regional-grid">';
+    let html='<div class="regional-grid">';
     const allJust=justifiedCount(regionalEntries); html+=`<div class="regional-card" data-r="TODAS"><div class="rname">Todas as bases</div><div class="rsub">${fmtInt(regionalEntries.length)} pacote(s)${query?' encontrados':''} · Soma somente da planilha ativa</div><div class="rval">${fmtBRL(totalVal)}</div><button type="button" class="regional-justified-btn" data-reg-just="TODAS">JUSTIFICADOS <span>${fmtInt(allJust)} / ${fmtInt(regionalEntries.length)} (${percentLabel(allJust,regionalEntries.length)})</span></button></div>`;
     REGIONAL_ORDER.forEach(r=>{ if(!activeData[r]) return; const d=activeData[r]; const val=d.entries.reduce((a,e)=>a+Number(e.valor||0),0); const justCount=justifiedCount(d.entries); html+=`<div class="regional-card" data-r="${escHtml(r)}"><div class="rname">${escHtml(REGIONAL_LABELS[r]||r)}</div><div class="rsub">${fmtInt(d.entries.length)} pacote(s) · somente esta planilha</div><div class="rval">${fmtBRL(val)}</div><button type="button" class="regional-justified-btn" data-reg-just="${escHtml(r)}">JUSTIFICADOS <span>${fmtInt(justCount)} / ${fmtInt(d.entries.length)} (${percentLabel(justCount,d.entries.length)})</span></button></div>`; });
     html+='</div>';
