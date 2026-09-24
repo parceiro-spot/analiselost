@@ -1176,7 +1176,7 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
    Dias parado: até 2 verde · 3 amarelo · 4 laranja · 5+ vermelho */
-const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['',4],['TUTORIAL DE COMO ANEXAR FOTO',16]];
+const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
 const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
 +'<fonts count="6">'
@@ -1233,16 +1233,16 @@ function buildSheetXml(grupos, contexto){
   let rows='', merges=[], r=0;
   const linhaVazia=()=>{ r++; rows+='<row r="'+r+'"/>'; };
   r++; rows+='<row r="'+r+'" ht="20" customHeight="1">'+cTxt(0,r,'Planilha de retorno — Parceiro Spot · '+fmtDateFullBR(new Date())+(contexto?(typeof contexto==='string'?contexto:(contexto.selectedDays?.length?'Dias '+contexto.selectedDays.map(d=>d.split('-').reverse().join('/')).join(', '):'')):''),1)+'</row>';
-  merges.push('A'+r+':M'+r);
+  merges.push('A'+r+':L'+r);
   grupos.forEach(g=>{
     const linhas=g.linhas;
     const valorReg=linhas.reduce((a,x)=>a+x.e.valor,0);
     linhaVazia();
     r++; rows+='<row r="'+r+'" ht="18" customHeight="1">'
       +cTxt(0,r,(REGIONAL_LABELS[g.regional]||g.regional)+' — '+fmtInt(linhas.length)+' pacote(s) — '+fmtBRL(valorReg),2);
-    for(let c=1;c<13;c++) rows+='<c r="'+colName(c)+r+'" s="2"/>';
+    for(let c=1;c<12;c++) rows+='<c r="'+colName(c)+r+'" s="2"/>';
     rows+='</row>';
-    merges.push('A'+r+':M'+r);
+    merges.push('A'+r+':L'+r);
     r++; rows+='<row r="'+r+'">'+XLSX_COLS.map((cc,i)=>cTxt(i,r,cc[0],3)).join('')+'</row>';
     linhas.forEach(({base,e})=>{
       const dias=diasParado(e);
@@ -1260,14 +1260,13 @@ function buildSheetXml(grupos, contexto){
         +cTxt(8,r,justificativa,4)
         +cTxt(9,r,retorno?.photo?'FOTO ANEXADA':'ANEXAR FOTO',17)
         +cTxt(10,r,resolvido,4)
-        +cTxt(11,r,'',4)
-        +cTxt(12,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Deste dispositivo > depois de abrir a foto, clicar no ícone de paisagem com quadradinho.',15)
+        +cTxt(11,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Deste dispositivo > depois de abrir a foto, clicar no ícone de paisagem com quadradinho.',15)
         +'</row>';
     });
     r++;
     rows+='<row r="'+r+'">'+cTxt(0,r,'Total '+(REGIONAL_LABELS[g.regional]||g.regional),10)
       +cTxt(1,r,'',4)+cTxt(2,r,'',4)+cTxt(3,r,'',4)+cTxt(4,r,'',4)+cTxt(5,r,'',4)+cTxt(6,r,'',4)
-      +cNum(7,r,valorReg,18)+cTxt(8,r,'',4)+cTxt(9,r,'',4)+cTxt(10,r,'',4)+cTxt(11,r,'',4)+cTxt(12,r,'',4)+'</row>';
+      +cNum(7,r,valorReg,18)+cTxt(8,r,'',4)+cTxt(9,r,'',4)+cTxt(10,r,'',4)+cTxt(11,r,'',4)+'</row>';
     merges.push('A'+r+':G'+r);
   });
   linhaVazia();
