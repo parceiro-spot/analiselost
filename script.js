@@ -1176,7 +1176,7 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
    Dias parado: até 2 verde · 3 amarelo · 4 laranja · 5+ vermelho */
-const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['FOTO / ANEXAR FOTO',22],['RESOLVIDO',12],['',4],['TUTORIAL',16]];
+const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['',4],['TUTORIAL DE COMO ANEXAR FOTO',16]];
 const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
 +'<fonts count="5">'
