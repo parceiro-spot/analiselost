@@ -1113,7 +1113,7 @@ function findReturnHeader(rows){
   }
   return null;
 }
-function buildReturnRowsFromRawRows(rows){
+function buildReturnRowsFromRawRows(rows,photosByRow){
   if(!rows||!rows.length) return null;
   const headers=[];
   for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(k=>k==='ID'||k.includes('PACOTE')||k.includes('SHIPMENT')); const hasJust=keys.some(k=>k.includes('JUSTIFIC')||k.includes('OBSERV')||k.includes('MOTIVO')||k.includes('RAZAO')); if(hasPackage&&hasJust) headers.push({rowIndex,keys}); }
@@ -1132,18 +1132,43 @@ function buildReturnRowsFromRawRows(rows){
       const row=rows[r]||[], pacote=normalizePackageKey(row[colPacote]);
       if(!pacote || pacote==='PACOTE') continue;
       const justificativa=String(row[colJust]??'').trim();
-      out.push({pacote,rota:colRota!==undefined?normalizePackageKey(row[colRota]):'',base:normalizeBaseCode(row[colBase]??''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):'',justificativa,photo:null,updatedAt:new Date().toISOString()});
+      out.push({pacote,rota:colRota!==undefined?normalizePackageKey(row[colRota]):'',base:normalizeBaseCode(row[colBase]??''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):'',justificativa,photo:photosByRow?.[r]||null,updatedAt:new Date().toISOString()});
     }
   });
   return out.length?out:null;
 }
-function buildReturnRowsFromWorkbook(wb){
+function xmlNodes(xml,tag){ return Array.from(xml?.getElementsByTagNameNS('*',tag)||[]); }
+function joinZipPath(base,target){ const parts=(base+'/'+String(target||'')).split('/'),out=[]; parts.forEach(p=>{if(!p||p==='.')return;if(p==='..')out.pop();else out.push(p);}); return out.join('/'); }
+function relMap(xml){ const out={}; xmlNodes(xml,'Relationship').forEach(n=>{out[n.getAttribute('Id')]=n.getAttribute('Target')||'';}); return out; }
+async function extractWorkbookPhotos(buffer){
+  if(typeof JSZip==='undefined') return {};
+  const zip=await JSZip.loadAsync(buffer), photoSheets={};
+  const readXml=async path=>{const f=zip.file(path);return f?new DOMParser().parseFromString(await f.async('string'),'application/xml'):null;};
+  const wb=await readXml('xl/workbook.xml'), wbRel=relMap(await readXml('xl/_rels/workbook.xml.rels'));
+  for(const sheet of xmlNodes(wb,'sheet')){
+    const name=sheet.getAttribute('name')||'', rid=sheet.getAttribute('r:id')||sheet.getAttribute('id'), target=wbRel[rid]; if(!target)continue;
+    const sheetPath=target.startsWith('/')?target.slice(1):joinZipPath('xl',target), sheetDir=sheetPath.slice(0,sheetPath.lastIndexOf('/'));
+    const sheetRelPath=sheetDir+'/_rels/'+sheetPath.slice(sheetPath.lastIndexOf('/')+1)+'.rels', sheetRel=relMap(await readXml(sheetRelPath));
+    const sheetXml=await readXml(sheetPath), drawing=xmlNodes(sheetXml,'drawing')[0]; if(!drawing)continue;
+    const drawPath=joinZipPath(sheetDir,sheetRel[drawing.getAttribute('r:id')||drawing.getAttribute('id')]); if(!drawPath)continue;
+    const drawDir=drawPath.slice(0,drawPath.lastIndexOf('/')), drawRelPath=drawDir+'/_rels/'+drawPath.slice(drawPath.lastIndexOf('/')+1)+'.rels', drawRel=relMap(await readXml(drawRelPath)), drawXml=await readXml(drawPath); if(!drawXml)continue;
+    const photos={};
+    await Promise.all(xmlNodes(drawXml,'twoCellAnchor').concat(xmlNodes(drawXml,'oneCellAnchor')).map(async anchor=>{
+      const from=xmlNodes(anchor,'from')[0], row=Number(xmlNodes(from,'row')[0]?.textContent||-1), pic=xmlNodes(anchor,'pic')[0], blip=pic&&xmlNodes(pic,'blip')[0]; if(row<0||!blip)return;
+      const mediaPath=joinZipPath(drawDir,drawRel[blip.getAttribute('r:embed')||blip.getAttribute('embed')]); const file=zip.file(mediaPath); if(!file)return;
+      const ext=(mediaPath.split('.').pop()||'png').toLowerCase(), mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':ext==='gif'?'image/gif':ext==='webp'?'image/webp':'image/png'; photos[row]=`data:${mime};base64,${await file.async('base64')}`;
+    })); photoSheets[name]=photos;
+  }
+  return photoSheets;
+}
+async function buildReturnRowsFromWorkbook(wb,buffer){
+  const photoSheets=await extractWorkbookPhotos(buffer);
   const combined=[];
   (wb?.SheetNames||[]).forEach(sheetName=>{
     const ws=wb.Sheets[sheetName];
     if(!ws) return;
     const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true});
-    const parsed=buildReturnRowsFromRawRows(rows);
+    const parsed=buildReturnRowsFromRawRows(rows,photoSheets[sheetName]||{});
     if(parsed?.length) parsed.forEach(row=>{ row._sheetName=sheetName; });
     if(parsed?.length) combined.push(...parsed);
   });
@@ -1468,7 +1493,7 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
     if(parseError) alert('O arquivo foi salvo no histórico de hoje, mas algumas colunas não foram reconhecidas: '+parseError);
   };
   if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';const rows=buildReturnRowsFromRawRows(parseDelimitedText(text,delim));finish(rows,rows?'':'Não encontrei uma linha com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do CSV');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
-  else { reader.onload=e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=buildReturnRowsFromWorkbook(wb);finish(rows,rows?'':'Não encontrei uma aba com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
+  else { reader.onload=async e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=await buildReturnRowsFromWorkbook(wb,e.target.result);finish(rows,rows?'':'Não encontrei uma aba com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
 });
 document.getElementById('fileInputDrivers').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingDriverFile=file; document.getElementById('btnConfirmDrivers').disabled=false; document.getElementById('btnConfirmDrivers').textContent='OK'; e.target.value='';
@@ -2182,7 +2207,7 @@ function buildSheetXml(grupos, contexto){
         +cTxt(8,r,justificativa,4)
         +cTxt(9,r,retorno?.photo?'FOTO ANEXADA':'ANEXAR FOTO',17)
         +cTxt(10,r,resolvido,4)
-        +cTxt(11,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Deste dispositivo > depois de abrir a foto, clicar no ícone de paisagem com quadradinho.',15)
+        +cTxt(11,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Este dispositivo > depois de abrir a foto, clicar no ícone pequeno de paisagem com quadradinho que fica ao lado da foto que abriu.',15)
         +'</row>';
     });
     r++;
