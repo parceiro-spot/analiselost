@@ -1242,7 +1242,7 @@ function buildSheetXml(grupos, contexto){
       const dias=diasParado(e);
       const retorno=returnRecordForEntry(e), justificativa=String(retorno?.justificativa||'').trim(), resolvido=justificativa?'Resolvido':'Pendente';
       r++;
-      rows+='<row r="'+r+'">'
+      rows+='<row r="'+r+'" ht="66" customHeight="1">'
         +cTxt(0,r,base,4)
         +cTxt(1,r,e.pacote||'',4)
         +cTxt(2,r,e.rota||'',4)
@@ -1252,7 +1252,7 @@ function buildSheetXml(grupos, contexto){
         +cNum(6,r,dias,diasStyle(dias))
         +cNum(7,r,e.valor,9)
         +cTxt(8,r,justificativa,4)
-        +cTxt(9,r,retorno?.photo?'FOTO ANEXADA':'ANEXAR FOTO',4)
+        +cTxt(9,r,retorno?.photo?'FOTO ANEXADA':'ANEXAR FOTO — Inserir > Imagens > Inserir do dispositivo > ícone de paisagem com quadradinho ao lado da foto',4)
         +cTxt(10,r,resolvido,4)
         +'</row>';
     });
