@@ -974,9 +974,17 @@ function openBaseOverlay(base, bucket){
 function openAgingDetail(bucket, entries){
   openOverlayEntries('Pacotes por dias parado', '', entries, bucket);
 }
-function motoristaMetricasDoDia(driverId, day){
-  const manha=(findTurnoImport(day,'Manhã')?.entries||[]).filter(e=>String(e.driverId||'')===String(driverId||''));
-  const tarde=(findTurnoImport(day,'Tarde')?.entries||[]).filter(e=>String(e.driverId||'')===String(driverId||''));
+function motoristaNaFaixa(e, faixa){
+  if(!faixa || faixa==='TODOS') return true;
+  const d=Number(diasParado(e));
+  if(faixa==='ATE2') return d>=1 && d<=2;
+  if(faixa==='3A6') return d>=3 && d<=6;
+  if(faixa==='7A11') return d>=7 && d<=11;
+  return false;
+}
+function motoristaMetricasDoDia(driverId, day, faixa){
+  const manha=(findTurnoImport(day,'Manhã')?.entries||[]).filter(e=>String(e.driverId||'')===String(driverId||'')&&motoristaNaFaixa(e,faixa));
+  const tarde=(findTurnoImport(day,'Tarde')?.entries||[]).filter(e=>String(e.driverId||'')===String(driverId||'')&&motoristaNaFaixa(e,faixa));
   const manhaMap=new Map(manha.map(e=>[String(e.pacote||''),e])), tardeMap=new Map(tarde.map(e=>[String(e.pacote||''),e]));
   const atual=tarde.length?tarde:manha, atuais=new Set(atual.map(e=>String(e.pacote||'')).filter(Boolean));
   const pacotesManha=new Set(manha.map(e=>String(e.pacote||'')).filter(Boolean));
@@ -984,23 +992,26 @@ function motoristaMetricasDoDia(driverId, day){
   const saiuDaPlanilha=tarde.length?new Set([...pacotesManha].filter(id=>!pacotesTarde.has(id))).size:0;
   const allIds=new Set([...manhaMap.keys(),...tardeMap.keys()].filter(Boolean));
   const comparacoes=Array.from(allIds).map(id=>{const m=manhaMap.get(id),t=tardeMap.get(id);return {id,manha:m,tarde:t,delta:m&&t?(t.valor-m.valor):0,turno:m&&t?'TARDE':t?'TARDE':'MANHA'};});
-  const planilhasOfensoras=new Set(); IMPORTS.filter(imp=>!day||imp.importDate<=day).forEach(imp=>{if((imp.entries||[]).some(e=>String(e.driverId||'')===String(driverId||'')&&atuais.has(String(e.pacote||''))) ) planilhasOfensoras.add(String(imp.importDate)+'|'+String(imp.turno||''));});
-  return {vezes:planilhasOfensoras.size,atuais,pacotesManha:pacotesManha.size,pacotesTarde:pacotesTarde.size,saiuDaPlanilha,comparacoes};
+  const diasOfensora=new Set(), diasPorFaixa={ATE2:new Set(),'3A6':new Set(), '7A11':new Set()};
+  IMPORTS.filter(imp=>!day||imp.importDate<=day).forEach(imp=>{(imp.entries||[]).forEach(e=>{if(String(e.driverId||'')!==String(driverId||'')) return; const d=Number(diasParado(e,String(imp.importDate||day||'')+'T00:00:00')); diasOfensora.add(String(imp.importDate)); if(d>=1&&d<=2) diasPorFaixa.ATE2.add(String(imp.importDate)); else if(d>=3&&d<=6) diasPorFaixa['3A6'].add(String(imp.importDate)); else if(d>=7&&d<=11) diasPorFaixa['7A11'].add(String(imp.importDate));});});
+  return {vezes:diasOfensora.size,vezesPorFaixa:{ATE2:diasPorFaixa.ATE2.size,'3A6':diasPorFaixa['3A6'].size,'7A11':diasPorFaixa['7A11'].size},atuais,pacotesManha:pacotesManha.size,pacotesTarde:pacotesTarde.size,totalAtual:atuais.size,saiuDaPlanilha,comparacoes};
 }
 function pacoteTurnoLabel(comp){ return comp.manha&&comp.tarde ? 'Manhã - Tarde' : comp.tarde ? 'Tarde' : 'Manhã'; }
 function pacoteDeltaHtml(comp){
   if(comp.manha&&comp.tarde){ const diff=(Number(comp.tarde.valor)||0)-(Number(comp.manha.valor)||0); if(Math.abs(diff)>0.005) return `<span class="driver-delta ${diff>0?'delta-up':'delta-down'}">${diff>0?'↑':'↓'} ${diff>0?'+':''}${fmtBRL(Math.abs(diff))}</span>`; return '<span class="driver-delta delta-same">Manhã - Tarde</span>'; }
   return '<span class="driver-delta delta-same">'+(comp.tarde?'Tarde':'Manhã')+'</span>';
 }
-function renderOverlayDriverDetail(driverId){
+function renderOverlayDriverDetail(driverId, faixa){
+  faixa=faixa||'TODOS';
   const day=getSelectedImport()?.importDate||availableImportDates().slice(-1)[0]||'';
   const currentEntries=snapshotEntriesForDay(day).filter(e=>String(e.driverId||'')===String(driverId||''));
   const entries=[]; availableImportDates().forEach(historyDay=>snapshotEntriesForDay(historyDay).forEach(e=>{if(String(e.driverId||'')===String(driverId||''))entries.push({day:historyDay,e});}));
-  const metricas=motoristaMetricasDoDia(driverId,day), total=currentEntries.reduce((s,e)=>s+(Number(e.valor)||0),0);
+  const metricas=motoristaMetricasDoDia(driverId,day,faixa), total=currentEntries.filter(e=>motoristaNaFaixa(e,faixa)).reduce((s,e)=>s+(Number(e.valor)||0),0);
   const old=document.getElementById('overlayDriverDetail'); if(old)old.remove(); const panel=document.createElement('div'); panel.id='overlayDriverDetail'; panel.className='driver-detail-panel';
-  const packageRows=metricas.comparacoes.map(comp=>{const e=comp.tarde||comp.manha;const diffCount=comp.manha&&comp.tarde?((Number(comp.tarde.valor)||0)-(Number(comp.manha.valor)||0)):0;return `<tr><td>${escHtml(comp.id)}</td><td>${escHtml(e.base||'—')}</td><td>${escHtml(pacoteTurnoLabel(comp))}</td><td><strong>${fmtBRL(e.valor)}</strong></td><td>${pacoteDeltaHtml(comp)}</td></tr>`;}).join('');
-  panel.innerHTML='<div class="driver-detail-head"><div><h3>'+escHtml(getDriverName(driverId))+'</h3><div class="osub">Detalhes do motorista · comparação entre planilhas do dia</div></div><button type="button" class="overlay-close" id="overlayDriverClose">Fechar detalhes</button></div>'
-    +'<div class="rev-kpis"><div class="rev-kpi"><div class="lbl">Motorista</div><div class="val">'+escHtml(getDriverName(driverId))+'</div></div><div class="rev-kpi"><div class="lbl">Valor em risco</div><div class="val">'+fmtBRL(total)+'</div></div><div class="rev-kpi"><div class="lbl">Vezes ofensor</div><div class="val">'+fmtInt(metricas.vezes)+'</div></div><div class="rev-kpi driver-current-kpi"><div class="lbl">Pacotes atuais</div><div class="val">'+fmtInt(metricas.atuais.size)+'</div><div class="driver-package-counts"><span>Manhã: <strong>'+fmtInt(metricas.pacotesManha)+'</strong></span><span>Tarde: <strong>'+fmtInt(metricas.pacotesTarde)+'</strong> <em class="driver-turn-delta">'+(metricas.pacotesTarde>metricas.pacotesManha?'(+'+fmtInt(metricas.pacotesTarde-metricas.pacotesManha)+' do que de manhã)':metricas.pacotesTarde<metricas.pacotesManha?'(-'+fmtInt(metricas.pacotesManha-metricas.pacotesTarde)+' do que de manhã)':'(igual à manhã)')+'</em></span>'+(metricas.saiuDaPlanilha?'<span class="driver-left-count">Saiu da planilha: <strong>'+fmtInt(metricas.saiuDaPlanilha)+'</strong></span>':'')+'</div></div></div>'
+  const packageRows=metricas.comparacoes.map(comp=>{const e=comp.tarde||comp.manha;return `<tr><td>${escHtml(comp.id)}</td><td>${escHtml(e.base||'—')}</td><td>${escHtml(pacoteTurnoLabel(comp))}</td><td><strong>${fmtBRL(e.valor)}</strong></td><td>${pacoteDeltaHtml(comp)}</td></tr>`;}).join('');
+  const ofensorFaixas='<div class="driver-offender-breakdown"><span class="driver-age-blue">1–2 dias: <strong>'+fmtInt(metricas.vezesPorFaixa.ATE2)+'</strong></span><span class="driver-age-yellow">3–6 dias: <strong>'+fmtInt(metricas.vezesPorFaixa['3A6'])+'</strong></span><span class="driver-age-red">7–11 dias: <strong>'+fmtInt(metricas.vezesPorFaixa['7A11'])+'</strong></span></div>';
+  panel.innerHTML='<div class="driver-detail-head"><div><h3>'+escHtml(getDriverName(driverId))+'</h3><div class="osub">Detalhes do motorista · ofensor contado por dia</div></div><button type="button" class="overlay-close" id="overlayDriverClose">Fechar detalhes</button></div>'
+    +'<div class="rev-kpis"><div class="rev-kpi"><div class="lbl">Motorista</div><div class="val">'+escHtml(getDriverName(driverId))+'</div></div><div class="rev-kpi"><div class="lbl">Valor em risco</div><div class="val">'+fmtBRL(total)+'</div></div><div class="rev-kpi"><div class="lbl">Vezes ofensor</div><div class="val">'+fmtInt(metricas.vezes)+'</div>'+ofensorFaixas+'</div><div class="rev-kpi driver-current-kpi"><div class="lbl">Pacotes atuais do motorista</div><div class="val">'+fmtInt(metricas.totalAtual)+'</div><div class="driver-package-counts"><span>Manhã: <strong>'+fmtInt(metricas.pacotesManha)+'</strong></span><span>Tarde: <strong>'+fmtInt(metricas.pacotesTarde)+'</strong> <em class="driver-turn-delta">'+(metricas.pacotesTarde>metricas.pacotesManha?'(pegou +'+fmtInt(metricas.pacotesTarde-metricas.pacotesManha)+' pacotes)':metricas.pacotesTarde<metricas.pacotesManha?'('+fmtInt(metricas.pacotesTarde-metricas.pacotesManha)+' pacote'+(Math.abs(metricas.pacotesTarde-metricas.pacotesManha)===1?'':'s')+')':'(igual à manhã)')+'</em></span><span class="driver-total-count">Possui total de: <strong>'+fmtInt(metricas.totalAtual)+'</strong> pacotes.</span>'+(metricas.saiuDaPlanilha?'<span class="driver-left-count">Saiu da planilha: <strong>'+fmtInt(metricas.saiuDaPlanilha)+'</strong></span>':'')+'</div></div></div>'
     +'<div class="rev-table-wrap"><table class="rev-table"><thead><tr><th>Pacote</th><th>Base</th><th>Planilha</th><th>Valor atual</th><th>Variação</th></tr></thead><tbody>'+(packageRows||'<tr><td colspan="5" class="history-empty">Nenhum pacote atual.</td></tr>')+'</tbody></table></div>'
     +'<div class="driver-history-note">Comparação: seta para baixo = valor menor ou pacote que saiu da planilha; seta para cima vermelha = valor maior. Um pacote presente de manhã e à tarde aparece como <strong>Manhã - Tarde</strong>.</div>';
   document.getElementById('overlayBody').appendChild(panel); document.getElementById('overlayDriverClose').addEventListener('click',()=>panel.remove()); setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),20);
@@ -1201,7 +1212,7 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
    Dias parado: até 2 verde · 3 amarelo · 4 laranja · 5+ vermelho */
-const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
+const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['RESOLVIDO',12]];
 const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
 +'<fonts count="6">'
@@ -1258,16 +1269,16 @@ function buildSheetXml(grupos, contexto){
   let rows='', merges=[], r=0;
   const linhaVazia=()=>{ r++; rows+='<row r="'+r+'"/>'; };
   r++; rows+='<row r="'+r+'" ht="20" customHeight="1">'+cTxt(0,r,'Planilha de retorno — Parceiro Spot · '+fmtDateFullBR(new Date())+(contexto?(typeof contexto==='string'?contexto:(contexto.selectedDays?.length?'Dias '+contexto.selectedDays.map(d=>d.split('-').reverse().join('/')).join(', '):'')):''),1)+'</row>';
-  merges.push('A'+r+':L'+r);
+  merges.push('A'+r+':J'+r);
   grupos.forEach(g=>{
     const linhas=g.linhas;
     const valorReg=linhas.reduce((a,x)=>a+x.e.valor,0);
     linhaVazia();
     r++; rows+='<row r="'+r+'" ht="18" customHeight="1">'
       +cTxt(0,r,(REGIONAL_LABELS[g.regional]||g.regional)+' — '+fmtInt(linhas.length)+' pacote(s) — '+fmtBRL(valorReg),2);
-    for(let c=1;c<12;c++) rows+='<c r="'+colName(c)+r+'" s="2"/>';
+    for(let c=1;c<10;c++) rows+='<c r="'+colName(c)+r+'" s="2"/>';
     rows+='</row>';
-    merges.push('A'+r+':L'+r);
+    merges.push('A'+r+':J'+r);
     r++; rows+='<row r="'+r+'">'+XLSX_COLS.map((cc,i)=>cTxt(i,r,cc[0],3)).join('')+'</row>';
     linhas.forEach(({base,e})=>{
       const dias=diasParado(e);
@@ -1283,15 +1294,13 @@ function buildSheetXml(grupos, contexto){
         +cNum(6,r,dias,diasStyle(dias))
         +cNum(7,r,e.valor,18)
         +cTxt(8,r,justificativa,4)
-        +cTxt(9,r,retorno?.photo?'FOTO ANEXADA':'ANEXAR FOTO',17)
-        +cTxt(10,r,resolvido,4)
-        +cTxt(11,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Este dispositivo > depois de abrir a foto, clicar no ícone pequeno de paisagem com quadradinho que fica ao lado da foto que abriu.',15)
+        +cTxt(9,r,resolvido,4)
         +'</row>';
     });
     r++;
     rows+='<row r="'+r+'">'+cTxt(0,r,'Total '+(REGIONAL_LABELS[g.regional]||g.regional),10)
       +cTxt(1,r,'',4)+cTxt(2,r,'',4)+cTxt(3,r,'',4)+cTxt(4,r,'',4)+cTxt(5,r,'',4)+cTxt(6,r,'',4)
-      +cNum(7,r,valorReg,18)+cTxt(8,r,'',4)+cTxt(9,r,'',4)+cTxt(10,r,'',4)+cTxt(11,r,'',4)+'</row>';
+      +cNum(7,r,valorReg,18)+cTxt(8,r,'',4)+cTxt(9,r,'',4)+'</row>';
     merges.push('A'+r+':G'+r);
   });
   linhaVazia();
