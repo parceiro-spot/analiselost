@@ -1176,7 +1176,7 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
    Dias parado: até 2 verde · 3 amarelo · 4 laranja · 5+ vermelho */
-const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['FOTO / ANEXAR FOTO',22],['RESOLVIDO',12],['',4],['TUTORIAL',18]];
+const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['FOTO / ANEXAR FOTO',22],['RESOLVIDO',12],['',4],['TUTORIAL',16]];
 const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
 +'<fonts count="5">'
@@ -1184,7 +1184,7 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<font><b/><sz val="11"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="14"/><color rgb="FF000000"/><name val="Calibri"/></font>'
-+'<font><b/><sz val="9"/><color rgb="FFCC7777"/><name val="Calibri"/></font>'
++'<font><b/><sz val="8"/><color rgb="FFCC7777"/><name val="Calibri"/></font>'
 +'</fonts>'
 +'<fills count="11">'
 +'<fill><patternFill patternType="none"/></fill>'
@@ -1244,7 +1244,7 @@ function buildSheetXml(grupos, contexto){
       const dias=diasParado(e);
       const retorno=returnRecordForEntry(e), justificativa=String(retorno?.justificativa||'').trim(), resolvido=justificativa?'Resolvido':'Pendente';
       r++;
-      rows+='<row r="'+r+'">'
+      rows+='<row r="'+r+'" ht="16.5" customHeight="1">'
         +cTxt(0,r,base,4)
         +cTxt(1,r,e.pacote||'',4)
         +cTxt(2,r,e.rota||'',4)
