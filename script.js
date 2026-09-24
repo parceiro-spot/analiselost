@@ -1179,12 +1179,13 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',14],['JUSTIFICATIVA',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['',4],['TUTORIAL DE COMO ANEXAR FOTO',16]];
 const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-+'<fonts count="5">'
++'<fonts count="6">'
 +'<font><sz val="11"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="11"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="14"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="8"/><color rgb="FFCC7777"/><name val="Calibri"/></font>'
++'<font><sz val="9"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'</fonts>'
 +'<fills count="11">'
 +'<fill><patternFill patternType="none"/></fill>'
@@ -1202,7 +1203,7 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
 +'<border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>'
 +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-+'<cellXfs count="16">'
++'<cellXfs count="19">'
 +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'                                                                        /* 0 padrao */
 +'<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>'                                                          /* 1 titulo */
 +'<xf numFmtId="0" fontId="1" fillId="7" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>' /* 2 faixa regional */
@@ -1219,6 +1220,9 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<xf numFmtId="0" fontId="1" fillId="9" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>' /* 13 dias 7 vermelho forte */
 +'<xf numFmtId="0" fontId="2" fillId="10" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>' /* 14 dias 8+ vermelho muito forte */
 +'<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>'
++'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
++'<xf numFmtId="0" fontId="5" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
++'<xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
 +'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 function colName(i){ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
 function xmlEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
@@ -1249,21 +1253,21 @@ function buildSheetXml(grupos, contexto){
         +cTxt(1,r,e.pacote||'',4)
         +cTxt(2,r,e.rota||'',4)
         +cTxt(3,r,resumo(e.produto,45),4)
-        +cTxt(4,r,e.motivo||'',4)
+        +cTxt(4,r,e.motivo||'',16)
         +cTxt(5,r,getDriverName(e.driverId),4)
         +cNum(6,r,dias,diasStyle(dias))
-        +cNum(7,r,e.valor,9)
+        +cNum(7,r,e.valor,18)
         +cTxt(8,r,justificativa,4)
-        +cTxt(9,r,retorno?.photo?'FOTO ANEXADA':'ANEXAR FOTO',4)
+        +cTxt(9,r,retorno?.photo?'FOTO ANEXADA':'ANEXAR FOTO',17)
         +cTxt(10,r,resolvido,4)
         +cTxt(11,r,'',4)
-        +cTxt(12,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Dispositivo > depois de abrir a foto, clicar no ícone de paisagem com quadradinho.',15)
+        +cTxt(12,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Deste dispositivo > depois de abrir a foto, clicar no ícone de paisagem com quadradinho.',15)
         +'</row>';
     });
     r++;
     rows+='<row r="'+r+'">'+cTxt(0,r,'Total '+(REGIONAL_LABELS[g.regional]||g.regional),10)
       +cTxt(1,r,'',4)+cTxt(2,r,'',4)+cTxt(3,r,'',4)+cTxt(4,r,'',4)+cTxt(5,r,'',4)+cTxt(6,r,'',4)
-      +cNum(7,r,valorReg,11)+cTxt(8,r,'',4)+cTxt(9,r,'',4)+cTxt(10,r,'',4)+cTxt(11,r,'',4)+cTxt(12,r,'',4)+'</row>';
+      +cNum(7,r,valorReg,18)+cTxt(8,r,'',4)+cTxt(9,r,'',4)+cTxt(10,r,'',4)+cTxt(11,r,'',4)+cTxt(12,r,'',4)+'</row>';
     merges.push('A'+r+':G'+r);
   });
   linhaVazia();
