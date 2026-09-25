@@ -626,3 +626,9 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 
 /* Tamanho final solicitado: aproximadamente 70% da tela. */
 .photo-viewer{padding:18px}.photo-viewer-panel{width:70vw;max-width:1100px;height:70vh;max-height:720px;padding:16px}.photo-viewer-body{height:calc(70vh - 100px);min-height:280px;padding:8px}.photo-viewer-stage{width:100%;height:100%;overflow:hidden!important}.photo-viewer-stage img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}@media(max-width:700px){.photo-viewer{padding:10px}.photo-viewer-panel{width:92vw;height:75vh;max-height:none;padding:12px}.photo-viewer-body{height:calc(75vh - 120px);min-height:220px}}
+
+/* Painel e área da foto com a mesma largura, centralizados. */
+.photo-viewer{padding:18px;align-items:center;justify-content:center}.photo-viewer-panel{width:75vw;max-width:1200px;height:75vh;max-height:780px;margin:0 auto;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:stretch}.photo-viewer-head{width:100%;box-sizing:border-box}.photo-viewer-body{width:100%;box-sizing:border-box;flex:1;height:auto;min-height:0;margin:0 auto;padding:10px;display:flex;align-items:center;justify-content:center;overflow:hidden!important}.photo-viewer-stage{width:100%;height:100%;min-width:0;min-height:0;margin:0;display:flex;align-items:center;justify-content:center;overflow:hidden!important}.photo-viewer-stage img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}@media(max-width:700px){.photo-viewer-panel{width:92vw;height:76vh;max-height:none}.photo-viewer-body{padding:7px}}
+
+/* Foto acompanha a caixa cinza, preenchendo o espaço sem distorção. */
+.photo-viewer-stage img{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;display:block}
