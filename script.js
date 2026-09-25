@@ -213,13 +213,18 @@ function buildReturnRowsFromRawRows(rows,photosByRow){
     const colRota=idx['ROTA']!==undefined?idx['ROTA']:(idx['ID_DA_ROTA']!==undefined?idx['ID_DA_ROTA']:(idx['SHP_LG_ROUTE_ID']!==undefined?idx['SHP_LG_ROUTE_ID']:idx['ROUTE']));
     const colDriver=idx['MOTORISTA']!==undefined?idx['MOTORISTA']:(idx['ID_DO_MOTORISTA']!==undefined?idx['ID_DO_MOTORISTA']:(idx['SHP_LG_DRIVER_ID']!==undefined?idx['SHP_LG_DRIVER_ID']:idx['DRIVER']));
     const colJust=idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(Object.keys(idx).find(k=>k.includes('JUSTIFIC')||k.includes('OBSERV')||k.includes('MOTIVO')||k.includes('RAZAO'))!==undefined?idx[Object.keys(idx).find(k=>k.includes('JUSTIFIC')||k.includes('OBSERV')||k.includes('MOTIVO')||k.includes('RAZAO'))]:undefined);
+    const colPhoto=Object.keys(idx).find(k=>k.includes('FOTO')||k.includes('IMAGEM')||k.includes('PHOTO'))!==undefined?idx[Object.keys(idx).find(k=>k.includes('FOTO')||k.includes('IMAGEM')||k.includes('PHOTO'))]:undefined;
     if(colPacote===undefined || colJust===undefined) return;
     const end=headerIndex+1<headers.length?headers[headerIndex+1].rowIndex:rows.length;
     for(let r=header.rowIndex+1;r<end;r++){
       const row=rows[r]||[], pacote=normalizePackageKey(row[colPacote]);
       if(!pacote || pacote==='PACOTE') continue;
       const justificativa=String(row[colJust]??'').trim();
-      out.push({pacote,rota:colRota!==undefined?normalizePackageKey(row[colRota]):'',base:normalizeBaseCode(row[colBase]??''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):'',justificativa,photo:photosByRow?.[r]||null,updatedAt:new Date().toISOString()});
+      const photoCell=colPhoto!==undefined?String(row[colPhoto]??'').trim():'';
+      const photo=photosByRow?.[r]||null;
+      const photoIndicator=photoCell==='FOTO ANEXADA'||photoCell==='PHOTO ATTACHED'||Boolean(photo);
+      if(!justificativa && !photoIndicator) continue;
+      out.push({pacote,rota:colRota!==undefined?normalizePackageKey(row[colRota]):'',base:normalizeBaseCode(row[colBase]??''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):'',justificativa,photo,photoIndicator,updatedAt:new Date().toISOString()});
     }
   });
   return out.length?out:null;
@@ -577,7 +582,7 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   const file=pendingReturnFile; if(!file)return; this.disabled=true; this.textContent='Lendo...';
   const importDate=todayStr(); const reader=new FileReader();
   const finish=(rows,parseError)=>{
-    const normalizedRows=(Array.isArray(rows)?rows:[]).filter(row=>normalizePackageKey(row.pacote)).map(row=>({...row,pacote:normalizePackageKey(row.pacote),base:normalizeBaseCode(row.base),rota:normalizePackageKey(row.rota),driverId:normalizePackageKey(row.driverId),justificativa:String(row.justificativa||'').trim(),updatedAt:new Date().toISOString()}));
+    const normalizedRows=(Array.isArray(rows)?rows:[]).filter(row=>normalizePackageKey(row.pacote)&&(String(row.justificativa||'').trim()||row.photo||row.photoIndicator)).map(row=>({...row,pacote:normalizePackageKey(row.pacote),base:normalizeBaseCode(row.base),rota:normalizePackageKey(row.rota),driverId:normalizePackageKey(row.driverId),justificativa:String(row.justificativa||'').trim(),photoIndicator:Boolean(row.photoIndicator||row.photo),updatedAt:new Date().toISOString()}));
     const linkedImports=IMPORTS.filter(imp=>imp.importDate===importDate).map(imp=>({id:imp.id,fileName:imp.fileName,turno:imp.turno,entries:(imp.entries||[]).length}));
     const sheetNames=Array.from(new Set(normalizedRows.map(row=>row._sheetName).filter(Boolean)));
     const incomingIds=new Set(normalizedRows.map(row=>normalizePackageKey(row.pacote)).filter(Boolean));
@@ -601,10 +606,11 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
     (previous?.rows||[]).forEach(row=>{ const key=normalizePackageKey(row.pacote)+'|'+normalizeBaseCode(row.base||''); mergedRowsMap.set(key,{...row}); });
     normalizedRows.forEach(row=>{
       const key=normalizePackageKey(row.pacote)+'|'+normalizeBaseCode(row.base||'');
-      const old=mergedRowsMap.get(key);
+      const old=mergedRowsMap.get(key) || RETURN_SHEETS.flatMap(sheet=>sheet.rows||[]).find(item=>normalizePackageKey(item.pacote)+'|'+normalizeBaseCode(item.base||'')===key);
       if(!old){ mergedRowsMap.set(key,row); return; }
       mergedRowsMap.set(key,{...old,...row,
         photo: row.photo || old.photo || null,
+        photoIndicator: Boolean(row.photoIndicator || row.photo || old.photoIndicator || old.photo),
         justificativa: String(row.justificativa||'').trim() || old.justificativa || '',
         manualEditedAt: old.manualEditedAt || row.manualEditedAt || null
       });
@@ -1274,13 +1280,14 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',18],['JUSTIFICATIVA',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
 const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-+'<fonts count="6">'
++'<fonts count="7">'
 +'<font><sz val="11"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="11"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="14"/><color rgb="FF000000"/><name val="Calibri"/></font>'
-+'<font><b/><sz val="8"/><color rgb="FFCC7777"/><name val="Calibri"/></font>'
++'<font><b/><sz val="8"/><color rgb="FFC00000"/><name val="Calibri"/></font>'
 +'<font><sz val="9"/><color rgb="FF000000"/><name val="Calibri"/></font>'
++'<font><b/><sz val="9"/><color rgb="FFC00000"/><name val="Calibri"/></font>'
 +'</fonts>'
 +'<fills count="11">'
 +'<fill><patternFill patternType="none"/></fill>'
@@ -1316,7 +1323,7 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<xf numFmtId="0" fontId="2" fillId="10" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>' /* 14 dias 8+ vermelho muito forte */
 +'<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="0"/></xf>'
 +'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
-+'<xf numFmtId="0" fontId="5" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
++'<xf numFmtId="0" fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
 +'<xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
 +'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 function colName(i){ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
@@ -1326,24 +1333,24 @@ function cNum(col,row,v,st){ const n=parseBRNumber(v); return '<c r="'+colName(c
 function diasStyle(dias){ if(dias<=2) return 5; if(dias===3) return 6; if(dias===4) return 7; if(dias===5) return 8; if(dias===6) return 12; if(dias===7) return 13; return 14; }
 function buildSheetXml(grupos, contexto){
   let rows='', merges=[], r=0;
-  const linhaVazia=()=>{ r++; rows+='<row r="'+r+'"/>'; };
-  r++; rows+='<row r="'+r+'" ht="14.4" customHeight="1">'+cTxt(0,r,'Planilha de retorno — Parceiro Spot · '+fmtDateFullBR(new Date())+(contexto?(typeof contexto==='string'?contexto:(contexto.selectedDays?.length?'Dias '+contexto.selectedDays.map(d=>d.split('-').reverse().join('/')).join(', '):'')):''),1)+'</row>';
+  const linhaVazia=()=>{ r++; rows+='<row r="'+r+'" ht="15" customHeight="1"/>'; };
+  r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+cTxt(0,r,'Planilha de retorno — Parceiro Spot · '+fmtDateFullBR(new Date())+(contexto?(typeof contexto==='string'?contexto:(contexto.selectedDays?.length?'Dias '+contexto.selectedDays.map(d=>d.split('-').reverse().join('/')).join(', '):'')):''),1)+'</row>';
   merges.push('A'+r+':L'+r);
   grupos.forEach(g=>{
     const linhas=g.linhas;
     const valorReg=linhas.reduce((a,x)=>a+parseBRNumber(x.e.valor),0);
     linhaVazia();
-    r++; rows+='<row r="'+r+'" ht="14.4" customHeight="1">'
+    r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'
       +cTxt(0,r,(REGIONAL_LABELS[g.regional]||g.regional)+' — '+fmtInt(linhas.length)+' pacote(s) — '+fmtBRL(valorReg),2);
     for(let c=1;c<12;c++) rows+='<c r="'+colName(c)+r+'" s="2"/>';
     rows+='</row>';
     merges.push('A'+r+':L'+r);
-    r++; rows+='<row r="'+r+'" ht="14.4" customHeight="1">'+XLSX_COLS.map((cc,i)=>cTxt(i,r,cc[0],3)).join('')+'</row>';
+    r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+XLSX_COLS.map((cc,i)=>cTxt(i,r,cc[0],3)).join('')+'</row>';
     linhas.forEach(({base,e})=>{
       const dias=diasParado(e);
       const retorno=returnRecordForEntry(e), justificativa=String(retorno?.justificativa||'').trim(), resolvido=justificativa?'Resolvido':'Pendente';
       r++;
-      rows+='<row r="'+r+'" ht="14.4" customHeight="1">'
+      rows+='<row r="'+r+'" ht="15" customHeight="1">'
         +cTxt(0,r,base,4)
         +cTxt(1,r,e.pacote||'',4)
         +cTxt(2,r,e.rota||'',4)
@@ -1353,20 +1360,20 @@ function buildSheetXml(grupos, contexto){
         +cNum(6,r,dias,diasStyle(dias))
         +cNum(7,r,e.valor,18)
         +cTxt(8,r,justificativa,4)
-        +cTxt(9,r,retorno?.photo?'FOTO ANEXADA':'ANEXAR FOTO',17)
+        +cTxt(9,r,(retorno?.photo||retorno?.photoIndicator)?'FOTO ANEXADA':'ANEXAR FOTO',17)
         +cTxt(10,r,resolvido,4)
         +cTxt(11,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Este dispositivo > depois de abrir a foto, clicar no ícone pequeno de paisagem com quadradinho que fica ao lado da foto que abriu.',15)
         +'</row>';
     });
     r++;
-    rows+='<row r="'+r+'">'+cTxt(0,r,'Total '+(REGIONAL_LABELS[g.regional]||g.regional),10)
+    rows+='<row r="'+r+'" ht="15" customHeight="1">'+cTxt(0,r,'Total '+(REGIONAL_LABELS[g.regional]||g.regional),10)
       +cTxt(1,r,'',4)+cTxt(2,r,'',4)+cTxt(3,r,'',4)+cTxt(4,r,'',4)+cTxt(5,r,'',4)+cTxt(6,r,'',4)
       +cNum(7,r,valorReg,18)+cTxt(8,r,'',4)+cTxt(9,r,'',4)+cTxt(10,r,'',4)+cTxt(11,r,'',4)+'</row>';
     merges.push('A'+r+':G'+r);
   });
   linhaVazia();
   r++; rows+='<row r="'+r+'">'+cTxt(0,r,'Legenda dias parado',1)+'</row>';
-  r++; rows+='<row r="'+r+'">'+cTxt(0,r,'Até 2 dias',5)+cTxt(1,r,'3 dias',6)+cTxt(2,r,'4 dias',7)+cTxt(3,r,'5 dias ou mais',8)+'</row>';
+  r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+cTxt(0,r,'Até 2 dias',5)+cTxt(1,r,'3 dias',6)+cTxt(2,r,'4 dias',7)+cTxt(3,r,'5 dias ou mais',8)+'</row>';
   const cols='<cols>'+XLSX_COLS.map((c,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+c[1]+'" customWidth="1"/>').join('')+'</cols>';
   const mc = merges.length ? '<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>' : '';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
