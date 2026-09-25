@@ -641,3 +641,15 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 .photo-viewer-stage{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;overflow:hidden!important}
 .photo-viewer-stage img{max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important;object-fit:contain!important}
 @media(max-width:700px){.photo-viewer-panel{width:92vw!important;height:76vh!important;max-height:none!important}.photo-viewer-body{padding:7px!important}}
+
+/* Layout definitivo do visualizador: painel e área da foto em uma coluna única. */
+.photo-viewer{display:flex!important;align-items:center!important;justify-content:center!important;padding:16px!important}
+.photo-viewer-panel{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto minmax(0,1fr)!important;width:70vw!important;max-width:1050px!important;height:70vh!important;max-height:700px!important;margin:0 auto!important;padding:14px!important;box-sizing:border-box!important;overflow:hidden!important}
+.photo-viewer-head{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;margin-bottom:10px!important}
+.photo-viewer-body{grid-column:1!important;grid-row:2!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;margin:0!important;padding:8px!important;box-sizing:border-box!important;display:block!important;overflow:hidden!important;background:rgba(0,0,0,.18)!important}
+.photo-viewer-stage{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+.photo-viewer-stage img{max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important;object-fit:contain!important}
+@media(max-width:700px){.photo-viewer-panel{width:92vw!important;height:72vh!important;max-height:none!important}.photo-viewer-head{margin-bottom:7px!important}}
+
+/* O visualizador inicia oculto e só aparece ao clicar em Ver foto. */
+.photo-viewer{display:none!important}.photo-viewer.show{display:flex!important}
