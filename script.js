@@ -1172,6 +1172,8 @@ document.getElementById('justPhotoZoomIn').addEventListener('click',()=>setPhoto
 document.getElementById('justPhotoZoomFit').addEventListener('click',resetPhotoView);
 document.getElementById('justPhotoViewerStage').addEventListener('pointerdown',beginPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('pointermove',movePhotoPan);
+document.addEventListener('pointermove',movePhotoPan);
+document.addEventListener('pointerup',endPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('pointerup',endPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('pointercancel',endPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('pointerleave',endPhotoPan);

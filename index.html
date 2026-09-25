@@ -627,6 +627,9 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 .photo-viewer{padding:12px}.photo-viewer-panel{width:99vw;max-width:1800px;height:calc(100vh - 24px);max-height:calc(100vh - 24px);padding:22px;overflow:hidden}.photo-viewer-body{height:calc(100vh - 118px);min-height:0;flex:1}.photo-viewer-stage{min-height:0}.photo-viewer-body img{max-width:none;max-height:none}.photo-viewer-stage img{width:auto;height:auto;object-fit:contain}@media(max-width:700px){.photo-viewer-panel{width:99vw;height:calc(100vh - 16px);max-height:calc(100vh - 16px);padding:12px}.photo-viewer-body{height:calc(100vh - 130px)}}
 
 .photo-viewer-stage{cursor:grab;touch-action:none}.photo-viewer-stage.dragging{cursor:grabbing}.photo-viewer-stage img{user-select:none;-webkit-user-drag:none}
+
+/* Arraste direto na imagem, sem barras de rolagem laterais. */
+.photo-viewer-panel{display:flex;flex-direction:column}.photo-viewer-body{overflow:hidden!important}.photo-viewer-stage{position:relative;overflow:hidden!important;cursor:grab!important;user-select:none}.photo-viewer-stage.dragging{cursor:grabbing!important}.photo-viewer-stage img{cursor:grab!important;touch-action:none;user-select:none;-webkit-user-drag:none}.photo-viewer-stage.dragging img{cursor:grabbing!important}
 </style>
 </head>
 <body>
@@ -2103,6 +2106,8 @@ document.getElementById('justPhotoZoomIn').addEventListener('click',()=>setPhoto
 document.getElementById('justPhotoZoomFit').addEventListener('click',resetPhotoView);
 document.getElementById('justPhotoViewerStage').addEventListener('pointerdown',beginPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('pointermove',movePhotoPan);
+document.addEventListener('pointermove',movePhotoPan);
+document.addEventListener('pointerup',endPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('pointerup',endPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('pointercancel',endPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('pointerleave',endPhotoPan);
