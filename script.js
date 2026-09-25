@@ -346,11 +346,13 @@ function returnRecordForEntry(entry){
   const selected=returnSheetForDate(selectedDay);
   const sheets=[...(selected?[selected]:[]),...RETURN_SHEETS.filter(sheet=>!selected||sheet.id!==selected.id).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))];
   for(const sheet of sheets){
-    const exact=(sheet.rows||[]).find(row=>key&&normalizePackageKey(row.pacote)===key && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)) && (!row.rota || !routeKey || normalizePackageKey(row.rota||row.route)===routeKey) && (!row.driverId || !driverKey || normalizePackageKey(row.driverId)===driverKey));
+    const matches=(sheet.rows||[]).filter(row=>key&&normalizePackageKey(row.pacote)===key && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)) && (!row.rota || !routeKey || normalizePackageKey(row.rota||row.route)===routeKey) && (!row.driverId || !driverKey || normalizePackageKey(row.driverId)===driverKey));
+    const exact=matches.find(row=>row.photo)||matches[0];
     if(exact) return exact;
   }
   for(const sheet of sheets){
-    const exact=(sheet.rows||[]).find(row=>key&&normalizePackageKey(row.pacote)===key && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)));
+    const matches=(sheet.rows||[]).filter(row=>key&&normalizePackageKey(row.pacote)===key && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)));
+    const exact=matches.find(row=>row.photo)||matches[0];
     if(exact) return exact;
   }
   for(const sheet of sheets){
@@ -367,7 +369,7 @@ function returnRecordForEntry(entry){
   }
   return null;
 }
-function entryHasJustification(entry){ const row=returnRecordForEntry(entry); return Boolean(row&&(String(row.justificativa||'').trim()||row.photo)); }
+function entryHasJustification(entry){ const row=returnRecordForEntry(entry); return Boolean(row&&(String(row.justificativa||'').trim()||row.photo||row.photoIndicator)); }
 function justifiedCount(entries){ return (entries||[]).filter(entryHasJustification).length; }
 function percentLabel(count,total){ return total?Math.round((count/total)*100)+'%':'0%'; }
 function findManualReturnRecord(pacote,rota){ const p=normalizePackageKey(pacote), r=normalizePackageKey(rota); for(const sheet of RETURN_SHEETS){ const found=(sheet.rows||[]).find(row=>row.manualEditedAt&&((p&&normalizePackageKey(row.pacote)===p)||(r&&normalizePackageKey(row.rota||row.route)===r))); if(found) return found; } return null; }
@@ -605,8 +607,12 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
     const mergedRowsMap=new Map();
     (previous?.rows||[]).forEach(row=>{ const key=normalizePackageKey(row.pacote)+'|'+normalizeBaseCode(row.base||''); mergedRowsMap.set(key,{...row}); });
     normalizedRows.forEach(row=>{
-      const key=normalizePackageKey(row.pacote)+'|'+normalizeBaseCode(row.base||'');
-      const old=mergedRowsMap.get(key) || RETURN_SHEETS.flatMap(sheet=>sheet.rows||[]).find(item=>normalizePackageKey(item.pacote)+'|'+normalizeBaseCode(item.base||'')===key);
+      const packageKey=normalizePackageKey(row.pacote);
+      const key=packageKey+'|'+normalizeBaseCode(row.base||'');
+      const current=mergedRowsMap.get(key);
+      const legacyMatches=RETURN_SHEETS.flatMap(sheet=>sheet.rows||[]).filter(item=>normalizePackageKey(item.pacote)===packageKey);
+      const legacyWithPhoto=legacyMatches.find(item=>item.photo);
+      const old=current?.photo?current:(legacyWithPhoto||current||legacyMatches[0]);
       if(!old){ mergedRowsMap.set(key,row); return; }
       mergedRowsMap.set(key,{...old,...row,
         photo: row.photo || old.photo || null,
@@ -1285,9 +1291,9 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<font><b/><sz val="11"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="14"/><color rgb="FF000000"/><name val="Calibri"/></font>'
-+'<font><b/><sz val="8"/><color rgb="FFC00000"/><name val="Calibri"/></font>'
++'<font><b/><sz val="8"/><color rgb="FFFF0000"/><name val="Calibri"/></font>'
 +'<font><sz val="9"/><color rgb="FF000000"/><name val="Calibri"/></font>'
-+'<font><b/><sz val="9"/><color rgb="FFC00000"/><name val="Calibri"/></font>'
++'<font><b/><sz val="9"/><color rgb="FFFF0000"/><name val="Calibri"/></font>'
 +'</fonts>'
 +'<fills count="11">'
 +'<fill><patternFill patternType="none"/></fill>'
