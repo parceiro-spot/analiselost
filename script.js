@@ -1355,7 +1355,7 @@ function buildSheetXml(grupos, contexto){
   const mc = merges.length ? '<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>' : '';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    +'<sheetFormatPr defaultRowHeight="14.4"/>'+cols+'<sheetData>'+rows+'</sheetData>'+mc+'</worksheet>';
+    +cols+'<sheetData>'+rows+'</sheetData>'+mc+'</worksheet>';
 }
 function agruparPorRegional(entries){
   const porReg={};
