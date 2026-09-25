@@ -1106,13 +1106,21 @@ function deleteJustificationPhoto(pacote,base){
   persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI();
 }
 let photoViewerReturnFocus=null;
-let photoViewerZoom=1;
+let photoViewerZoom=1, photoPanX=0, photoPanY=0, photoDragging=false, photoDragStartX=0, photoDragStartY=0, photoPanStartX=0, photoPanStartY=0;
 function applyPhotoZoom(){
   const image=document.getElementById('justPhotoViewerImage'), label=document.getElementById('justPhotoZoomLabel');
-  if(image) image.style.transform='scale('+photoViewerZoom+')';
+  if(image) image.style.transform='translate('+photoPanX+'px,'+photoPanY+'px) scale('+photoViewerZoom+')';
   if(label) label.textContent=Math.round(photoViewerZoom*100)+'%';
 }
 function setPhotoZoom(value){ photoViewerZoom=Math.max(.5,Math.min(4,Number(value)||1)); applyPhotoZoom(); }
+function resetPhotoView(){ photoViewerZoom=1; photoPanX=0; photoPanY=0; applyPhotoZoom(); }
+function beginPhotoPan(e){
+  if(e.button!==undefined&&e.button!==0)return;
+  photoDragging=true; photoDragStartX=e.clientX; photoDragStartY=e.clientY; photoPanStartX=photoPanX; photoPanStartY=photoPanY;
+  const stage=document.getElementById('justPhotoViewerStage'); if(stage){stage.classList.add('dragging');stage.setPointerCapture?.(e.pointerId);} e.preventDefault();
+}
+function movePhotoPan(e){ if(!photoDragging)return; photoPanX=photoPanStartX+(e.clientX-photoDragStartX); photoPanY=photoPanStartY+(e.clientY-photoDragStartY); applyPhotoZoom(); e.preventDefault(); }
+function endPhotoPan(e){ if(!photoDragging)return; photoDragging=false; document.getElementById('justPhotoViewerStage')?.classList.remove('dragging'); try{document.getElementById('justPhotoViewerStage')?.releasePointerCapture?.(e.pointerId);}catch(_){} }
 
 function openJustificationPhoto(pacote,base){
   const row=returnRecordForEntry({pacote,base});
@@ -1120,7 +1128,7 @@ function openJustificationPhoto(pacote,base){
   const viewer=document.getElementById('justPhotoViewer'); const image=document.getElementById('justPhotoViewerImage');
   if(!viewer||!image) return;
   photoViewerReturnFocus=document.activeElement;
-  photoViewerZoom=1; image.style.transform='scale(1)'; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||'');
+  photoPanX=0; photoPanY=0; photoViewerZoom=1; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||'');
   viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false');
   document.getElementById('justPhotoViewerClose')?.focus();
 }
@@ -1161,7 +1169,12 @@ document.getElementById('baseOverlay').addEventListener('click', function(e){ if
 document.getElementById('justPhotoViewerClose').addEventListener('click', closeJustificationPhoto);
 document.getElementById('justPhotoZoomOut').addEventListener('click',()=>setPhotoZoom(photoViewerZoom-.25));
 document.getElementById('justPhotoZoomIn').addEventListener('click',()=>setPhotoZoom(photoViewerZoom+.25));
-document.getElementById('justPhotoZoomFit').addEventListener('click',()=>setPhotoZoom(1));
+document.getElementById('justPhotoZoomFit').addEventListener('click',resetPhotoView);
+document.getElementById('justPhotoViewerStage').addEventListener('pointerdown',beginPhotoPan);
+document.getElementById('justPhotoViewerStage').addEventListener('pointermove',movePhotoPan);
+document.getElementById('justPhotoViewerStage').addEventListener('pointerup',endPhotoPan);
+document.getElementById('justPhotoViewerStage').addEventListener('pointercancel',endPhotoPan);
+document.getElementById('justPhotoViewerStage').addEventListener('pointerleave',endPhotoPan);
 document.getElementById('justPhotoViewerStage').addEventListener('wheel',e=>{if(!document.getElementById('justPhotoViewer').classList.contains('show'))return;e.preventDefault();setPhotoZoom(photoViewerZoom+(e.deltaY<0?.15:-.15));},{passive:false});
 document.getElementById('justPhotoViewer').addEventListener('click', function(e){ if(e.target===this) closeJustificationPhoto(); });
 document.getElementById('overlayBody').addEventListener('click',function(e){const btn=e.target.closest('.driver-link');if(!btn)return;e.preventDefault();renderOverlayDriverDetail(btn.dataset.driver||'');});
