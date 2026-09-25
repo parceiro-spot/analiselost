@@ -1106,13 +1106,21 @@ function deleteJustificationPhoto(pacote,base){
   persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI();
 }
 let photoViewerReturnFocus=null;
+let photoViewerZoom=1;
+function applyPhotoZoom(){
+  const image=document.getElementById('justPhotoViewerImage'), label=document.getElementById('justPhotoZoomLabel');
+  if(image) image.style.transform='scale('+photoViewerZoom+')';
+  if(label) label.textContent=Math.round(photoViewerZoom*100)+'%';
+}
+function setPhotoZoom(value){ photoViewerZoom=Math.max(.5,Math.min(4,Number(value)||1)); applyPhotoZoom(); }
+
 function openJustificationPhoto(pacote,base){
   const row=returnRecordForEntry({pacote,base});
   if(!row?.photo) return;
   const viewer=document.getElementById('justPhotoViewer'); const image=document.getElementById('justPhotoViewerImage');
   if(!viewer||!image) return;
   photoViewerReturnFocus=document.activeElement;
-  image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||'');
+  photoViewerZoom=1; image.style.transform='scale(1)'; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||'');
   viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false');
   document.getElementById('justPhotoViewerClose')?.focus();
 }
@@ -1151,6 +1159,10 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
 document.getElementById('overlayClose').addEventListener('click', ()=>document.getElementById('baseOverlay').classList.remove('show'));
 document.getElementById('baseOverlay').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('show'); });
 document.getElementById('justPhotoViewerClose').addEventListener('click', closeJustificationPhoto);
+document.getElementById('justPhotoZoomOut').addEventListener('click',()=>setPhotoZoom(photoViewerZoom-.25));
+document.getElementById('justPhotoZoomIn').addEventListener('click',()=>setPhotoZoom(photoViewerZoom+.25));
+document.getElementById('justPhotoZoomFit').addEventListener('click',()=>setPhotoZoom(1));
+document.getElementById('justPhotoViewerStage').addEventListener('wheel',e=>{if(!document.getElementById('justPhotoViewer').classList.contains('show'))return;e.preventDefault();setPhotoZoom(photoViewerZoom+(e.deltaY<0?.15:-.15));},{passive:false});
 document.getElementById('justPhotoViewer').addEventListener('click', function(e){ if(e.target===this) closeJustificationPhoto(); });
 document.getElementById('overlayBody').addEventListener('click',function(e){const btn=e.target.closest('.driver-link');if(!btn)return;e.preventDefault();renderOverlayDriverDetail(btn.dataset.driver||'');});
 document.addEventListener('keydown', function(e){
@@ -1311,7 +1323,7 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
 +'<border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>'
 +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-+'<cellXfs count="19">'
++'<cellXfs count="20">'
 +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'                                                                        /* 0 padrao */
 +'<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'                                                          /* 1 titulo */
 +'<xf numFmtId="0" fontId="1" fillId="7" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 2 faixa regional */
@@ -1331,6 +1343,7 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
 +'<xf numFmtId="0" fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
 +'<xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
++'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'
 +'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 function colName(i){ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
 function xmlEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
@@ -1366,7 +1379,7 @@ function buildSheetXml(grupos, contexto){
         +cNum(6,r,dias,diasStyle(dias))
         +cNum(7,r,e.valor,18)
         +cTxt(8,r,justificativa,4)
-        +cTxt(9,r,(retorno?.photo||retorno?.photoIndicator)?'FOTO ANEXADA':'ANEXAR FOTO',17)
+        +cTxt(9,r,(retorno?.photo||retorno?.photoIndicator)?'FOTO ANEXADA':'ANEXAR FOTO',(retorno?.photo||retorno?.photoIndicator)?19:17)
         +cTxt(10,r,resolvido,4)
         +cTxt(11,r,'Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Este dispositivo > depois de abrir a foto, clicar no ícone pequeno de paisagem com quadradinho que fica ao lado da foto que abriu.',15)
         +'</row>';
