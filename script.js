@@ -594,7 +594,23 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
       });
     }
     const previous=replacementIndex>=0?RETURN_SHEETS[replacementIndex]:null;
-    const replacement={id:previous?.id||'ret-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),historyOrder:previous?.historyOrder||Date.now(),importDate,fileName:file.name,savedAt:new Date().toISOString(),rows:normalizedRows,sheetNames,linkedImports};
+    /* Mescla em vez de substituir: preserva justificativa/foto já salvas (ex.: adicionadas direto no dash)
+       quando a planilha reimportada não traz um valor novo para aquele pacote. Assim, anexar a planilha de
+       novo não apaga o que já foi anexado/escrito no dash — só atualiza o que a planilha realmente trouxer. */
+    const mergedRowsMap=new Map();
+    (previous?.rows||[]).forEach(row=>{ const key=normalizePackageKey(row.pacote)+'|'+normalizeBaseCode(row.base||''); mergedRowsMap.set(key,{...row}); });
+    normalizedRows.forEach(row=>{
+      const key=normalizePackageKey(row.pacote)+'|'+normalizeBaseCode(row.base||'');
+      const old=mergedRowsMap.get(key);
+      if(!old){ mergedRowsMap.set(key,row); return; }
+      mergedRowsMap.set(key,{...old,...row,
+        photo: row.photo || old.photo || null,
+        justificativa: String(row.justificativa||'').trim() || old.justificativa || '',
+        manualEditedAt: old.manualEditedAt || row.manualEditedAt || null
+      });
+    });
+    const mergedRows=Array.from(mergedRowsMap.values());
+    const replacement={id:previous?.id||'ret-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),historyOrder:previous?.historyOrder||Date.now(),importDate,fileName:file.name,savedAt:new Date().toISOString(),rows:mergedRows,sheetNames,linkedImports};
     if(replacementIndex>=0) RETURN_SHEETS.splice(replacementIndex,1,replacement); else RETURN_SHEETS.push(replacement);
     persistReturnSheets(); updateImportUI(); if(Object.keys(STATE_DATA).length) renderAll();
     if(parseError) alert('O arquivo foi salvo no histórico de hoje, mas algumas colunas não foram reconhecidas: '+parseError);
