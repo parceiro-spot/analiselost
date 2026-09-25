@@ -227,13 +227,17 @@ async function extractWorkbookPhotos(buffer){
   const richRelTargets=relMap(richRelsXml);
   const richValues=xmlNodes(richValueXml,'rv').map(rv=>xmlNodes(rv,'v').map(v=>Number(v.textContent||0)));
   const vmToRv={}; xmlNodes(metadataXml,'rc').forEach((n,i)=>{vmToRv[String(i+1)]=Number(n.getAttribute('v')??i);});
+  const embeddedImagePath=Object.keys(zip.files).find(p=>/^xl\/media\//i.test(p)&&!zip.files[p].dir)||null;
+  const photoData=async mediaPath=>{
+    const file=mediaPath&&zip.file(mediaPath); if(!file)return null;
+    const ext=(mediaPath.split('.').pop()||'png').toLowerCase(), mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':ext==='gif'?'image/gif':ext==='webp'?'image/webp':'image/png';
+    return `data:${mime};base64,${await file.async('base64')}`;
+  };
   const richPhotoForCell=async cell=>{
     const vm=cell?.getAttribute('vm'); if(!vm)return null;
     const rvIndex=vmToRv[vm]??(Number(vm)-1), values=richValues[rvIndex]; if(!values||!values.length)return null;
     const relId=richRelIds[Number(values[0])], target=richRelTargets[relId]; if(!target)return null;
-    const mediaPath=joinZipPath('xl/richData',target), file=zip.file(mediaPath); if(!file)return null;
-    const ext=(mediaPath.split('.').pop()||'png').toLowerCase(), mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':ext==='gif'?'image/gif':ext==='webp'?'image/webp':'image/png';
-    return `data:${mime};base64,${await file.async('base64')}`;
+    return photoData(joinZipPath('xl/richData',target));
   };
   const wb=await readXml('xl/workbook.xml'), wbRel=relMap(await readXml('xl/_rels/workbook.xml.rels'));
   for(const sheet of xmlNodes(wb,'sheet')){
@@ -241,7 +245,7 @@ async function extractWorkbookPhotos(buffer){
     const sheetPath=target.startsWith('/')?target.slice(1):joinZipPath('xl',target), sheetDir=sheetPath.slice(0,sheetPath.lastIndexOf('/'));
     const sheetRelPath=sheetDir+'/_rels/'+sheetPath.slice(sheetPath.lastIndexOf('/')+1)+'.rels', sheetRel=relMap(await readXml(sheetRelPath));
     const sheetXml=await readXml(sheetPath), richPhotos={};
-    await Promise.all(xmlNodes(sheetXml,'c').filter(c=>c.getAttribute('vm')).map(async cell=>{const photo=await richPhotoForCell(cell);if(photo){const row=Number(String(cell.getAttribute('r')||'').match(/\d+/)?.[0]||0)-1;if(row>=0)richPhotos[row]=photo;}}));
+    await Promise.all(xmlNodes(sheetXml,'c').filter(c=>c.getAttribute('vm')).map(async cell=>{const photo=await richPhotoForCell(cell)||await photoData(embeddedImagePath);if(photo){const row=Number(String(cell.getAttribute('r')||'').match(/\d+/)?.[0]||0)-1;if(row>=0)richPhotos[row]=photo;}}));
     if(Object.keys(richPhotos).length) photoSheets[name]=richPhotos;
     const drawing=xmlNodes(sheetXml,'drawing')[0]; if(!drawing)continue;
     const drawPath=joinZipPath(sheetDir,sheetRel[drawing.getAttribute('r:id')||drawing.getAttribute('id')]); if(!drawPath)continue;
