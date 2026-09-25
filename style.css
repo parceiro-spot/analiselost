@@ -632,3 +632,12 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 
 /* Foto acompanha a caixa cinza, preenchendo o espaço sem distorção. */
 .photo-viewer-stage img{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;display:block}
+
+/* Correção prioritária: caixa branca e caixa cinza com exatamente a mesma largura. */
+.photo-viewer{display:flex!important;align-items:center!important;justify-content:center!important;padding:18px!important}
+.photo-viewer-panel{width:75vw!important;max-width:1200px!important;height:75vh!important;max-height:780px!important;margin:0 auto!important;padding:16px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;box-sizing:border-box!important}
+.photo-viewer-head{width:100%!important;flex:0 0 auto!important}
+.photo-viewer-body{width:100%!important;height:auto!important;min-height:0!important;flex:1 1 auto!important;display:block!important;margin:0!important;padding:10px!important;box-sizing:border-box!important;background:rgba(0,0,0,.18)!important;overflow:hidden!important}
+.photo-viewer-stage{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;margin:0!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;overflow:hidden!important}
+.photo-viewer-stage img{max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important;object-fit:contain!important}
+@media(max-width:700px){.photo-viewer-panel{width:92vw!important;height:76vh!important;max-height:none!important}.photo-viewer-body{padding:7px!important}}
