@@ -668,6 +668,11 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 #justPhotoViewer:not(.show){display:none!important}
 #justPhotoViewer.show{display:flex!important}
 </style>
+<style id="photo-viewer-enhancement">
+  #justPhotoViewer .photo-viewer-panel{width:84vw!important;max-width:1400px!important;height:84vh!important;max-height:880px!important}
+  #justPhotoViewer .photo-viewer-stage img{image-rendering:auto!important;backface-visibility:hidden;transform-origin:center center}
+  @media(max-width:700px){#justPhotoViewer .photo-viewer-panel{width:94vw!important;height:82vh!important}}
+</style>
 </head>
 <body>
 
@@ -839,7 +844,7 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
     </div>
     <p class="filter-help" style="margin-top:-6px;margin-bottom:12px;">Clique nos campos de data para abrir o calendário ou digite as datas manualmente. Datas sem planilha também podem ser analisadas.</p>
     <p class="daily-explanation" id="analiseExplicacao">Cada barra representa o total consolidado do dia. Ao passar o mouse, veja os valores separados da Manhã e da Tarde e entenda a composição do total.</p>
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;" id="analisePeriodo">Análise de Pacote Diário</p>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;display:flex;align-items:center;gap:10px;" id="analisePeriodo">Análise de Pacote Diário <button type="button" class="mini-camera" id="btnCapturaAnalise" title="Capturar análise" aria-label="Capturar análise"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button></p>
     <div class="analise-kpis">
       <div class="analise-kpi"><div class="lbl">Pacotes no período</div><div class="val" id="anPacotes">0</div><div class="analise-deltas" id="anPacotesDelta"></div></div>
       <div class="analise-kpi"><div class="lbl">Valor diário acumulado</div><div class="val" id="anValor">R$ 0,00</div><div class="analise-deltas" id="anValorDelta"></div></div>
@@ -2102,7 +2107,8 @@ function openJustificationPhoto(pacote,base){
   const viewer=document.getElementById('justPhotoViewer'); const image=document.getElementById('justPhotoViewerImage');
   if(!viewer||!image) return;
   photoViewerReturnFocus=document.activeElement;
-  photoPanX=0; photoPanY=0; photoViewerZoom=1; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||'');
+  photoPanX=0; photoPanY=0; photoViewerZoom=1.12; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto';
+  image.onload=()=>applyPhotoZoom();
   viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false');
   document.getElementById('justPhotoViewerClose')?.focus();
 }
@@ -2607,7 +2613,7 @@ document.getElementById('diariaRegional').addEventListener('change', renderDiari
 document.getElementById('diariaOrigem').addEventListener('change', renderDiaria);
 document.getElementById('diariaOrdem').addEventListener('change', renderDiaria);
 document.getElementById('diariaTipoToggle').addEventListener('click', function(e){ const btn=e.target.closest('.toggle-btn'); if(!btn) return; document.querySelectorAll('#diariaTipoToggle .toggle-btn').forEach(b=>b.classList.toggle('active',b===btn)); renderDiaria(); });
-[['btnCapturaGeral','#page-geral','pagina-inicial'],['btnCapturaOfensores','#page-ofensores','ofensores-por-regional'],['btnCapturaDiaria','#page-diaria','visao-diaria'],['btnCapturaRevertido','#page-revertido','pacote-revertido']].forEach(([id,selector,name])=>document.getElementById(id)?.addEventListener('click',()=>captureDashboardElement(selector,name)));
+[['btnCapturaGeral','#page-geral','pagina-inicial'],['btnCapturaOfensores','#page-ofensores','ofensores-por-regional'],['btnCapturaDiaria','#page-diaria','visao-diaria'],['btnCapturaAnalise','#page-analise','analise'],['btnCapturaRevertido','#page-revertido','pacote-revertido']].forEach(([id,selector,name])=>document.getElementById(id)?.addEventListener('click',()=>captureDashboardElement(selector,name)));
 
 /* ===== ANÁLISE DE PACOTE DIÁRIO ===== */
 function availableImportDates(){ return Array.from(new Set(IMPORTS.map(i=>i.importDate).filter(Boolean))).sort(); }
