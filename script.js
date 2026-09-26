@@ -1131,7 +1131,7 @@ function openJustificationPhoto(pacote,base){
   if(!viewer||!image) return;
   photoViewerReturnFocus=document.activeElement;
   photoPanX=0; photoPanY=0; photoViewerZoom=1.12; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto';
-  image.onload=()=>applyPhotoZoom();
+  image.onload=()=>applyPhotoZoom(); applyPhotoZoom();
   viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false');
   document.getElementById('justPhotoViewerClose')?.focus();
 }
