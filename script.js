@@ -762,6 +762,11 @@ function populateBaseSelect(){
   const bases=new Set(activeRegionalEntries.map(e=>e.base));
   Array.from(bases).sort().forEach(b=>{ const o=document.createElement('option'); o.value=b; o.textContent=b; if(b===currentBaseFilter) o.selected=true; sel.appendChild(o); });
 }
+async function captureDashboardElement(selector,filename){
+  const alvo=document.querySelector(selector); if(!alvo||typeof html2canvas!=='function') return;
+  const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale:2,useCORS:true,logging:false,windowWidth:document.documentElement.scrollWidth,windowHeight:document.documentElement.scrollHeight});
+  const a=document.createElement('a'); a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=canvas.toDataURL('image/png'); a.click();
+}
 function renderAll(){
   populateBaseSelect();
 
@@ -773,7 +778,6 @@ function renderAll(){
   const tardeImp=refDate?getTurnoImportForDay(refDate,'Tarde'):null;
   const manha=sumMetrics(scopedEntriesFromImport(manhaImp));
   const tarde=sumMetrics(scopedEntriesFromImport(tardeImp));
-  const uniao=sumMetrics(unionEntriesSemDuplicar(scopedEntriesFromImport(manhaImp), scopedEntriesFromImport(tardeImp)));
 
   document.getElementById('kpiSvc').textContent=fmtBRL(activeMetrics.svc);
   document.getElementById('kpiXpt').textContent=fmtBRL(activeMetrics.xpt);
@@ -783,23 +787,21 @@ function renderAll(){
   document.getElementById('kpiSvcSub').textContent='Manhã '+(manhaImp?fmtBRL(manha.svc):'—');
   document.getElementById('kpiXptSub').textContent='Manhã '+(manhaImp?fmtBRL(manha.xpt):'—');
   document.getElementById('kpiTotalSub').textContent=(manhaImp?'Manhã: '+fmtBRL(manha.total):'Manhã: —')+' · '+(tardeImp?'Tarde: '+fmtBRL(tarde.total):'Tarde: —');
-  document.getElementById('kpiTotalSoma').textContent=manhaImp&&tardeImp?'Manhã + Tarde = '+fmtBRL(manha.total+tarde.total):'Manhã + Tarde = —';
+  document.getElementById('kpiTotalSoma').textContent='';
   const deltaEl=document.getElementById('kpiTotalDelta');
   if(manhaImp && tardeImp){
-    const delta=uniao.total-manha.total;
-    const pacoteDiff=uniao.pacotes-manha.pacotes;
-    const pacoteTxt=(pacoteDiff>=0?'+':'−')+fmtInt(Math.abs(pacoteDiff))+' pacote'+(Math.abs(pacoteDiff)===1?'':'s');
+    const delta=tarde.total-manha.total;
     if(delta>0.004){
       deltaEl.className='delta-badge up'; deltaEl.style.display='inline-flex';
-      deltaEl.innerHTML='<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg> Valor subiu '+fmtBRL(delta)+' ('+pacoteTxt+')';
+      deltaEl.textContent='Valor subiu '+fmtBRL(delta)+' em relação à manhã';
     } else if(delta<-0.004){
       deltaEl.className='delta-badge down'; deltaEl.style.display='inline-flex';
-      deltaEl.innerHTML='<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="m6 13 6 6 6-6"/></svg> Valor desceu '+fmtBRL(Math.abs(delta))+' ('+pacoteTxt+')';
+      deltaEl.textContent='Valor desceu '+fmtBRL(Math.abs(delta))+' em relação à manhã';
     } else {
-      deltaEl.style.display='none';
+      deltaEl.style.display='none'; deltaEl.textContent='';
     }
   } else {
-    deltaEl.style.display='none';
+    deltaEl.style.display='none'; deltaEl.textContent='';
   }
   document.getElementById('kpiPacotesSub').textContent='Manhã '+(manhaImp?fmtInt(manha.pacotes)+' pacotes':'—');
   document.getElementById('kpiRegistros').textContent=activeMetrics.baseCount+' bases no filtro';
@@ -1571,13 +1573,13 @@ function renderRegionalPage(){
     }
     html+='</div>';
     content.innerHTML=html;
-    document.getElementById('btnCapturaBases').addEventListener('click',async()=>{const alvo=document.querySelector('#regionalContent .base-grid');if(!alvo||typeof html2canvas!=='function')return;const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale:2,useCORS:true,logging:false});const a=document.createElement('a');a.download='bases-'+String(r).toLowerCase().replace(/\s+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.png';a.href=canvas.toDataURL('image/png');a.click();});
+    document.getElementById('btnCapturaBases').addEventListener('click',()=>captureDashboardElement('#regionalContent','regional-e-bases-'+String(r).toLowerCase().replace(/\s+/g,'-')));
     document.getElementById('regBaseAging').querySelectorAll('.aging-chip').forEach(chip=>chip.addEventListener('click', ()=>{
       const b=chip.dataset.bucket;
       regionalBaseBucket = (regionalBaseBucket===b) ? 'TODOS' : b;
       renderRegionalPage();
     }));
-    content.querySelectorAll('.base-card').forEach(c=>c.addEventListener('click', ()=>openBaseOverlay(c.dataset.base, regionalBaseBucket)));
+    content.querySelectorAll('.base-card').forEach(c=>c.addEventListener('click', ()=>{const matched=regionalSearch.trim()?entriesForRegion.filter(e=>e.base===c.dataset.base):[];if(matched.length)openOverlayEntries('Pacote(s) encontrado(s)','Busca: '+regionalSearch.trim(),matched,regionalBaseBucket);else openBaseOverlay(c.dataset.base, regionalBaseBucket);}));
     crumb.querySelector('[data-back="list"]').addEventListener('click', ()=>{ regionalNav={level:'list',regional:null}; regionalBaseBucket='TODOS'; renderRegionalPage(); });
   }
 }
@@ -1616,6 +1618,7 @@ function renderDiaria(){
   (manha?manha.entries:[]).forEach(e=>{ if(regional!=='TODOS'&&regionalFromBasePrefix(e.base)!==regional) return; if(basesOfensor&&!basesOfensor.has(e.base)) return; if(tipo!=='TODOS'&&e.tipo!==tipo) return; manhaCount[e.base]=(manhaCount[e.base]||0)+1; });
   (tarde?tarde.entries:[]).forEach(e=>{ if(regional!=='TODOS'&&regionalFromBasePrefix(e.base)!==regional) return; if(basesOfensor&&!basesOfensor.has(e.base)) return; if(tipo!=='TODOS'&&e.tipo!==tipo) return; tardeCount[e.base]=(tardeCount[e.base]||0)+1; });
 
+  renderAgingStrip('diariaAging', entries, ()=>{});
   const baseMap={};
   entries.forEach(e=>{ if(!baseMap[e.base]) baseMap[e.base]={base:e.base, regional:regionalFromBasePrefix(e.base), valor:0}; baseMap[e.base].valor+=e.valor; });
   const bases=Object.values(baseMap).sort((a,b)=>b.valor-a.valor);
@@ -1632,6 +1635,7 @@ document.getElementById('diariaRegional').addEventListener('change', renderDiari
 document.getElementById('diariaOrigem').addEventListener('change', renderDiaria);
 document.getElementById('diariaOrdem').addEventListener('change', renderDiaria);
 document.getElementById('diariaTipoToggle').addEventListener('click', function(e){ const btn=e.target.closest('.toggle-btn'); if(!btn) return; document.querySelectorAll('#diariaTipoToggle .toggle-btn').forEach(b=>b.classList.toggle('active',b===btn)); renderDiaria(); });
+[['btnCapturaGeral','#page-geral','pagina-inicial'],['btnCapturaOfensores','#page-ofensores','ofensores-por-regional'],['btnCapturaDiaria','#page-diaria','visao-diaria'],['btnCapturaRevertido','#page-revertido','pacote-revertido']].forEach(([id,selector,name])=>document.getElementById(id)?.addEventListener('click',()=>captureDashboardElement(selector,name)));
 
 /* ===== ANÁLISE DE PACOTE DIÁRIO ===== */
 function availableImportDates(){ return Array.from(new Set(IMPORTS.map(i=>i.importDate).filter(Boolean))).sort(); }
