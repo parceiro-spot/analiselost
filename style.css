@@ -669,3 +669,6 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 #justPhotoViewer .photo-viewer-stage{width:100%!important;height:auto!important;max-height:calc(90vh - 120px)!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
 #justPhotoViewer .photo-viewer-stage img{width:100%!important;height:auto!important;max-width:100%!important;max-height:calc(90vh - 125px)!important;object-fit:contain!important}
 #justPhotoViewer .photo-viewer-tools{display:flex!important;align-items:center!important;gap:5px!important;white-space:nowrap!important}
+
+#justPhotoViewer .photo-viewer-panel{display:flex!important;flex-direction:column!important;grid-template-rows:none!important}
+#justPhotoViewer .photo-viewer-body{flex:0 0 auto!important}

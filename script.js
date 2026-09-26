@@ -1678,8 +1678,8 @@ function renderAnalise(){
   const dates=availableImportDates();
   const deEl=document.getElementById('analiseDe'), ateEl=document.getElementById('analiseAte'), regEl=document.getElementById('analiseRegional');
   if(!regEl.dataset.filled){ regEl.innerHTML='<option value="TODOS">Todas</option>'+REGIONAL_ORDER.map(r=>'<option value="'+r+'">'+(REGIONAL_LABELS[r]||r)+'</option>').join(''); regEl.dataset.filled='1'; }
-  if(!deEl.value) dateInputSet('analiseDe',dates[dates.length-7]||isoShift(dates[dates.length-1]||todayStr(),-6));
   if(!ateEl.value) dateInputSet('analiseAte',dates[dates.length-1]||todayStr());
+  if(!deEl.value){const end=ateEl.value||todayStr();const weekday=new Date(end+'T00:00:00').getDay();dateInputSet('analiseDe',isoShift(end,weekday===0?-6:1-weekday));}
   if(!dates.length){ document.getElementById('analisePeriodo').textContent='Análise de Pacote Diário — sem dados importados'; return; }
   const rows=selectedPeriodEntries(), all=rows.flatMap(x=>x.entries);
   const total=all.reduce((s,e)=>s+e.valor,0), svc=all.filter(e=>e.tipo==='SVC').reduce((s,e)=>s+e.valor,0), xpt=all.filter(e=>e.tipo==='XPT').reduce((s,e)=>s+e.valor,0);
@@ -1703,7 +1703,7 @@ function renderAnalise(){
   const bases=Object.entries(byBase).sort((a,b)=>b[1]-a[1]).slice(0,8); if(chartAnaliseOfensoras){chartAnaliseOfensoras.destroy();chartAnaliseOfensoras=null;} chartAnaliseOfensoras=new Chart(document.getElementById('chartAnaliseOfensoras'),{type:'bar',data:{labels:bases.map(x=>x[0]),datasets:[{data:bases.map(x=>x[1]),backgroundColor:'#008a3c',borderRadius:6,maxBarThickness:24}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtBRL(c.raw)}}},scales:{x:{ticks:{display:false},grid:{display:false}},y:{ticks:{color:cssColor('--text-primary','#fff')},grid:{display:false}}}}});
 }
 ['analiseDe','analiseAte','analiseRegional'].forEach(id=>document.getElementById(id).addEventListener('change',renderAnalise));
-document.getElementById('analisePeriodos').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),end=ds[ds.length-1];if(!end)return;const n=Number(b.dataset.days);dateInputSet('analiseAte',end);dateInputSet('analiseDe',n?ds[Math.max(0,ds.length-n)]:ds[0]);renderAnalise();});
+document.getElementById('analisePeriodos').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),end=ds[ds.length-1];if(!end)return;const n=Number(b.dataset.days);dateInputSet('analiseAte',end);if(n===7){const weekday=new Date(end+'T00:00:00').getDay();dateInputSet('analiseDe',isoShift(end,weekday===0?-6:1-weekday));}else dateInputSet('analiseDe',n?ds[Math.max(0,ds.length-n)]:ds[0]);renderAnalise();});
 document.getElementById('analiseTipoToggle').addEventListener('click',e=>{const b=e.target.closest('.toggle-btn');if(!b)return;document.querySelectorAll('#analiseTipoToggle .toggle-btn').forEach(x=>x.classList.toggle('active',x===b));renderAnalise();});
 
 /* ===== PACOTE REVERTIDO ===== */
