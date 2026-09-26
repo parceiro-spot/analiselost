@@ -659,7 +659,3 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 #justPhotoViewer.show{display:flex!important}
 
 .card-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-
-#justPhotoViewer .photo-viewer-panel{width:75vw!important;max-width:1200px!important;height:75vh!important;max-height:780px!important}
-#justPhotoViewer .photo-viewer-stage img{image-rendering:auto!important;backface-visibility:hidden;transform-origin:center center}
-@media(max-width:700px){#justPhotoViewer .photo-viewer-panel{width:94vw!important;height:82vh!important}}
