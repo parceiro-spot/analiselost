@@ -663,3 +663,9 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 #justPhotoViewer .photo-viewer-panel{width:75vw!important;max-width:1200px!important;height:75vh!important;max-height:780px!important}
 #justPhotoViewer .photo-viewer-stage img{image-rendering:auto!important;backface-visibility:hidden;transform-origin:center center}
 @media(max-width:700px){#justPhotoViewer .photo-viewer-panel{width:94vw!important;height:82vh!important}}
+
+#justPhotoViewer .photo-viewer-panel{height:auto!important;max-height:90vh!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-body{height:auto!important;max-height:calc(90vh - 105px)!important;min-height:0!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-stage{width:100%!important;height:auto!important;max-height:calc(90vh - 120px)!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-stage img{width:100%!important;height:auto!important;max-width:100%!important;max-height:calc(90vh - 125px)!important;object-fit:contain!important}
+#justPhotoViewer .photo-viewer-tools{display:flex!important;align-items:center!important;gap:5px!important;white-space:nowrap!important}
