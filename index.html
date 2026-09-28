@@ -2164,7 +2164,7 @@ function fitPhotoViewer(){
   const mobile=window.innerWidth<=700, padX=mobile?36:48, headH=(head?head.offsetHeight:70)+10;
   const availW=Math.max(200,window.innerWidth*(mobile?0.98:0.96)-padX), availH=Math.max(160,window.innerHeight*0.96-headH-(mobile?24:40));
   const scale=Math.min(availW/nw,availH/nh,4), w=Math.round(nw*scale), h=Math.round(nh*scale);
-  stage.style.width=w+'px'; stage.style.height=h+'px'; image.style.width=w+'px'; image.style.height=h+'px';
+  const imp=(el,p,v)=>el.style.setProperty(p,v,'important'); imp(stage,'width',w+'px'); imp(stage,'height',h+'px'); imp(stage,'max-height','none'); imp(image,'width',w+'px'); imp(image,'height',h+'px'); imp(image,'max-width','none'); imp(image,'max-height','none');
   const sub=viewer.querySelector('.photo-viewer-head .osub'); if(sub) sub.textContent='Resolução original: '+nw+' × '+nh+' px · use os controles para ampliar';
 }
 window.addEventListener('resize',fitPhotoViewer);
@@ -2182,7 +2182,7 @@ async function enhancePhotoViewer(token){
   if(!viewer||!image||!stage||!photoViewerNat) return;
   const nw=photoViewerNat.w, nh=photoViewerNat.h, dpr=Math.max(1,window.devicePixelRatio||1);
   const fittedW=parseFloat(stage.style.width)||nw;
-  let f=Math.min(8,Math.max(1,(fittedW*dpr*3)/nw));
+  let f=Math.min(8,Math.max(1,(fittedW*dpr*4)/nw));
   const maxPixels=20e6; if(nw*nh*f*f>maxPixels) f=Math.sqrt(maxPixels/(nw*nh));
   if(f<1.25) return;
   const tw=Math.round(nw*f), th=Math.round(nh*f);
