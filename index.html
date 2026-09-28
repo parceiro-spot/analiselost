@@ -1377,10 +1377,12 @@ function returnRecordForEntry(entry){
   const sheets=[...(selected?[selected]:[]),...RETURN_SHEETS.filter(sheet=>!selected||sheet.id!==selected.id).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))];
   /* Pacote é a chave principal. Rota, base e motorista só desempateiam
      duplicidades; mudança de rota não quebra o vínculo da justificativa. */
+  let emptyPackageMatch=null;
   for(const sheet of sheets){
     const packageMatches=(sheet.rows||[]).filter(row=>key&&normalizePackageKey(row.pacote)===key);
     const best=chooseReturnRow(packageMatches,entry);
-    if(best) return best;
+    if(best&&returnRowHasContent(best)) return best;
+    if(best&&!emptyPackageMatch) emptyPackageMatch=best;
   }
   for(const sheet of sheets){
     const routeMatches=(sheet.rows||[]).filter(row=>routeKey&&normalizePackageKey(row.rota||row.route)===routeKey && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)));
@@ -1392,7 +1394,7 @@ function returnRecordForEntry(entry){
     const any=routeMatches.find(returnRowHasContent)||routeMatches[0];
     if(any) return any;
   }
-  return null;
+  return emptyPackageMatch||null;
 }
 function entryHasJustification(entry){ const row=returnRecordForEntry(entry); return Boolean(row&&(String(row.justificativa||'').trim()||row.photo||row.photoIndicator)); }
 function justifiedCount(entries){ return (entries||[]).filter(entryHasJustification).length; }
