@@ -1131,10 +1131,11 @@ function deleteJustificationPhoto(pacote,base){
   if(!String(row.justificativa||'').trim()) sheet.rows=(sheet.rows||[]).filter(item=>item!==row);
   persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI();
 }
+let photoViewerNat=null, photoViewerToken=0, photoViewerBlobUrl=null;
 function fitPhotoViewer(){
   const viewer=document.getElementById('justPhotoViewer'), image=document.getElementById('justPhotoViewerImage'), stage=document.getElementById('justPhotoViewerStage');
-  if(!viewer||!image||!stage||!image.naturalWidth||!viewer.classList.contains('show')) return;
-  const nw=image.naturalWidth, nh=image.naturalHeight, head=viewer.querySelector('.photo-viewer-head');
+  if(!viewer||!image||!stage||!photoViewerNat||!viewer.classList.contains('show')) return;
+  const nw=photoViewerNat.w, nh=photoViewerNat.h, head=viewer.querySelector('.photo-viewer-head');
   const mobile=window.innerWidth<=700, padX=mobile?36:48, headH=(head?head.offsetHeight:70)+10;
   const availW=Math.max(200,window.innerWidth*(mobile?0.98:0.96)-padX), availH=Math.max(160,window.innerHeight*0.96-headH-(mobile?24:40));
   const scale=Math.min(availW/nw,availH/nh,4), w=Math.round(nw*scale), h=Math.round(nh*scale);
@@ -1142,6 +1143,41 @@ function fitPhotoViewer(){
   const sub=viewer.querySelector('.photo-viewer-head .osub'); if(sub) sub.textContent='Resolução original: '+nw+' × '+nh+' px · use os controles para ampliar';
 }
 window.addEventListener('resize',fitPhotoViewer);
+/* Reamostragem de alta qualidade: amplia a foto em etapas (2x) com suavização 'high' e aplica
+   máscara de nitidez (unsharp mask) para o texto pequeno ficar legível ao ampliar/dar zoom. */
+function photoBoxBlur(src,dst,w,h,r){
+  const tmp=new Uint8ClampedArray(src.length), d=2*r+1;
+  for(let y=0;y<h;y++){ const row=y*w*4; for(let c=0;c<3;c++){ let sum=0; for(let k=-r;k<=r;k++) sum+=src[row+Math.min(w-1,Math.max(0,k))*4+c];
+    for(let x=0;x<w;x++){ tmp[row+x*4+c]=sum/d; const a=Math.min(w-1,x+r+1), b=Math.max(0,x-r); sum+=src[row+a*4+c]-src[row+b*4+c]; } } }
+  for(let x=0;x<w;x++){ for(let c=0;c<3;c++){ let sum=0; for(let k=-r;k<=r;k++) sum+=tmp[Math.min(h-1,Math.max(0,k))*w*4+x*4+c];
+    for(let y=0;y<h;y++){ dst[y*w*4+x*4+c]=sum/d; const a=Math.min(h-1,y+r+1), b=Math.max(0,y-r); sum+=tmp[a*w*4+x*4+c]-tmp[b*w*4+x*4+c]; } } }
+}
+async function enhancePhotoViewer(token){
+  const viewer=document.getElementById('justPhotoViewer'), image=document.getElementById('justPhotoViewerImage'), stage=document.getElementById('justPhotoViewerStage');
+  if(!viewer||!image||!stage||!photoViewerNat) return;
+  const nw=photoViewerNat.w, nh=photoViewerNat.h, dpr=Math.max(1,window.devicePixelRatio||1);
+  const fittedW=parseFloat(stage.style.width)||nw;
+  let f=Math.min(8,Math.max(1,(fittedW*dpr*3)/nw));
+  const maxPixels=20e6; if(nw*nh*f*f>maxPixels) f=Math.sqrt(maxPixels/(nw*nh));
+  if(f<1.25) return;
+  const tw=Math.round(nw*f), th=Math.round(nh*f);
+  await new Promise(r=>setTimeout(r,30));
+  if(token!==photoViewerToken) return;
+  let cur=image, cw=nw, ch=nh;
+  while(cw<tw){
+    const nx=Math.min(tw,cw*2), ny=Math.round(nx*nh/nw), cv=document.createElement('canvas'); cv.width=nx; cv.height=ny;
+    const ctx=cv.getContext('2d'); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'; ctx.drawImage(cur,0,0,cw,ch,0,0,nx,ny);
+    cur=cv; cw=nx; ch=ny;
+  }
+  const ctx=cur.getContext('2d'), data=ctx.getImageData(0,0,cw,ch), px=data.data, blur=new Uint8ClampedArray(px.length);
+  const radius=Math.max(1,Math.round(f*0.55)); photoBoxBlur(px,blur,cw,ch,radius);
+  const amount=1.1;
+  for(let i=0;i<px.length;i+=4){ px[i]=px[i]+amount*(px[i]-blur[i]); px[i+1]=px[i+1]+amount*(px[i+1]-blur[i+1]); px[i+2]=px[i+2]+amount*(px[i+2]-blur[i+2]); }
+  ctx.putImageData(data,0,0);
+  const blob=await new Promise(r=>cur.toBlob(r,'image/png')); if(!blob||token!==photoViewerToken) return;
+  if(photoViewerBlobUrl) URL.revokeObjectURL(photoViewerBlobUrl);
+  photoViewerBlobUrl=URL.createObjectURL(blob); image.dataset.enh='1'; image.src=photoViewerBlobUrl;
+}
 let photoViewerReturnFocus=null;
 let photoViewerZoom=1, photoPanX=0, photoPanY=0, photoDragging=false, photoDragStartX=0, photoDragStartY=0, photoPanStartX=0, photoPanStartY=0;
 function applyPhotoZoom(){
@@ -1165,15 +1201,18 @@ function openJustificationPhoto(pacote,base){
   const viewer=document.getElementById('justPhotoViewer'); const image=document.getElementById('justPhotoViewerImage');
   if(!viewer||!image) return;
   photoViewerReturnFocus=document.activeElement;
-  photoPanX=0; photoPanY=0; photoViewerZoom=1; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto'; image.decoding='sync';
-  image.onload=()=>{fitPhotoViewer();applyPhotoZoom();}; applyPhotoZoom();
-  viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false'); if(image.complete&&image.naturalWidth){fitPhotoViewer();}
+  photoPanX=0; photoPanY=0; photoViewerZoom=1; photoViewerNat=null; const token=++photoViewerToken;
+  if(photoViewerBlobUrl){ URL.revokeObjectURL(photoViewerBlobUrl); photoViewerBlobUrl=null; }
+  image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto'; image.dataset.enh='0';
+  const onLoaded=()=>{ if(image.dataset.enh==='1'){applyPhotoZoom();return;} if(!image.naturalWidth||photoViewerNat) return; photoViewerNat={w:image.naturalWidth,h:image.naturalHeight}; fitPhotoViewer(); applyPhotoZoom(); enhancePhotoViewer(token); };
+  image.onload=onLoaded; image.src=row.photo; applyPhotoZoom();
+  viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false'); if(image.complete&&image.naturalWidth&&image.dataset.enh!=='1') onLoaded();
   document.getElementById('justPhotoViewerClose')?.focus();
 }
 function closeJustificationPhoto(){
   const viewer=document.getElementById('justPhotoViewer'); const image=document.getElementById('justPhotoViewerImage');
   if(!viewer) return;
-  viewer.classList.remove('show'); viewer.setAttribute('aria-hidden','true'); if(image) image.removeAttribute('src');
+  photoViewerToken++; viewer.classList.remove('show'); viewer.setAttribute('aria-hidden','true'); if(image){ image.removeAttribute('src'); image.dataset.enh='0'; } if(photoViewerBlobUrl){ URL.revokeObjectURL(photoViewerBlobUrl); photoViewerBlobUrl=null; }
   if(photoViewerReturnFocus && typeof photoViewerReturnFocus.focus==='function') photoViewerReturnFocus.focus();
   photoViewerReturnFocus=null;
 }

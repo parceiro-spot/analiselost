@@ -700,3 +700,6 @@ html body #justPhotoViewer .photo-viewer-body{flex:0 0 auto!important;width:100%
 html body #justPhotoViewer .photo-viewer-stage{flex:0 0 auto!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative;cursor:grab;background:rgba(0,0,0,.28)!important;border-radius:10px;max-height:none!important}
 html body #justPhotoViewer .photo-viewer-stage img{flex:0 0 auto!important;max-width:none!important;max-height:none!important;object-fit:fill!important;image-rendering:auto!important;transition:none!important;transform-origin:center center;backface-visibility:hidden;-webkit-user-drag:none;user-select:none}
 @media(max-width:700px){html body #justPhotoViewer .photo-viewer-panel{padding:8px!important;min-width:0!important}}
+
+/* ===== v4: centralização absoluta no meio da tela ===== */
+html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;margin:0!important}
