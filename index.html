@@ -699,16 +699,14 @@ input[type="date"],input[type="month"]{-webkit-appearance:auto;appearance:auto}
 
 </style>
 <style id="photo-viewer-enhancement">
-  #justPhotoViewer .photo-viewer-panel{width:75vw!important;max-width:1200px!important;height:75vh!important;max-height:780px!important}
-  #justPhotoViewer .photo-viewer-stage img{image-rendering:auto!important;backface-visibility:hidden;transform-origin:center center}
-  #justPhotoViewer .photo-viewer-panel{height:auto!important;max-height:90vh!important;overflow:hidden!important}
-  #justPhotoViewer .photo-viewer-panel{display:flex!important;flex-direction:column!important;grid-template-rows:none!important}
-  #justPhotoViewer .photo-viewer-body{height:auto!important;max-height:calc(90vh - 105px)!important;min-height:0!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
-  #justPhotoViewer .photo-viewer-body{flex:0 0 auto!important}
-  #justPhotoViewer .photo-viewer-stage{width:100%!important;height:auto!important;max-height:calc(90vh - 120px)!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
-  #justPhotoViewer .photo-viewer-stage img{width:100%!important;height:auto!important;max-width:100%!important;max-height:calc(90vh - 125px)!important;object-fit:contain!important}
-  #justPhotoViewer .photo-viewer-tools{display:flex!important;align-items:center!important;gap:5px!important;white-space:nowrap!important}
-  @media(max-width:700px){#justPhotoViewer .photo-viewer-panel{width:94vw!important;height:82vh!important}}
+/* ===== Visualizador de fotos em alta qualidade ===== */
+#justPhotoViewer{padding:10px!important}
+#justPhotoViewer .photo-viewer-panel{width:96vw!important;max-width:2000px!important;height:94vh!important;max-height:94vh!important;padding:14px!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-head{flex:0 0 auto!important;margin-bottom:8px!important}
+#justPhotoViewer .photo-viewer-body{flex:1 1 auto!important;height:auto!important;max-height:none!important;min-height:0!important;padding:0!important;display:block!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-stage{width:100%!important;height:100%!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;cursor:grab}
+#justPhotoViewer .photo-viewer-stage img{width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;image-rendering:auto!important;transition:none!important;will-change:transform;backface-visibility:hidden;transform-origin:center center;-webkit-user-drag:none;user-select:none}
+@media(max-width:700px){#justPhotoViewer .photo-viewer-panel{width:100vw!important;height:96vh!important;padding:8px!important}}
 </style>
 </head>
 <body>
@@ -2150,10 +2148,10 @@ let photoViewerReturnFocus=null;
 let photoViewerZoom=1, photoPanX=0, photoPanY=0, photoDragging=false, photoDragStartX=0, photoDragStartY=0, photoPanStartX=0, photoPanStartY=0;
 function applyPhotoZoom(){
   const image=document.getElementById('justPhotoViewerImage'), label=document.getElementById('justPhotoZoomLabel');
-  if(image) image.style.transform='translate('+photoPanX+'px,'+photoPanY+'px) scale('+photoViewerZoom+')';
+  if(image){ image.style.transform='translate('+photoPanX+'px,'+photoPanY+'px) scale('+photoViewerZoom+')'; image.style.transition='none'; }
   if(label) label.textContent=Math.round(photoViewerZoom*100)+'%';
 }
-function setPhotoZoom(value){ photoViewerZoom=Math.max(.5,Math.min(4,Number(value)||1)); applyPhotoZoom(); }
+function setPhotoZoom(value){ photoViewerZoom=Math.max(.5,Math.min(8,Number(value)||1)); applyPhotoZoom(); }
 function resetPhotoView(){ photoViewerZoom=1; photoPanX=0; photoPanY=0; applyPhotoZoom(); }
 function beginPhotoPan(e){
   if(e.button!==undefined&&e.button!==0)return;
@@ -2169,7 +2167,7 @@ function openJustificationPhoto(pacote,base){
   const viewer=document.getElementById('justPhotoViewer'); const image=document.getElementById('justPhotoViewerImage');
   if(!viewer||!image) return;
   photoViewerReturnFocus=document.activeElement;
-  photoPanX=0; photoPanY=0; photoViewerZoom=1.12; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto';
+  photoPanX=0; photoPanY=0; photoViewerZoom=1; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto'; image.decoding='sync';
   image.onload=()=>applyPhotoZoom(); applyPhotoZoom();
   viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false');
   document.getElementById('justPhotoViewerClose')?.focus();

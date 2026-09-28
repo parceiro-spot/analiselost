@@ -682,3 +682,12 @@ input[type="date"]::-webkit-calendar-picker-indicator,input[type="month"]::-webk
 :root.theme-light input[type="date"]::-webkit-calendar-picker-indicator,:root.theme-light input[type="month"]::-webkit-calendar-picker-indicator,:root.theme-pink input[type="date"]::-webkit-calendar-picker-indicator,:root.theme-pink input[type="month"]::-webkit-calendar-picker-indicator{filter:none}
 
 input[type="date"],input[type="month"]{-webkit-appearance:auto;appearance:auto}
+
+/* ===== Visualizador de fotos em alta qualidade ===== */
+#justPhotoViewer{padding:10px!important}
+#justPhotoViewer .photo-viewer-panel{width:96vw!important;max-width:2000px!important;height:94vh!important;max-height:94vh!important;padding:14px!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-head{flex:0 0 auto!important;margin-bottom:8px!important}
+#justPhotoViewer .photo-viewer-body{flex:1 1 auto!important;height:auto!important;max-height:none!important;min-height:0!important;padding:0!important;display:block!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-stage{width:100%!important;height:100%!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;cursor:grab}
+#justPhotoViewer .photo-viewer-stage img{width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;image-rendering:auto!important;transition:none!important;will-change:transform;backface-visibility:hidden;transform-origin:center center;-webkit-user-drag:none;user-select:none}
+@media(max-width:700px){#justPhotoViewer .photo-viewer-panel{width:100vw!important;height:96vh!important;padding:8px!important}}

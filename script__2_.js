@@ -1135,10 +1135,10 @@ let photoViewerReturnFocus=null;
 let photoViewerZoom=1, photoPanX=0, photoPanY=0, photoDragging=false, photoDragStartX=0, photoDragStartY=0, photoPanStartX=0, photoPanStartY=0;
 function applyPhotoZoom(){
   const image=document.getElementById('justPhotoViewerImage'), label=document.getElementById('justPhotoZoomLabel');
-  if(image) image.style.transform='translate('+photoPanX+'px,'+photoPanY+'px) scale('+photoViewerZoom+')';
+  if(image){ image.style.transform='translate('+photoPanX+'px,'+photoPanY+'px) scale('+photoViewerZoom+')'; image.style.transition='none'; }
   if(label) label.textContent=Math.round(photoViewerZoom*100)+'%';
 }
-function setPhotoZoom(value){ photoViewerZoom=Math.max(.5,Math.min(4,Number(value)||1)); applyPhotoZoom(); }
+function setPhotoZoom(value){ photoViewerZoom=Math.max(.5,Math.min(8,Number(value)||1)); applyPhotoZoom(); }
 function resetPhotoView(){ photoViewerZoom=1; photoPanX=0; photoPanY=0; applyPhotoZoom(); }
 function beginPhotoPan(e){
   if(e.button!==undefined&&e.button!==0)return;
@@ -1154,7 +1154,7 @@ function openJustificationPhoto(pacote,base){
   const viewer=document.getElementById('justPhotoViewer'); const image=document.getElementById('justPhotoViewerImage');
   if(!viewer||!image) return;
   photoViewerReturnFocus=document.activeElement;
-  photoPanX=0; photoPanY=0; photoViewerZoom=1.12; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto';
+  photoPanX=0; photoPanY=0; photoViewerZoom=1; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto'; image.decoding='sync';
   image.onload=()=>applyPhotoZoom(); applyPhotoZoom();
   viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false');
   document.getElementById('justPhotoViewerClose')?.focus();
