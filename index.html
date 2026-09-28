@@ -1352,6 +1352,21 @@ async function loadPersistedReturnSheets(){
 }
 function returnSheetForDate(day){ return RETURN_SHEETS.slice().filter(s=>s.importDate===day).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))[0]||null; }
 function latestReturnSheet(){ return RETURN_SHEETS.slice().sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))[0]||null; }
+function returnRowHasContent(row){ return Boolean(row&&(String(row.justificativa||'').trim()||row.photo||row.photoIndicator)); }
+function chooseReturnRow(rows,entry){
+  if(!rows||!rows.length) return null;
+  const baseKey=normalizeBaseCode(entry?.base), routeKey=normalizePackageKey(entry?.rota), driverKey=normalizePackageKey(entry?.driverId);
+  return rows.slice().sort((a,b)=>{
+    const score=row=>{
+      let n=returnRowHasContent(row)?1000:0;
+      if(baseKey&&normalizeBaseCode(row.base)===baseKey)n+=30;
+      if(routeKey&&normalizePackageKey(row.rota||row.route)===routeKey)n+=20;
+      if(driverKey&&normalizePackageKey(row.driverId)===driverKey)n+=10;
+      return n;
+    };
+    return score(b)-score(a);
+  })[0];
+}
 function returnRecordForEntry(entry){
   const key=normalizePackageKey(entry.pacote);
   const routeKey=normalizePackageKey(entry.rota);
@@ -1360,26 +1375,21 @@ function returnRecordForEntry(entry){
   const selectedDay=getSelectedImport()?.importDate||document.getElementById('impDia')?.value||'';
   const selected=returnSheetForDate(selectedDay);
   const sheets=[...(selected?[selected]:[]),...RETURN_SHEETS.filter(sheet=>!selected||sheet.id!==selected.id).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))];
+  /* Pacote é a chave principal. Rota, base e motorista só desempateiam
+     duplicidades; mudança de rota não quebra o vínculo da justificativa. */
   for(const sheet of sheets){
-    const matches=(sheet.rows||[]).filter(row=>key&&normalizePackageKey(row.pacote)===key && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)) && (!row.rota || !routeKey || normalizePackageKey(row.rota||row.route)===routeKey) && (!row.driverId || !driverKey || normalizePackageKey(row.driverId)===driverKey));
-    const exact=matches.find(row=>row.photo)||matches[0];
+    const packageMatches=(sheet.rows||[]).filter(row=>key&&normalizePackageKey(row.pacote)===key);
+    const best=chooseReturnRow(packageMatches,entry);
+    if(best) return best;
+  }
+  for(const sheet of sheets){
+    const routeMatches=(sheet.rows||[]).filter(row=>routeKey&&normalizePackageKey(row.rota||row.route)===routeKey && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)));
+    const exact=routeMatches.find(returnRowHasContent)||routeMatches[0];
     if(exact) return exact;
   }
   for(const sheet of sheets){
-    const matches=(sheet.rows||[]).filter(row=>key&&normalizePackageKey(row.pacote)===key && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)));
-    const exact=matches.find(row=>row.photo)||matches[0];
-    if(exact) return exact;
-  }
-  for(const sheet of sheets){
-    const any=(sheet.rows||[]).find(row=>key&&normalizePackageKey(row.pacote)===key);
-    if(any) return any;
-  }
-  for(const sheet of sheets){
-    const exact=(sheet.rows||[]).find(row=>routeKey&&normalizePackageKey(row.rota||row.route)===routeKey && (!row.base || normalizeBaseCode(row.base)===normalizeBaseCode(entry.base)));
-    if(exact) return exact;
-  }
-  for(const sheet of sheets){
-    const any=(sheet.rows||[]).find(row=>routeKey&&normalizePackageKey(row.rota||row.route)===routeKey);
+    const routeMatches=(sheet.rows||[]).filter(row=>routeKey&&normalizePackageKey(row.rota||row.route)===routeKey);
+    const any=routeMatches.find(returnRowHasContent)||routeMatches[0];
     if(any) return any;
   }
   return null;
