@@ -707,6 +707,15 @@ input[type="date"],input[type="month"]{-webkit-appearance:auto;appearance:auto}
 #justPhotoViewer .photo-viewer-stage{width:100%!important;height:100%!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;cursor:grab}
 #justPhotoViewer .photo-viewer-stage img{width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;image-rendering:auto!important;transition:none!important;will-change:transform;backface-visibility:hidden;transform-origin:center center;-webkit-user-drag:none;user-select:none}
 @media(max-width:700px){#justPhotoViewer .photo-viewer-panel{width:100vw!important;height:96vh!important;padding:8px!important}}
+
+/* ===== Visualizador v3: janela proporcional à foto, centralizada ===== */
+html body #justPhotoViewer{padding:10px!important;align-items:center!important;justify-content:center!important}
+html body #justPhotoViewer .photo-viewer-panel{width:fit-content!important;height:auto!important;min-width:min(560px,96vw)!important;max-width:98vw!important;max-height:96vh!important;margin:0 auto!important;padding:14px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;overflow:hidden!important;box-sizing:border-box!important}
+html body #justPhotoViewer .photo-viewer-head{flex:0 0 auto!important;margin-bottom:10px!important}
+html body #justPhotoViewer .photo-viewer-body{flex:0 0 auto!important;width:100%!important;height:auto!important;max-height:none!important;min-height:0!important;padding:0!important;display:flex!important;justify-content:center!important;align-items:center!important;overflow:hidden!important;background:transparent!important}
+html body #justPhotoViewer .photo-viewer-stage{flex:0 0 auto!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative;cursor:grab;background:rgba(0,0,0,.28)!important;border-radius:10px;max-height:none!important}
+html body #justPhotoViewer .photo-viewer-stage img{flex:0 0 auto!important;max-width:none!important;max-height:none!important;object-fit:fill!important;image-rendering:auto!important;transition:none!important;transform-origin:center center;backface-visibility:hidden;-webkit-user-drag:none;user-select:none}
+@media(max-width:700px){html body #justPhotoViewer .photo-viewer-panel{padding:8px!important;min-width:0!important}}
 </style>
 </head>
 <body>
@@ -2144,6 +2153,17 @@ function deleteJustificationPhoto(pacote,base){
   if(!String(row.justificativa||'').trim()) sheet.rows=(sheet.rows||[]).filter(item=>item!==row);
   persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI();
 }
+function fitPhotoViewer(){
+  const viewer=document.getElementById('justPhotoViewer'), image=document.getElementById('justPhotoViewerImage'), stage=document.getElementById('justPhotoViewerStage');
+  if(!viewer||!image||!stage||!image.naturalWidth||!viewer.classList.contains('show')) return;
+  const nw=image.naturalWidth, nh=image.naturalHeight, head=viewer.querySelector('.photo-viewer-head');
+  const mobile=window.innerWidth<=700, padX=mobile?36:48, headH=(head?head.offsetHeight:70)+10;
+  const availW=Math.max(200,window.innerWidth*(mobile?0.98:0.96)-padX), availH=Math.max(160,window.innerHeight*0.96-headH-(mobile?24:40));
+  const scale=Math.min(availW/nw,availH/nh,4), w=Math.round(nw*scale), h=Math.round(nh*scale);
+  stage.style.width=w+'px'; stage.style.height=h+'px'; image.style.width=w+'px'; image.style.height=h+'px';
+  const sub=viewer.querySelector('.photo-viewer-head .osub'); if(sub) sub.textContent='Resolução original: '+nw+' × '+nh+' px · use os controles para ampliar';
+}
+window.addEventListener('resize',fitPhotoViewer);
 let photoViewerReturnFocus=null;
 let photoViewerZoom=1, photoPanX=0, photoPanY=0, photoDragging=false, photoDragStartX=0, photoDragStartY=0, photoPanStartX=0, photoPanStartY=0;
 function applyPhotoZoom(){
@@ -2168,8 +2188,8 @@ function openJustificationPhoto(pacote,base){
   if(!viewer||!image) return;
   photoViewerReturnFocus=document.activeElement;
   photoPanX=0; photoPanY=0; photoViewerZoom=1; image.src=row.photo; image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto'; image.decoding='sync';
-  image.onload=()=>applyPhotoZoom(); applyPhotoZoom();
-  viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false');
+  image.onload=()=>{fitPhotoViewer();applyPhotoZoom();}; applyPhotoZoom();
+  viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false'); if(image.complete&&image.naturalWidth){fitPhotoViewer();}
   document.getElementById('justPhotoViewerClose')?.focus();
 }
 function closeJustificationPhoto(){
