@@ -680,3 +680,5 @@ input[type="date"],input[type="month"]{color-scheme:dark}
 input[type="date"]::-webkit-calendar-picker-indicator,input[type="month"]::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer;filter:invert(1)}
 :root.theme-light input[type="date"],:root.theme-light input[type="month"],:root.theme-pink input[type="date"],:root.theme-pink input[type="month"]{color-scheme:light}
 :root.theme-light input[type="date"]::-webkit-calendar-picker-indicator,:root.theme-light input[type="month"]::-webkit-calendar-picker-indicator,:root.theme-pink input[type="date"]::-webkit-calendar-picker-indicator,:root.theme-pink input[type="month"]::-webkit-calendar-picker-indicator{filter:none}
+
+input[type="date"],input[type="month"]{-webkit-appearance:auto;appearance:auto}

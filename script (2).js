@@ -1652,7 +1652,16 @@ function selectedPeriodEntries(){
   return availableImportDates().filter(d=>(!de||d>=de)&&(!ate||d<=ate)).map(day=>({day,entries:snapshotEntriesForDay(day).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(tipo==='TODOS'||e.tipo===tipo))}));
 }
 function dateInputSet(id,value){ const el=document.getElementById(id); if(el) el.value=value||''; }
+function enableNativeDatePickers(){
+  ['diariaDia','analiseDe','analiseAte','impDia'].forEach(id=>{
+    const el=document.getElementById(id); if(!el||el.dataset.pickerReady) return;
+    el.dataset.pickerReady='1';
+    el.addEventListener('click',()=>{ if(typeof el.showPicker==='function'){ try{el.showPicker();}catch(e){} } });
+  });
+}
+
 function isoShift(iso,days){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+enableNativeDatePickers();
 function analysisMetricsBetween(start,end,reg,tipo){
   if(!start||!end||start>end) return null;
   const days=availableImportDates().filter(d=>d>=start&&d<=end); if(!days.length) return null;

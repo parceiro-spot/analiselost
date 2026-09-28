@@ -695,6 +695,8 @@ input[type="date"]::-webkit-calendar-picker-indicator,input[type="month"]::-webk
 :root.theme-light input[type="date"],:root.theme-light input[type="month"],:root.theme-pink input[type="date"],:root.theme-pink input[type="month"]{color-scheme:light}
 :root.theme-light input[type="date"]::-webkit-calendar-picker-indicator,:root.theme-light input[type="month"]::-webkit-calendar-picker-indicator,:root.theme-pink input[type="date"]::-webkit-calendar-picker-indicator,:root.theme-pink input[type="month"]::-webkit-calendar-picker-indicator{filter:none}
 
+input[type="date"],input[type="month"]{-webkit-appearance:auto;appearance:auto}
+
 </style>
 <style id="photo-viewer-enhancement">
   #justPhotoViewer .photo-viewer-panel{width:75vw!important;max-width:1200px!important;height:75vh!important;max-height:780px!important}
@@ -2665,7 +2667,16 @@ function selectedPeriodEntries(){
   return availableImportDates().filter(d=>(!de||d>=de)&&(!ate||d<=ate)).map(day=>({day,entries:snapshotEntriesForDay(day).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(tipo==='TODOS'||e.tipo===tipo))}));
 }
 function dateInputSet(id,value){ const el=document.getElementById(id); if(el) el.value=value||''; }
+function enableNativeDatePickers(){
+  ['diariaDia','analiseDe','analiseAte','impDia'].forEach(id=>{
+    const el=document.getElementById(id); if(!el||el.dataset.pickerReady) return;
+    el.dataset.pickerReady='1';
+    el.addEventListener('click',()=>{ if(typeof el.showPicker==='function'){ try{el.showPicker();}catch(e){} } });
+  });
+}
+
 function isoShift(iso,days){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+enableNativeDatePickers();
 function analysisMetricsBetween(start,end,reg,tipo){
   if(!start||!end||start>end) return null;
   const days=availableImportDates().filter(d=>d>=start&&d<=end); if(!days.length) return null;
