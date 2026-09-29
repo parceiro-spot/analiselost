@@ -715,3 +715,5 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .export-lost-option{display:flex;align-items:center;gap:8px;margin:12px 0;padding:11px 12px;border:1px solid var(--info-blue);border-radius:8px;background:var(--info-glow);font-size:12px;color:var(--text-primary);cursor:pointer}
 .export-lost-option input{accent-color:var(--info-blue)}
 .export-lost-option small{font-size:10px;color:var(--text-secondary);margin-left:auto}
+.missing-destination{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;font-weight:900;font-size:13px;line-height:1}
+.lost-overlay-btn{border-color:var(--spot-green)!important;color:var(--spot-green)!important}
