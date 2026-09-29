@@ -2736,6 +2736,7 @@ function renderRegionalAgeTabs(){
 }
 function lostRouteRegion(e){ return regionalFromBasePrefix(e.base||e.origem||e.destino)||'OUTROS'; }
 function lostRouteEntriesForRegion(region){ return LOST_ROUTES.filter(e=>region==='TODOS'||lostRouteRegion(e)===region); }
+function restoreSearchFocus(id,position){ const input=document.getElementById(id); if(!input)return; input.focus(); try{input.setSelectionRange(position,position);}catch(e){} }
 function renderLostRoutesPage(){
   const content=document.getElementById('lostRoutesContent'); if(!content)return;
   const query=lostRouteSearch.trim().toUpperCase();
@@ -2743,7 +2744,7 @@ function renderLostRoutesPage(){
   const rows=LOST_ROUTES.filter(matchesSearch);
   const crumb=document.getElementById('lostRoutesBreadcrumb');
   const searchBox='<label class="regional-search-box lost-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="lostRouteSearch" type="search" value="'+escHtml(lostRouteSearch)+'" placeholder="Buscar pacote, motorista, rota ou base..." autocomplete="off"></label>';
-  if(!rows.length){ crumb.innerHTML='<strong>Perdidos em rota</strong>'+searchBox; content.innerHTML='<div class="history-empty" style="padding:40px 0;">'+(LOST_ROUTES.length?'Nenhum pacote encontrado para esta busca.':'Anexe a planilha de Perdidos em rota em Importados para visualizar os pacotes.')+'</div>'; const input=document.getElementById('lostRouteSearch'); input?.addEventListener('input',()=>{lostRouteSearch=input.value;renderLostRoutesPage();}); return; }
+  if(!rows.length){ crumb.innerHTML='<strong>Perdidos em rota</strong>'+searchBox; content.innerHTML='<div class="history-empty" style="padding:40px 0;">'+(LOST_ROUTES.length?'Nenhum pacote encontrado para esta busca.':'Anexe a planilha de Perdidos em rota em Importados para visualizar os pacotes.')+'</div>'; const input=document.getElementById('lostRouteSearch'); input?.addEventListener('input',()=>{lostRouteSearch=input.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);}); return; }
   const byRegion={}; rows.forEach(e=>{const r=lostRouteRegion(e);(byRegion[r]=byRegion[r]||[]).push(e);});
   if(lostRouteNav.level==='list'){
     crumb.innerHTML='<strong>Todas as regionais</strong>'+searchBox+'<span class="lost-count">'+fmtInt(rows.length)+' pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostRoutes" title="Baixar pacotes em rota"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostRoutes" title="Capturar regionais de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>';
@@ -2753,7 +2754,7 @@ function renderLostRoutesPage(){
     content.innerHTML='<div class="aging-strip lost-routes-aging" id="lostRoutesAging"></div>'+html+'</div>';
     renderAgingStrip('lostRoutesAging',rows,()=>{});
     document.getElementById('btnDownloadLostRoutes')?.addEventListener('click',()=>abrirModalOcultarDias(rows,'Pacotes em rota',true));
-    document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;renderLostRoutesPage();});
+    document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);});
     document.getElementById('btnCapturaLostRoutes')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-regionais'));
     content.querySelectorAll('[data-lost-region]').forEach(card=>card.addEventListener('click',()=>{lostRouteNav={level:'bases',regional:card.dataset.lostRegion};renderLostRoutesPage();}));
     return;
@@ -2764,7 +2765,7 @@ function renderLostRoutesPage(){
   Object.entries(byBase).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([base,list])=>{html+=`<div class="base-card lost-base-card" data-lost-base="${escHtml(base)}"><div class="base-card-head"><div><div class="bname">${baseInfoLabel(base)}</div><div class="breg">${escHtml(REGIONAL_LABELS[regionalFromBasePrefix(base)]||regionalFromBasePrefix(base)||'Base informada')}</div></div><div><div class="bpac">${fmtInt(list.length)} pacote(s)</div></div></div><div class="base-justified lost-arrow-summary">Clique para ver os pacotes</div></div>`;});
   content.innerHTML=html+'</div>';
   document.getElementById('btnDownloadLostBases')?.addEventListener('click',()=>abrirModalOcultarDias(entries,'Pacotes em rota',true));
-  document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;renderLostRoutesPage();});
+  document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);});
   document.getElementById('btnCapturaLostBases')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-bases'));
   content.querySelectorAll('[data-lost-base]').forEach(card=>card.addEventListener('click',()=>openLostRoutesOverlay(card.dataset.lostBase,entries.filter(e=>(e.base||e.origem||'SEM BASE')===card.dataset.lostBase))));
   crumb.querySelector('[data-lost-back="list"]').addEventListener('click',()=>{lostRouteNav={level:'list',regional:null};renderLostRoutesPage();});
@@ -2795,7 +2796,7 @@ function renderRegionalPage(){
     html+='</div>';
     content.innerHTML=html;
     content.querySelectorAll('[data-regional-age]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();regionalAgeFilter=btn.dataset.regionalAge;renderRegionalPage();}));
-    const searchInput=document.getElementById('regionalSearch'); if(searchInput){searchInput.addEventListener('input',()=>{regionalSearch=searchInput.value;renderRegionalPage();});}
+    const searchInput=document.getElementById('regionalSearch'); if(searchInput){searchInput.addEventListener('input',()=>{regionalSearch=searchInput.value;const pos=regionalSearch.length;renderRegionalPage();restoreSearchFocus('regionalSearch',pos);});}
     content.querySelectorAll('.regional-justified-btn').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();const r=btn.dataset.regJust;const entries=r==='TODAS'?visibleEntries:(activeData[r]?.entries||[]);const label=r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||r);openOverlayEntries('Justificados · '+label,'',entries,'TODOS');overlayCtx.period='JUSTIFICADOS';renderOverlayBody();}));
     content.querySelectorAll('.regional-card').forEach(c=>c.addEventListener('click', ()=>{ regionalNav={level:'bases',regional:c.dataset.r}; renderRegionalPage(); }));
   } else {
