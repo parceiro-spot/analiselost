@@ -910,7 +910,7 @@ function renderOffendersStripGeral(){
   const arr=Object.entries(map).map(([base,valor])=>({base,valor})).sort((a,b)=>b.valor-a.valor).slice(0,12);
   if(!arr.length){ el.innerHTML='<div class="history-empty">Sem bases no filtro atual.</div>'; return; }
   const max=arr[0].valor||1;
-  el.innerHTML=arr.map(a=>`<div class="offenders-row" data-base="${escHtml(a.base)}"><span class="obase">${baseInfoLabel(a.base)}</span><div class="obar"><div class="obar-fill" style="width:${Math.max(4,(a.valor/max)*100)}%"></div></div><span class="oval">${fmtBRL(a.valor)}</span></div>`).join('');
+  el.innerHTML=arr.map(a=>`<div class="offenders-row" data-base="${escHtml(a.base)}"><span class="obase">${escHtml(a.base)}</span><div class="obar"><div class="obar-fill" style="width:${Math.max(4,(a.valor/max)*100)}%"></div></div><span class="oval">${fmtBRL(a.valor)}</span></div>`).join('');
   el.querySelectorAll('.offenders-row').forEach(row=>row.addEventListener('click', ()=>openBaseOverlay(row.dataset.base)));
 }
 document.getElementById('topBasesToggle').addEventListener('click', function(e){
