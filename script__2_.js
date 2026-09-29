@@ -7,6 +7,7 @@ const STATE_COLORS = {'ESPÍRITO SANTO':'#00e676','MINAS GERAIS':'#00c853','BAHI
 const BUCKET_LABELS = {ATE2:'Até 2 dias','3A6':'3 a 6 dias','7A10':'7 a 10 dias',MAIS11:'Mais de 11 dias'};
 const BUCKET_KEYS = ['ATE2','3A6','7A10','MAIS11'];
 const REASON_LABELS = {'MISSING':'Pacote faltando','UNVISITED_ADDRESS':'Endereço não visitado','BUYER_ABSENT':'Comprador ausente','BUYER_REJECTED':'Comprador recusou','BUSINESS_CLOSED':'Estabelecimento fechado','BAD_ADDRESS':'Endereço incorreto','MISSROUTED':'Roteirizado incorretamente','INACCESSIBLE_ADDRESS':'Endereço inacessível','BLOCKED_BY_KEYWORD':'Bloqueado por palavra-chave','BUYER_MOVED':'Comprador mudou-se'};
+const REASON_WORD_LABELS = {MISSING:'faltando',PACKAGE:'pacote',SHIPMENT:'envio',ORDER:'pedido',NOT:'não',DELIVERED:'entregue',DELIVERY:'entrega',UNDELIVERABLE:'não entregue',UNVISITED:'não visitado',ADDRESS:'endereço',BUYER:'comprador',CUSTOMER:'cliente',ABSENT:'ausente',REJECTED:'recusou',REFUSED:'recusado',BUSINESS:'estabelecimento',CLOSED:'fechado',BAD:'incorreto',WRONG:'incorreto',INVALID:'inválido',MISSROUTED:'roteirizado incorretamente',ROUTE:'rota',ROUTED:'roteirizado',INACCESSIBLE:'inacessível',BLOCKED:'bloqueado',KEYWORD:'palavra-chave',MOVED:'mudou-se',DAMAGED:'danificado',LOST:'perdido',CANCELLED:'cancelado',CANCELED:'cancelado',NO:'sem',ACCESS:'acesso',AVAILABLE:'disponível',WEATHER:'clima',TRAFFIC:'trânsito',RETRY:'tentar novamente',OTHER:'outro',UNKNOWN:'desconhecido',ERROR:'erro'};
 
 const STORAGE_KEY='spot_dashboard_registros_v4';
 const IMPORTS_KEY='spot_dashboard_imports_v1';
@@ -83,7 +84,7 @@ function initThemePicker(){
   document.addEventListener('click',function(e){ if(!picker.contains(e.target)){ menu.classList.remove('show'); button.setAttribute('aria-expanded','false'); } });
 }
 function getDriverName(id){ if(!id) return 'Não identificado'; return DRIVER_MAP[String(id).trim()] || ('Motorista '+id); }
-function friendlyReason(raw){ const k=norm(raw); if(!k) return 'Não informado'; if(REASON_LABELS[k]) return REASON_LABELS[k]; return k.toLowerCase().split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '); }
+function friendlyReason(raw){ const k=norm(raw); if(!k) return 'Não informado'; if(REASON_LABELS[k]) return REASON_LABELS[k]; const words=k.split(/[_\s-]+/).filter(Boolean).map(w=>REASON_WORD_LABELS[w]||w.toLowerCase()); const text=words.join(' ').trim(); return text?text.charAt(0).toUpperCase()+text.slice(1):'Não informado'; }
 function diasParado(date, referencia){
   if(date && typeof date==='object' && date.diasPlanilha!==null && date.diasPlanilha!==undefined && Number.isFinite(Number(date.diasPlanilha))) return Math.max(0,Number(date.diasPlanilha));
   const imp=(typeof getSelectedImport==='function')?getSelectedImport():null;
@@ -335,13 +336,15 @@ function buildLostRoutesFromRawRows(rows){
     const origem=normalizeBaseCode(colOrig!==undefined?row[colOrig]:''); const destino=normalizeBaseCode(colDest!==undefined?row[colDest]:''); const base=normalizeBaseCode(colBase!==undefined?row[colBase]:(origem||destino));
     const risk=IMPORTS.flatMap(i=>i.entries||[]).find(e=>normalizePackageKey(e.pacote)===pacote);
     const parsedDias=colDias!==undefined?parsePlanilhaDias(row[colDias]):null;
-    out.push({pacote,origem,destino,base:base||risk?.base||'',rota:colRota!==undefined?normalizePackageKey(row[colRota]):(risk?.rota||''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):(risk?.driverId||''),produto:colProduto!==undefined?String(row[colProduto]||'').trim():(risk?.produto||''),motivo:colMotivo!==undefined?friendlyReason(row[colMotivo]):'Perdido em rota',date:colData!==undefined?parseDateBR(row[colData]):new Date(),valor:colValor!==undefined?Number(String(row[colValor]??'').replace(',','.')):Number(risk?.valor||0),dias:parsedDias??Number(risk?.dias||0),diasPlanilha:parsedDias,riskBase:risk?.base||'',riskDriverId:risk?.driverId||''});
+    const rawMotivo=colMotivo!==undefined?String(row[colMotivo]??'').trim():'';
+    out.push({pacote,origem,destino,base:base||risk?.base||'',rota:colRota!==undefined?normalizePackageKey(row[colRota]):(risk?.rota||''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):(risk?.driverId||''),produto:colProduto!==undefined?String(row[colProduto]||'').trim():(risk?.produto||''),motivo:rawMotivo?friendlyReason(rawMotivo):(risk?.motivo||'Perdido em rota'),date:colData!==undefined?parseDateBR(row[colData]):new Date(),valor:colValor!==undefined?Number(String(row[colValor]??'').replace(',','.')):Number(risk?.valor||0),dias:parsedDias??Number(risk?.dias||0),diasPlanilha:parsedDias,riskBase:risk?.base||'',riskDriverId:risk?.driverId||''});
   }
   return out.length?out:null;
 }
 function persistLostRoutes(){try{localStorage.setItem(LOST_ROUTES_KEY,JSON.stringify(LOST_ROUTES));}catch(e){console.warn('Perdidos em rota mantidos apenas nesta sessão.',e);}}
 function loadPersistedLostRoutes(){try{const raw=localStorage.getItem(LOST_ROUTES_KEY);return raw?JSON.parse(raw).map(e=>({...e,date:new Date(e.date)})):[];}catch(e){return [];}}
 function lostRouteMatchesRisk(e){return IMPORTS.flatMap(i=>i.entries||[]).find(r=>normalizePackageKey(r.pacote)===normalizePackageKey(e.pacote))||null;}
+function motivoExibicaoLost(e){ const risk=lostRouteMatchesRisk(e); const raw=String(e?.motivo||'').trim(); const candidate=raw&&raw!=='Perdido em rota'?raw:String(risk?.motivo||'').trim(); if(!candidate||candidate==='Perdido em rota') return 'Perdido em rota'; return friendlyReason(candidate); }
 function lostRouteArrow(e){const risk=e.riskBase||lostRouteMatchesRisk(e)?.base||''; const lost=e.base||e.origem||e.destino||''; if(!risk||!lost||risk===lost)return ''; return `↔ pode estar em ${baseInfoText(risk)} (Risco LM) ou ${baseInfoText(lost)} (Perdido em rota)`;}
 
 function buildDriverMapFromRawRows(rows){
@@ -1589,14 +1592,14 @@ function baixarRetornoFormatado(entries, contexto){
   const standaloneLostRows=Array.isArray(contexto?.lostRows)?contexto.lostRows:LOST_ROUTES;
   const standaloneLost=Boolean(contexto?.onlyLostRoutes && standaloneLostRows.length);
   const lostSheetWanted=Boolean(!standaloneLost && contexto?.includeLostRoutes && LOST_ROUTES.length);
-  if(standaloneLost){ const lostGroups=Object.entries(standaloneLostRows.reduce((m,e)=>{const b=e.base||e.origem||'SEM BASE';(m[b]=m[b]||[]).push({...e,valor:Number(e.valor||0),tipo:'SVC',produto:`Origem: ${e.origem||'—'} → Destino: ${e.destino||'—'}${e.produto?' · '+e.produto:''}`,motivo:e.motivo||'Perdido em rota'});return m;},{})).map(([base,linhas])=>({regional:base,linhas:linhas.map(e=>({base:e.base||base,e}))})); sheets.push({reg:'PACOTES EM ROTA',groupKey:'LOST',groupLabel:'Pacotes em rota',xml:buildSheetXml(lostGroups, 'Pacotes em rota')}); }
+  if(standaloneLost){ const lostGroups=Object.entries(standaloneLostRows.reduce((m,e)=>{const b=e.base||e.origem||'SEM BASE';(m[b]=m[b]||[]).push({...e,valor:Number(e.valor||0),tipo:'SVC',produto:`Origem: ${e.origem||'—'} → Destino: ${e.destino||'—'}${e.produto?' · '+e.produto:''}`,motivo:motivoExibicaoLost(e)});return m;},{})).map(([base,linhas])=>({regional:base,linhas:linhas.map(e=>({base:e.base||base,e}))})); sheets.push({reg:'PACOTES EM ROTA',groupKey:'LOST',groupLabel:'Pacotes em rota',xml:buildSheetXml(lostGroups, 'Pacotes em rota')}); }
   if(!standaloneLost) ageGroups.forEach(group=>{
     const groupEntries=entries.filter(e=>ageGroupMatches(e,group));
     const porReg={}; REGIONAL_ORDER.forEach(reg=>porReg[reg]=[]); groupEntries.forEach(e=>{const reg=regionalFromBasePrefix(e.base)||'OUTROS';(porReg[reg]=porReg[reg]||[]).push(e);});
     const ordem=REGIONAL_ORDER.concat(Object.keys(porReg).filter(r=>!REGIONAL_ORDER.includes(r)));
     ordem.forEach(reg=>{const porBase={};(porReg[reg]||[]).forEach(e=>(porBase[e.base]=porBase[e.base]||[]).push(e));const grupos=Object.keys(porBase).sort().map(base=>({regional:base,linhas:porBase[base].slice().sort((a,b)=>{const da=(contexto?.dateOrder||[]).indexOf(a._exportDate),db=(contexto?.dateOrder||[]).indexOf(b._exportDate);return (da<0?999:da)-(db<0?999:db)||((b.valor||0)-(a.valor||0));}).map(e=>({base:e.base,e}))}));sheets.push({reg,groupKey:group.key,groupLabel:group.label,xml:buildSheetXml(grupos,contexto)});});
   });
-  if(lostSheetWanted){ const lostGroups=Object.entries(LOST_ROUTES.reduce((m,e)=>{const b=e.base||e.origem||'SEM BASE';(m[b]=m[b]||[]).push({...e,valor:Number(e.valor||0),tipo:'SVC',produto:`Origem: ${e.origem||'—'} → Destino: ${e.destino||'—'}${e.produto?' · '+e.produto:''}`,motivo:e.motivo||'Perdido em rota'});return m;},{})).map(([base,linhas])=>({regional:base,linhas:linhas.map(e=>({base:e.base||base,e}))})); sheets.push({reg:'PACOTES EM ROTA',groupKey:'LOST',groupLabel:'Pacotes em rota',xml:buildSheetXml(lostGroups, 'Pacotes em rota')}); }
+  if(lostSheetWanted){ const lostGroups=Object.entries(LOST_ROUTES.reduce((m,e)=>{const b=e.base||e.origem||'SEM BASE';(m[b]=m[b]||[]).push({...e,valor:Number(e.valor||0),tipo:'SVC',produto:`Origem: ${e.origem||'—'} → Destino: ${e.destino||'—'}${e.produto?' · '+e.produto:''}`,motivo:motivoExibicaoLost(e)});return m;},{})).map(([base,linhas])=>({regional:base,linhas:linhas.map(e=>({base:e.base||base,e}))})); sheets.push({reg:'PACOTES EM ROTA',groupKey:'LOST',groupLabel:'Pacotes em rota',xml:buildSheetXml(lostGroups, 'Pacotes em rota')}); }
   const zip=new JSZip(); const sheetOverrides=sheets.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('');
   zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheetOverrides+'</Types>');
   zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
@@ -1728,7 +1731,7 @@ function renderLostRoutesPage(){
   crumb.querySelector('[data-lost-back="list"]').addEventListener('click',()=>{lostRouteNav={level:'list',regional:null};renderLostRoutesPage();});
 }
 function openLostRoutesOverlay(base,rows){
-  const mapped=rows.map(e=>({...e,base:e.base||e.origem||base,tipo:classifyBaseCode(e.base||base,regionalFromBasePrefix(e.base||base))||'SVC',motivo:e.motivo||'Perdido em rota',valor:Number(e.valor||0),driverId:e.driverId||lostRouteMatchesRisk(e)?.driverId||''}));
+  const mapped=rows.map(e=>({...e,base:e.base||e.origem||base,tipo:classifyBaseCode(e.base||base,regionalFromBasePrefix(e.base||base))||'SVC',motivo:motivoExibicaoLost(e),valor:Number(e.valor||0),driverId:e.driverId||lostRouteMatchesRisk(e)?.driverId||''}));
   mapped.forEach(e=>{e.isLost=true;}); openOverlayEntries('Perdidos em rota · '+baseInfoText(base),'',mapped,'TODOS');
 }
 
