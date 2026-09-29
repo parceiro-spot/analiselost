@@ -705,7 +705,7 @@ html body #justPhotoViewer .photo-viewer-stage img{flex:0 0 auto!important;max-w
 html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;margin:0!important}
 
 /* Complementos solicitados: vínculo visual SVC/XPT e Perdidos em rota */
-.base-relation{display:block;font-size:9px;font-weight:700;line-height:1.25;color:var(--text-secondary);margin-top:2px;letter-spacing:.1px}
+.base-relation{display:block;font-size:8px;font-weight:400;line-height:1.2;color:var(--text-secondary);margin-top:2px;letter-spacing:0}
 .lost-route-link{margin-top:10px;padding:7px 9px;border:1px solid var(--info-blue);border-radius:7px;background:var(--info-glow);color:var(--info-blue);font:800 10px inherit;cursor:pointer;letter-spacing:.3px}
 .lost-route-link:hover{background:var(--info-blue);color:#001018}
 .lost-count{font-size:11px;color:var(--spot-green);font-weight:800;margin-left:8px}
