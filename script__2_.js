@@ -36,6 +36,7 @@ let offendersBucket='TODOS';
 const offendersCollapsedRegionals=new Set();
 let regionalNav={level:'list', regional:null};
 let lostRouteNav={level:'list', regional:null};
+let lostRouteSearch='';
 let regionalSearch='';
 let regionalBaseBucket='TODOS';
 let regionalAgeFilter='TODOS';
@@ -1010,22 +1011,23 @@ function sortBtnLabel(mode){
   if(mode==='TM') return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h10M4 18h5"/></svg> Ordem: Tarde → Manhã';
   return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h16M4 12h10M4 18h5"/></svg> Ordem: Valor';
 }
-function abrirModalOcultarDias(entries, contexto){
+function abrirModalOcultarDias(entries, contexto, onlyLostRoutes=false){
   const diasDisponiveis=Array.from(new Set((entries||[]).map(e=>Math.floor(diasParado(e))).filter(Number.isFinite))).sort((a,b)=>a-b);
   const faixas=BUCKET_KEYS.slice();
   const diasOpcoes=Array.from(new Set([1,2,3,4,5,6,...diasDisponiveis])).sort((a,b)=>a-b);
   if(!(entries||[]).length){ baixarRetorno(entries,contexto); return; }
   document.getElementById('hideDaysModal')?.remove();
-  const modal=document.createElement('div'); modal.id='hideDaysModal'; modal.className='hide-days-modal';
+  const modal=document.createElement('div'); modal.id='hideDaysModal'; modal.className='overlay export-config-overlay show';
   const faixaNome={ATE2:'1–2 DIAS','3A6':'3–6 DIAS','7A10':'7–10 DIAS',MAIS11:'11+ DIAS'};
-  const options=()=>'<div class="hide-days-option-title">FAIXAS</div>'+faixas.map(bucket=>'<label><input type="checkbox" value="bucket:'+bucket+'"> <strong>'+faixaNome[bucket]+'</strong></label>').join('')+'<div class="hide-days-option-title">DIAS AVULSOS</div>'+diasOpcoes.map(day=>'<label><input type="checkbox" value="day:'+day+'"> <strong>'+day+' DIA'+(day===1?'':'S')+'</strong></label>').join('');
-  modal.innerHTML='<div class="hide-days-card" role="dialog" aria-modal="true" aria-labelledby="hideDaysTitle">'
-    +'<div class="hide-days-head"><div><h3 id="hideDaysTitle">CONFIGURAR ABAS DA PLANILHA</h3><p>Cada bloco abaixo cria novamente as abas ES, MG, BA, SP e RJ no mesmo arquivo.</p></div><button type="button" class="overlay-close" data-hide-days-close>Fechar</button></div>'
-    +'<div class="hide-days-group" data-hide-group="1"><h4>PRIMEIRA ABA/BLOCO — NÃO CONTER:</h4><div class="hide-days-options">'+options()+'</div><small>Vai gerar: ES, MG, BA, SP e RJ</small></div>'
-    +'<button type="button" class="btn-reset hide-days-add" data-add-hide-group>ADICIONAR MAIS</button>'
-    +'<label class="export-lost-option" style="margin-top:14px;"><input type="checkbox" data-hide-include-lost> <strong>PACOTES EM ROTA</strong><small>Criar uma aba separada no mesmo arquivo</small></label>'
+  const options=()=>'<div class="export-age-options-title">FAIXAS</div>'+faixas.map(bucket=>'<label class="export-day-option"><input type="checkbox" value="bucket:'+bucket+'"> <span><strong>'+faixaNome[bucket]+'</strong></span></label>').join('')+'<div class="export-age-options-title">DIAS AVULSOS</div>'+diasOpcoes.map(day=>'<label class="export-day-option"><input type="checkbox" value="day:'+day+'"> <span><strong>'+day+' DIA'+(day===1?'':'S')+'</strong></span></label>').join('');
+  const groupHtml=(name,count)=>'<div class="export-age-config hide-days-group" data-hide-group="'+count+'"><div class="export-days-head"><strong>'+name+' ABA/BLOCO — NÃO CONTER:</strong></div><div class="export-days-list hide-days-options">'+options()+'</div><small class="export-age-help">Vai gerar: ES, MG, BA, SP e RJ</small>'+(count>1?'<button type="button" class="btn-reset hide-days-remove" data-remove-hide-group>Remover esta aba</button>':'')+'</div>';
+  modal.innerHTML='<div class="export-config-panel" role="dialog" aria-modal="true" aria-labelledby="hideDaysTitle">'
+    +'<div class="overlay-head"><div><h2 id="hideDaysTitle">Configurar abas da planilha</h2><div class="osub">Cada bloco abaixo cria novamente as abas ES, MG, BA, SP e RJ no mesmo arquivo.</div></div><button type="button" class="overlay-close" data-hide-days-close>Fechar</button></div>'
+    +groupHtml('PRIMEIRA',1)
+    +'<button type="button" class="btn-reset hide-days-add" data-add-hide-group>+ ADICIONAR MAIS ABAS REGIONAIS</button>'
+    +(onlyLostRoutes?'':'<label class="export-lost-option" style="margin-top:14px;"><input type="checkbox" data-hide-include-lost> <strong>PACOTES EM ROTA</strong><small>Criar uma aba separada no mesmo arquivo</small></label>')
     +'<div class="hide-days-help">A segunda aba/bloco será criada no mesmo arquivo e terá novamente ES, MG, BA, SP e RJ, com os dias que você selecionar para ela.</div>'
-    +'<div class="hide-days-actions"><button type="button" class="btn-reset" data-hide-days-close>Cancelar</button><button type="button" class="btn-primary" data-hide-days-confirm>Baixar planilha</button></div>'
+    +'<div class="export-config-actions"><button type="button" class="btn-reset" data-hide-days-close>Cancelar</button><button type="button" class="btn-primary" data-hide-days-confirm>Baixar planilha</button></div>'
     +'</div>';
   document.body.appendChild(modal);
   const close=()=>{modal.remove();document.getElementById('baseOverlay')?.classList.remove('show');document.removeEventListener('keydown',esc);};
@@ -1035,26 +1037,29 @@ function abrirModalOcultarDias(entries, contexto){
     if(ev.target===modal||ev.target.closest('[data-hide-days-close]')){close();return;}
     if(ev.target.closest('[data-add-hide-group]')){
       const count=modal.querySelectorAll('.hide-days-group').length+1;
-      const group=document.createElement('div'); group.className='hide-days-group'; group.dataset.hideGroup=String(count);
-      group.innerHTML='<h4>'+(['PRIMEIRA','SEGUNDA','TERCEIRA','QUARTA'][count-1]||count+'ª')+' ABA/BLOCO — NÃO CONTER:</h4><div class="hide-days-options">'+options()+'</div><small>Vai gerar: ES, MG, BA, SP e RJ</small><button type="button" class="btn-reset hide-days-remove" data-remove-hide-group>Remover esta aba</button>';
-      modal.querySelector('[data-add-hide-group]').before(group);
+      const group=document.createElement('div'); group.innerHTML=groupHtml(['PRIMEIRA','SEGUNDA','TERCEIRA','QUARTA'][count-1]||count+'ª',count);
+      modal.querySelector('[data-add-hide-group]').before(group.firstElementChild);
       if(count>=4)ev.target.remove();
       return;
     }
-    if(ev.target.closest('[data-remove-hide-group]')){ev.target.closest('.hide-days-group').remove();return;}
+    if(ev.target.closest('[data-remove-hide-group]')){ev.target.closest('.hide-days-group')?.remove();return;}
     if(ev.target.closest('[data-hide-days-confirm]')){
       const ageGroups=[];
-      modal.querySelectorAll('.hide-days-group').forEach((group,index)=>{
+      modal.querySelectorAll('.hide-days-group').forEach(group=>{
         const marcados=Array.from(group.querySelectorAll('input:checked')).map(input=>input.value);
         const ocultosFaixas=new Set(marcados.filter(value=>value.startsWith('bucket:')).map(value=>value.slice(7)));
         const ocultosDias=new Set(marcados.filter(value=>value.startsWith('day:')).map(value=>Number(value.slice(4))));
         const incluidos=diasDisponiveis.filter(day=>!ocultosFaixas.has(bucketOf(day))&&!ocultosDias.has(day)).map(day=>[day,day]);
         const nomes=marcados.map(value=>value.startsWith('bucket:')?faixaNome[value.slice(7)]:value.slice(4)+' DIA'+(value==='day:1'?'':'S'));
-        const label=nomes.length?nomes.join(' + '):'TODOS OS DIAS';
-        if(incluidos.length)ageGroups.push({key:'CUSTOM',label,ranges:incluidos});
+        if(incluidos.length)ageGroups.push({key:'CUSTOM',label:nomes.length?nomes.join(' + '):'TODOS OS DIAS',ranges:incluidos});
       });
       if(!ageGroups.length){alert('Deixe pelo menos uma faixa disponível em uma das abas.');return;}
-      const includeLostRoutes=Boolean(modal.querySelector('[data-hide-include-lost]')?.checked); close(); baixarRetornoFormatado(entries,{ageGroups,orderMode:'VALOR',dateOrder:[],includeLostRoutes});
+      const includeLostRoutes=Boolean(modal.querySelector('[data-hide-include-lost]')?.checked); close();
+      if(onlyLostRoutes){
+        entries=entries.filter(entry=>ageGroups.some(group=>ageGroupMatches(entry,group)));
+        if(!entries.length){alert('Nenhum pacote em rota atende aos dias parados selecionados.');return;}
+      }
+      baixarRetornoFormatado(entries,{ageGroups,orderMode:'VALOR',dateOrder:[],includeLostRoutes,onlyLostRoutes:onlyLostRoutes,lostRows:onlyLostRoutes?entries:undefined});
     }
   });
 }
@@ -1088,6 +1093,7 @@ function openOverlayEntries(title, prefix, entries, bucket){
     +'<button type="button" class="preset-btn period-preset justified-preset" data-period="JUSTIFICADOS">Justificados</button>'
     +'</div>'
     +'<button type="button" class="preset-btn" id="overlaySortBtn">'+sortBtnLabel('VALOR')+'</button>'
+    +(String(title||'').startsWith('Base ')?'<button type="button" class="preset-btn" id="overlayLostRoutesBtn" title="Ver pacotes em rota desta base">Pacote em Rota</button>':'')
     +'<button type="button" class="btn-reset" id="overlayResetFiltros">Mostrar todos</button>'
     +'<button type="button" class="dl-btn" id="overlayDownload" style="margin-left:0;" title="Baixar planilha de retorno destes pacotes" aria-label="Baixar planilha de retorno destes pacotes"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button></div>'
     +'<div class="aging-strip" id="overlayAging"></div><div id="overlayTable"></div>';
@@ -1284,7 +1290,7 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
     const lista=overlayFiltered();
     const contexto=overlayCtx.title+(overlayCtx.buckets?.length?' · '+overlayCtx.buckets.map(b=>BUCKET_LABELS[b]).join(' + '):'');
     if(overlayCtx.title==='Pacotes por dias parado') abrirModalOcultarDias(lista,contexto);
-    else if(String(overlayCtx.title||'').startsWith('Perdidos em rota')) openExportConfig(lista,true);
+    else if(String(overlayCtx.title||'').startsWith('Perdidos em rota')) abrirModalOcultarDias(lista,'Pacotes em rota',true);
     else openExportConfig(lista,false);
     return;
   }
@@ -1633,7 +1639,7 @@ function openExportConfig(seedEntries=null, lostOnly=false){
 function closeExportConfig(){document.getElementById('exportConfigOverlay').classList.remove('show');}
 document.getElementById('btnDownloadOfensores').addEventListener('click',()=>{
   const entries=computeOffendersData().flatMap(reg=>visibleBasesFor(reg).flatMap(base=>base.entries));
-  openExportConfig(entries,false);
+  abrirModalOcultarDias(entries,'Pacotes por dias parado',false);
 });
 document.getElementById('exportConfigClose').addEventListener('click',closeExportConfig);
 document.getElementById('exportConfigCancel').addEventListener('click',closeExportConfig);
@@ -1687,30 +1693,35 @@ function renderRegionalAgeTabs(){
   return '<div class="regional-age-tabs" aria-label="Filtrar regionais por dias em atraso">'+buttons.map(b=>'<button type="button" class="regional-age-tab '+b.cls+(regionalAgeFilter===b.value?' active':'')+'" data-regional-age="'+escHtml(b.value)+'">'+escHtml(b.label)+'</button>').join('')+'</div>';
 }
 function lostRouteRegion(e){ return regionalFromBasePrefix(e.base||e.origem||e.destino)||'OUTROS'; }
-function lostRouteEntriesForRegion(region){ return LOST_ROUTES.filter(e=>region==='TODAS'||lostRouteRegion(e)===region); }
+function lostRouteEntriesForRegion(region){ return LOST_ROUTES.filter(e=>region==='TODOS'||lostRouteRegion(e)===region); }
 function renderLostRoutesPage(){
   const content=document.getElementById('lostRoutesContent'); if(!content)return;
-  const rows=LOST_ROUTES.slice();
+  const query=lostRouteSearch.trim().toUpperCase();
+  const matchesSearch=e=>!query||[e.pacote,e.driverId,getDriverName(e.driverId),e.rota,e.base,e.origem,e.destino,e.produto,e.motivo].some(value=>String(value||'').toUpperCase().includes(query));
+  const rows=LOST_ROUTES.filter(matchesSearch);
   const crumb=document.getElementById('lostRoutesBreadcrumb');
-  if(!rows.length){ crumb.innerHTML='<strong>Perdidos em rota</strong>'; content.innerHTML='<div class="history-empty" style="padding:40px 0;">Anexe a planilha de Perdidos em rota em Importados para visualizar os pacotes.</div>'; return; }
+  const searchBox='<label class="regional-search-box lost-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="lostRouteSearch" type="search" value="'+escHtml(lostRouteSearch)+'" placeholder="Buscar pacote, motorista, rota ou base..." autocomplete="off"></label>';
+  if(!rows.length){ crumb.innerHTML='<strong>Perdidos em rota</strong>'+searchBox; content.innerHTML='<div class="history-empty" style="padding:40px 0;">'+(LOST_ROUTES.length?'Nenhum pacote encontrado para esta busca.':'Anexe a planilha de Perdidos em rota em Importados para visualizar os pacotes.')+'</div>'; const input=document.getElementById('lostRouteSearch'); input?.addEventListener('input',()=>{lostRouteSearch=input.value;renderLostRoutesPage();}); return; }
   const byRegion={}; rows.forEach(e=>{const r=lostRouteRegion(e);(byRegion[r]=byRegion[r]||[]).push(e);});
   if(lostRouteNav.level==='list'){
-    crumb.innerHTML='<strong>Todas as regionais</strong><span class="lost-count">'+fmtInt(rows.length)+' pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostRoutes" title="Baixar pacotes em rota"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostRoutes" title="Capturar regionais de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>';
+    crumb.innerHTML='<strong>Todas as regionais</strong>'+searchBox+'<span class="lost-count">'+fmtInt(rows.length)+' pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostRoutes" title="Baixar pacotes em rota"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostRoutes" title="Capturar regionais de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>';
     let html='<div class="regional-grid lost-summary"><div class="regional-card" data-lost-region="TODAS"><div class="rname">Todas as regionais</div><div class="rsub">'+fmtInt(rows.length)+' pacote(s) em rota</div><div class="rval">'+fmtBRL(rows.reduce((a,e)=>a+Number(e.valor||0),0))+'</div></div>';
     REGIONAL_ORDER.forEach(r=>{const list=byRegion[r];if(!list)return;html+=`<div class="regional-card" data-lost-region="${escHtml(r)}"><div class="rname">${escHtml(REGIONAL_LABELS[r]||r)}</div><div class="rsub">${fmtInt(list.length)} pacote(s) em rota</div><div class="rval">${fmtBRL(list.reduce((a,e)=>a+Number(e.valor||0),0))}</div></div>`;});
     if(byRegion.OUTROS) html+=`<div class="regional-card" data-lost-region="OUTROS"><div class="rname">Outras bases</div><div class="rsub">${fmtInt(byRegion.OUTROS.length)} pacote(s) em rota</div><div class="rval">${fmtBRL(byRegion.OUTROS.reduce((a,e)=>a+Number(e.valor||0),0))}</div></div>`;
     content.innerHTML=html+'</div>';
-    document.getElementById('btnDownloadLostRoutes')?.addEventListener('click',()=>openExportConfig(rows,true));
+    document.getElementById('btnDownloadLostRoutes')?.addEventListener('click',()=>abrirModalOcultarDias(rows,'Pacotes em rota',true));
+    document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;renderLostRoutesPage();});
     document.getElementById('btnCapturaLostRoutes')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-regionais'));
     content.querySelectorAll('[data-lost-region]').forEach(card=>card.addEventListener('click',()=>{lostRouteNav={level:'bases',regional:card.dataset.lostRegion};renderLostRoutesPage();}));
     return;
   }
-  const r=lostRouteNav.regional; const entries=lostRouteEntriesForRegion(r); const byBase={}; entries.forEach(e=>{const b=e.base||e.origem||'SEM BASE';(byBase[b]=byBase[b]||[]).push(e);});
-  crumb.innerHTML=`<a data-lost-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||'Outras bases'))}</strong><span class="lost-count">${fmtInt(entries.length)} pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostBases" title="Baixar pacotes em rota desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostBases" title="Capturar bases de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
+  const r=lostRouteNav.regional; const entries=rows.filter(e=>r==='TODAS'||lostRouteRegion(e)===r); const byBase={}; entries.forEach(e=>{const b=e.base||e.origem||'SEM BASE';(byBase[b]=byBase[b]||[]).push(e);});
+  crumb.innerHTML=`<a data-lost-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||'Outras bases'))}</strong>${searchBox}<span class="lost-count">${fmtInt(entries.length)} pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostBases" title="Baixar pacotes em rota desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostBases" title="Capturar bases de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
   let html='<div class="base-grid lost-base-grid">';
   Object.entries(byBase).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([base,list])=>{html+=`<div class="base-card lost-base-card" data-lost-base="${escHtml(base)}"><div class="base-card-head"><div><div class="bname">${baseInfoLabel(base)}</div><div class="breg">${escHtml(REGIONAL_LABELS[regionalFromBasePrefix(base)]||regionalFromBasePrefix(base)||'Base informada')}</div></div><div><div class="bpac">${fmtInt(list.length)} pacote(s)</div></div></div><div class="base-justified lost-arrow-summary">Clique para ver os pacotes</div></div>`;});
   content.innerHTML=html+'</div>';
-  document.getElementById('btnDownloadLostBases')?.addEventListener('click',()=>openExportConfig(entries,true));
+  document.getElementById('btnDownloadLostBases')?.addEventListener('click',()=>abrirModalOcultarDias(entries,'Pacotes em rota',true));
+  document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;renderLostRoutesPage();});
   document.getElementById('btnCapturaLostBases')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-bases'));
   content.querySelectorAll('[data-lost-base]').forEach(card=>card.addEventListener('click',()=>openLostRoutesOverlay(card.dataset.lostBase,entries.filter(e=>(e.base||e.origem||'SEM BASE')===card.dataset.lostBase))));
   crumb.querySelector('[data-lost-back="list"]').addEventListener('click',()=>{lostRouteNav={level:'list',regional:null};renderLostRoutesPage();});
