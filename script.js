@@ -1142,7 +1142,7 @@ function openOverlayEntries(title, prefix, entries, bucket){
     +'<button type="button" class="dl-btn" id="overlayDownload" style="margin-left:0;" title="Baixar planilha de retorno destes pacotes" aria-label="Baixar planilha de retorno destes pacotes"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button></div>'
     +'<div class="aging-strip" id="overlayAging"></div><div id="overlayTable"></div>';
   renderOverlayBody();
-  document.getElementById('overlayLostRoutesBtn')?.addEventListener('click',()=>{const base=normalizeBaseCode(overlayCtx.entries[0]?.base||'');const list=LOST_ROUTES.filter(x=>lostAllBases(x).includes(base));openLostRoutesOverlay(base,list);});
+  document.getElementById('overlayLostRoutesBtn')?.addEventListener('click',()=>{const base=normalizeBaseCode(overlayCtx.entries[0]?.base||'');const list=LOST_ROUTES.filter(x=>lostPrimaryBase(x)===base);openLostRoutesOverlay(base,list);});
   document.getElementById('baseOverlay').classList.add('show');
   const inp=document.getElementById('overlaySearch');
   if(inp) setTimeout(()=>inp.focus(),50);
