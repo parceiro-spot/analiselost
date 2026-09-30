@@ -739,6 +739,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .lost-risk-badge.alto{color:#ef3f56;background:rgba(239,63,86,.14)}
 
 
+.lost-comp-chip.empty,.lost-comp-chip:disabled{opacity:.55;cursor:default}
 /* Pacotes em rota: bases complementares (ex.: EMG25 com SMG13 embaixo) */
 .lost-comp-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px;font-size:9.5px;color:var(--text-secondary)}
 .lost-comp-chip{background:transparent;border:1px solid var(--border-color);border-radius:999px;padding:1px 8px;font-size:10px;font-weight:600;color:var(--text-secondary);cursor:pointer;font-family:inherit;line-height:1.5}
@@ -2918,13 +2919,14 @@ function renderLostRoutesPage(){
   }
   const r=lostRouteNav.regional; const entries=rows.filter(e=>r==='TODAS'||lostRouteRegion(e)===r); const byBase={}; entries.forEach(e=>{const b=lostPrimaryBase(e)||'SEM BASE';(byBase[b]=byBase[b]||[]).push(e);});
   /* Bases que só aparecem como complemento (ex.: SMG13 ligada a EMG25) também ganham card, para nenhuma base ficar de fora. */
-  const compOnly={}; rows.forEach(e=>{lostComplementBases(e).forEach(b=>{ if(byBase[b]) return; if(r!=='TODAS'&&regionalFromBasePrefix(b)!==r) return; (compOnly[b]=compOnly[b]||[]).push(e); });});
+  /* Quantidade REAL de cada base: só conta o pacote na base onde ele está de fato (base principal). Pacote que já está em outra base não é somado na base complementar. */
+  const ownByBase={}; rows.forEach(e=>{const b=lostPrimaryBase(e)||'SEM BASE';(ownByBase[b]=ownByBase[b]||[]).push(e);});
   crumb.innerHTML=`<a data-lost-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||'Outras bases'))}</strong>${searchBox}<span class="lost-count">${fmtInt(entries.length)} pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostBases" title="Baixar pacotes em rota desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostBases" title="Capturar bases de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
-  const cardList=Object.keys(byBase).map(b=>({base:b,list:byBase[b],comp:false})).concat(Object.keys(compOnly).map(b=>({base:b,list:compOnly[b],comp:true}))).sort((a,b)=>a.base.localeCompare(b.base));
+  const cardList=Object.keys(byBase).map(b=>({base:b,list:byBase[b],comp:false})).sort((a,b)=>a.base.localeCompare(b.base));
   let html='<div class="base-grid lost-base-grid">';
   cardList.forEach(({base,list,comp})=>{
     const cc={}; if(!comp) list.forEach(e=>lostComplementBases(e).forEach(b=>{cc[b]=(cc[b]||0)+1;}));
-    const chips=Object.entries(cc).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([b,n])=>`<button type="button" class="lost-comp-chip" data-lost-comp="${escHtml(b)}" data-lost-parent="${escHtml(base)}" title="Ver pacotes ligados a ${escHtml(b)}">${escHtml(b)}<span>${fmtInt(n)}</span></button>`).join('');
+    const chips=Object.keys(cc).map(b=>({b,own:(ownByBase[b]||[]).length})).sort((x,y)=>y.own-x.own||x.b.localeCompare(y.b)).map(({b,own})=>`<button type="button" class="lost-comp-chip${own?'':' empty'}" data-lost-comp="${escHtml(b)}" data-lost-parent="${escHtml(base)}"${own?'':' disabled'} title="${own?'Ver os '+own+' pacote(s) que estão em '+escHtml(b):escHtml(b)+' não tem pacotes próprios (já estão em outras bases)'}">${escHtml(b)}<span>${fmtInt(own)}</span></button>`).join('');
     const sub=comp?'Complementar · clique para ver os pacotes':'Clique para ver os pacotes';
     html+=`<div class="base-card lost-base-card${comp?' comp-only':''}" data-lost-base="${escHtml(base)}"${comp?' data-lost-comp-only="1"':''}><div class="base-card-head"><div><div class="bname">${baseInfoLabel(base)}</div><div class="breg">${escHtml(REGIONAL_LABELS[regionalFromBasePrefix(base)]||regionalFromBasePrefix(base)||'Base informada')}</div></div><div><div class="bpac">${fmtInt(list.length)} pacote(s)</div></div></div><div class="base-justified lost-arrow-summary">${sub}</div>${chips?'<div class="lost-comp-row"><span>Complementar:</span>'+chips+'</div>':''}</div>`;
   });
@@ -2932,8 +2934,8 @@ function renderLostRoutesPage(){
   document.getElementById('btnDownloadLostBases')?.addEventListener('click',()=>abrirModalOcultarDias(entries,'Pacotes em rota',true));
   document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);});
   document.getElementById('btnCapturaLostBases')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-bases'));
-  content.querySelectorAll('[data-lost-base]').forEach(card=>card.addEventListener('click',()=>{const b=card.dataset.lostBase; const src=card.dataset.lostCompOnly?compOnly:byBase; openLostRoutesOverlay(b,src[b]||[],card.dataset.lostCompOnly?'':'');}));
-  content.querySelectorAll('[data-lost-comp]').forEach(chip=>chip.addEventListener('click',ev=>{ev.stopPropagation();const c=chip.dataset.lostComp,p=chip.dataset.lostParent; openLostRoutesOverlay(c,(byBase[p]||[]).filter(e=>lostComplementBases(e).includes(c)),p);}));
+  content.querySelectorAll('[data-lost-base]').forEach(card=>card.addEventListener('click',()=>{const b=card.dataset.lostBase; openLostRoutesOverlay(b,byBase[b]||[],'');}));
+  content.querySelectorAll('[data-lost-comp]').forEach(chip=>chip.addEventListener('click',ev=>{ev.stopPropagation();const c=chip.dataset.lostComp,p=chip.dataset.lostParent; openLostRoutesOverlay(c,ownByBase[c]||[],'');}));
   crumb.querySelector('[data-lost-back="list"]').addEventListener('click',()=>{lostRouteNav={level:'list',regional:null};renderLostRoutesPage();});
 }
 function openLostRoutesOverlay(base,rows,parent){

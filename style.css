@@ -730,3 +730,5 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .lost-comp-chip span{color:var(--spot-green);font-weight:800;margin-left:4px}
 .lost-comp-chip:hover{border-color:var(--spot-primary);color:var(--text-primary)}
 .lost-base-card.comp-only{border-left-style:dashed;opacity:.9}
+
+.lost-comp-chip.empty,.lost-comp-chip:disabled{opacity:.55;cursor:default}
