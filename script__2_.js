@@ -315,7 +315,7 @@ function buildLostRoutesFromRawRows(rows){
     const hasPkg=keys.some(k=>isReturnPackageKey(k)||/PACOTE|SHIPMENT|PACKAGE/.test(k));
     const hasOrigin=keys.some(k=>/ORIGEM|ORIGIN|FACILITY/.test(k));
     const hasDest=keys.some(k=>/DESTINO|DESTINATION|DEST/.test(k));
-    if(hasPkg&&(hasOrigin||hasDest||keys.some(k=>/ROTA|ROUTE/.test(k)))){ headerIndex=r; keys.forEach((k,i)=>{if(k&&!Object.hasOwn(idx,k))idx[k]=i;}); break; }
+    if(hasPkg&&(hasOrigin||hasDest||keys.some(k=>/ROTA|ROUTE/.test(k)))){ headerIndex=r; keys.forEach((k,i)=>{if(k&&!Object.prototype.hasOwnProperty.call(idx,k))idx[k]=i;}); break; }
   }
   if(headerIndex<0) return null;
   const first=(...names)=>{for(const n of names){if(idx[n]!==undefined)return idx[n];} const k=Object.keys(idx).find(k=>names.some(n=>k.includes(n))); return k===undefined?undefined:idx[k];};
