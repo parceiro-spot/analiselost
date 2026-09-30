@@ -106,7 +106,7 @@ function diasParado(date, referencia){
 }
 function riscoDiasParado(dias){
   const n=Number(dias)||0;
-  if(n>=3) return {key:'alto',label:'Alto',title:'Mais de 48 horas parado'};
+  if(n>=2) return {key:'alto',label:'Alto',title:'Mais de 48 horas parado'};
   if(n>=1) return {key:'medio',label:'Médio',title:'Entre 24 e 48 horas parado'};
   return {key:'baixo',label:'Baixo',title:'Menos de 24 horas parado'};
 }
@@ -359,7 +359,28 @@ function buildLostRoutesFromRawRows(rows){
 }
 function persistLostRoutes(){try{localStorage.setItem(LOST_ROUTES_KEY,JSON.stringify(LOST_ROUTES));}catch(e){console.warn('Perdidos em rota mantidos apenas nesta sessão.',e);}}
 function loadPersistedLostRoutes(){try{const raw=localStorage.getItem(LOST_ROUTES_KEY);return raw?JSON.parse(raw).map(e=>({...e,date:new Date(e.date)})):[];}catch(e){return [];}}
-function lostRouteMatchesRisk(e){return IMPORTS.flatMap(i=>i.entries||[]).find(r=>normalizePackageKey(r.pacote)===normalizePackageKey(e.pacote))||null;}
+var EXPORT_CACHE=null;
+function buildExportCache(){
+  const risk=new Map();
+  IMPORTS.forEach(i=>(i.entries||[]).forEach(r=>{const k=normalizePackageKey(r.pacote); if(!risk.has(k)) risk.set(k,r);}));
+  const selectedDay=getSelectedImport()?.importDate||document.getElementById('impDia')?.value||'';
+  const selected=returnSheetForDate(selectedDay);
+  const sheets=[...(selected?[selected]:[]),...RETURN_SHEETS.filter(sheet=>!selected||sheet.id!==selected.id).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))];
+  const push=(m,k,row)=>{ if(!k) return; let l=m.get(k); if(!l){l=[];m.set(k,l);} l.push(row); };
+  const idx=sheets.map(sheet=>{const pkg=new Map(),route=new Map();(sheet.rows||[]).forEach(row=>{push(pkg,normalizePackageKey(row.pacote),row);push(route,normalizePackageKey(row.rota||row.route),row);});return {pkg,route};});
+  return {risk,idx};
+}
+function returnRecordFast(entry,key,routeKey){
+  const C=EXPORT_CACHE; let empty=null;
+  for(const x of C.idx){ const best=chooseReturnRow(key?(x.pkg.get(key)||[]):[],entry); if(best&&returnRowHasContent(best)) return best; if(best&&!empty) empty=best; }
+  const baseE=normalizeBaseCode(entry.base);
+  for(const x of C.idx){ const m=routeKey?(x.route.get(routeKey)||[]).filter(row=>!row.base||normalizeBaseCode(row.base)===baseE):[]; const exact=m.find(returnRowHasContent)||m[0]; if(exact) return exact; }
+  for(const x of C.idx){ const m=routeKey?(x.route.get(routeKey)||[]):[]; const any=m.find(returnRowHasContent)||m[0]; if(any) return any; }
+  return empty;
+}
+function showExportBusy(msg){ let el=document.getElementById('exportBusyToast'); if(!el){el=document.createElement('div');el.id='exportBusyToast';el.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f1f1f;color:#fff;padding:12px 20px;border-radius:10px;font:600 13px sans-serif;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,.4)';document.body.appendChild(el);} el.textContent=msg; }
+function hideExportBusy(){ document.getElementById('exportBusyToast')?.remove(); }
+function lostRouteMatchesRisk(e){ if(EXPORT_CACHE) return EXPORT_CACHE.risk.get(normalizePackageKey(e.pacote))||null; return IMPORTS.flatMap(i=>i.entries||[]).find(r=>normalizePackageKey(r.pacote)===normalizePackageKey(e.pacote))||null;}
 function motivoExibicaoLost(e){ const risk=lostRouteMatchesRisk(e); const raw=String(e?.motivo||'').trim(); const candidate=raw&&raw!=='Perdido em rota'?raw:String(risk?.motivo||'').trim(); if(!candidate||candidate==='Perdido em rota') return 'Perdido em rota'; return friendlyReason(candidate); }
 function lostRouteArrow(e){const risk=e.riskBase||lostRouteMatchesRisk(e)?.base||''; const lost=e.base||e.origem||e.destino||''; if(!risk||!lost||risk===lost)return ''; return `↔ pode estar em ${baseInfoText(risk)} (Risco LM) ou ${baseInfoText(lost)} (Perdido em rota)`;}
 
@@ -434,6 +455,7 @@ function returnRecordForEntry(entry){
   const routeKey=normalizePackageKey(entry.rota);
   const driverKey=normalizePackageKey(entry.driverId);
   if(!key&&!routeKey) return null;
+  if(EXPORT_CACHE) return returnRecordFast(entry,key,routeKey);
   const selectedDay=getSelectedImport()?.importDate||document.getElementById('impDia')?.value||'';
   const selected=returnSheetForDate(selectedDay);
   const sheets=[...(selected?[selected]:[]),...RETURN_SHEETS.filter(sheet=>!selected||sheet.id!==selected.id).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))];
@@ -1630,8 +1652,12 @@ function exportDateKey(value, fallback=''){
 function lostExportDateKey(entry){ return exportDateKey(entry?.date,entry?.importDate); }
 /* Exportação formatada: uma aba por regional, blocos separados por base e justificativas atuais. */
 function baixarRetornoFormatado(entries, contexto){
-  if(!entries||!entries.length){ alert('Nenhum pacote no filtro atual para exportar.'); return; }
-  if(typeof JSZip==='undefined'){ alert('Não consegui gerar o Excel: a biblioteca de compactação não carregou.'); return; }
+  showExportBusy('Gerando planilha...');
+  setTimeout(()=>{ try{ EXPORT_CACHE=buildExportCache(); baixarRetornoFormatadoImpl(entries,contexto); }catch(err){ console.error(err); hideExportBusy(); alert('Não foi possível gerar o arquivo.'); } finally{ EXPORT_CACHE=null; } },30);
+}
+function baixarRetornoFormatadoImpl(entries, contexto){
+  if(!entries||!entries.length){ hideExportBusy(); alert('Nenhum pacote no filtro atual para exportar.'); return; }
+  if(typeof JSZip==='undefined'){ hideExportBusy(); alert('Não consegui gerar o Excel: a biblioteca de compactação não carregou.'); return; }
   const ageGroups=contexto?.ageGroups?.length?contexto.ageGroups:[{key:'TODOS',label:'Todos os dias'}];
   const sheets=[];
   const standaloneLostRows=Array.isArray(contexto?.lostRows)?contexto.lostRows:LOST_ROUTES;
@@ -1652,7 +1678,7 @@ function baixarRetornoFormatado(entries, contexto){
   xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'" sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets></workbook>');
   xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   xl.file('styles.xml',STYLES_XML); const wsFolder=xl.folder('worksheets'); sheets.forEach((s,i)=>wsFolder.file('sheet'+(i+1)+'.xml',s.xml));
-  zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'}).then(blob=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(contexto?.onlyLostRoutes?'pacotes_em_rota_':'planilha_dashboard_')+(contexto?.selectedDays?.length?contexto.selectedDays[0]+'_'+contexto.selectedDays[contexto.selectedDays.length-1]:new Date().toISOString().slice(0,10))+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);alert('Não foi possível gerar o arquivo neste navegador.');});
+  zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE',compressionOptions:{level:1}}).then(blob=>{hideExportBusy();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(contexto?.onlyLostRoutes?'pacotes_em_rota_':'planilha_dashboard_')+(contexto?.selectedDays?.length?contexto.selectedDays[0]+'_'+contexto.selectedDays[contexto.selectedDays.length-1]:new Date().toISOString().slice(0,10))+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);hideExportBusy();alert('Não foi possível gerar o arquivo neste navegador.');});
 }
 const EXPORT_AGE_OPTIONS=[['3_6','3–6 dias'],['3_7','3–7 dias'],['1_2','1–2 dias'],['8_10','8–10 dias'],['11_PLUS','11 dias ou mais'],['TODOS','Todos os dias em atraso'],['CUSTOM','Escolher dias específicos']];
 function parseManualAgeSpec(value){
