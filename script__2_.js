@@ -58,6 +58,16 @@ const chartValueLabels={id:'chartValueLabels',afterDatasetsDraw(chart){const ctx
 
 /* ===== UTILITÁRIOS ===== */
 function norm(v){ return v==null?'':String(v).trim().toUpperCase(); }
+function parseBRNumber(v){
+  if(v==null||v==='') return 0;
+  if(typeof v==='number') return Number.isFinite(v)?v:0;
+  let s=String(v).trim().replace(/[^0-9,.-]/g,''); if(!s) return 0;
+  const comma=s.lastIndexOf(','), dot=s.lastIndexOf('.');
+  if(comma>=0&&dot>=0) s=comma>dot?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');
+  else if(comma>=0) s=s.replace(/\./g,'').replace(',','.');
+  else if(/^[-+]?\d{1,3}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,'');
+  const n=Number(s); return Number.isFinite(n)?n:0;
+}
 function fmtBRL(v){ return (v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
 function fmtInt(v){ return (v||0).toLocaleString('pt-BR'); }
 function fmtDateShort(d){ return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); }
