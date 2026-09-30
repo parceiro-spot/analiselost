@@ -730,7 +730,7 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
       mergedRowsMap.set(key,{...old,...row,
         photo: row.photo || old.photo || null,
         photoIndicator: Boolean(row.photoIndicator || row.photo || old.photoIndicator || old.photo),
-        justificativa: String(row.justificativa||'').trim() || old.justificativa || '',
+        justificativa: (old.manualEditedAt && String(old.justificativa||'').trim()) ? old.justificativa : (String(row.justificativa||'').trim() || old.justificativa || ''),
         manualEditedAt: old.manualEditedAt || row.manualEditedAt || null
       });
     });
@@ -1141,7 +1141,7 @@ function openOverlayEntries(title, prefix, entries, bucket){
     +'<button type="button" class="dl-btn" id="overlayDownload" style="margin-left:0;" title="Baixar planilha de retorno destes pacotes" aria-label="Baixar planilha de retorno destes pacotes"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button></div>'
     +'<div class="aging-strip" id="overlayAging"></div><div id="overlayTable"></div>';
   renderOverlayBody();
-  document.getElementById('overlayLostRoutesBtn')?.addEventListener('click',()=>{const base=overlayCtx.entries[0]?.base||'';const list=LOST_ROUTES.filter(x=>normalizeBaseCode(x.base||x.origem)===normalizeBaseCode(base)||normalizeBaseCode(x.destino)===normalizeBaseCode(base));openLostRoutesOverlay(base,list);});
+  document.getElementById('overlayLostRoutesBtn')?.addEventListener('click',()=>{const base=normalizeBaseCode(overlayCtx.entries[0]?.base||'');const list=LOST_ROUTES.filter(x=>lostAllBases(x).includes(base));openLostRoutesOverlay(base,list);});
   document.getElementById('baseOverlay').classList.add('show');
   const inp=document.getElementById('overlaySearch');
   if(inp) setTimeout(()=>inp.focus(),50);
@@ -1222,7 +1222,30 @@ document.getElementById('overlayBody').addEventListener('input', function(e){
 function findReturnRow(pacote,base){ const sheet=ensureReturnSheetForActiveDate(); const key=normalizePackageKey(pacote); return (sheet.rows||[]).find(row=>normalizePackageKey(row.pacote)===key && (!base||!row.base||normalizeBaseCode(row.base)===normalizeBaseCode(base))); }
 function captureOverlayScroll(){ const el=document.querySelector('#overlayTable .table-scroll')||document.getElementById('overlayBody'); return el?{top:el.scrollTop,left:el.scrollLeft}:null; }
 function restoreOverlayScroll(pos){ if(!pos)return; requestAnimationFrame(()=>{const el=document.querySelector('#overlayTable .table-scroll')||document.getElementById('overlayBody'); if(el){el.scrollTop=pos.top;el.scrollLeft=pos.left;}}); }
-function editJustification(pacote,base){ const row=findReturnRow(pacote,base); const current=row?.justificativa||''; const value=prompt('Digite a justificativa deste pacote:',current); if(value===null)return; const scroll=captureOverlayScroll(); const sheet=ensureReturnSheetForActiveDate(); let target=findReturnRow(pacote,base); if(!target){target={pacote:String(pacote||''),base:String(base||''),justificativa:'',photo:null};sheet.rows.push(target);} target.justificativa=value.trim();target.manualEditedAt=new Date().toISOString();target.updatedAt=new Date().toISOString();persistReturnSheets();renderOverlayBody();restoreOverlayScroll(scroll);updateImportUI(); }
+function askJustificationText(current){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML='<div style="background:#fff;color:#111;border-radius:12px;padding:18px;width:min(560px,100%);box-shadow:0 10px 40px rgba(0,0,0,.4);font-family:sans-serif"><div style="font-weight:700;margin-bottom:8px">Justificativa do pacote</div><textarea id="justTextArea" rows="6" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #bbb;border-radius:8px;font:14px sans-serif;resize:vertical" placeholder="Cole ou digite a justificativa aqui"></textarea><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="justCancel" style="padding:8px 14px;border:1px solid #bbb;background:#f4f4f4;border-radius:8px;cursor:pointer">Cancelar</button><button type="button" id="justSave" style="padding:8px 14px;border:0;background:#ee4d2d;color:#fff;border-radius:8px;cursor:pointer;font-weight:700">Salvar</button></div></div>';
+    document.body.appendChild(ov);
+    const ta=ov.querySelector('#justTextArea'); ta.value=current||''; ta.focus(); ta.select();
+    const done=v=>{ ov.remove(); resolve(v); };
+    ov.querySelector('#justCancel').onclick=()=>done(null);
+    ov.querySelector('#justSave').onclick=()=>done(ta.value);
+    ov.addEventListener('mousedown',e=>{ if(e.target===ov) done(null); });
+    ta.addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.stopPropagation(); done(null); } if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)) done(ta.value); });
+  });
+}
+async function editJustification(pacote,base){
+  const row=findReturnRow(pacote,base); const current=row?.justificativa||'';
+  const raw=await askJustificationText(current); if(raw===null)return;
+  const value=String(raw).replace(/\u00a0/g,' ').replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim();
+  if(!value && current && !confirm('O campo está vazio. Isso vai apagar a justificativa atual. Continuar?')) return;
+  const scroll=captureOverlayScroll(); const sheet=ensureReturnSheetForActiveDate(); let target=findReturnRow(pacote,base);
+  if(!target){ target={pacote:normalizePackageKey(pacote),base:normalizeBaseCode(base||''),justificativa:'',photo:null}; sheet.rows.push(target); }
+  target.justificativa=value; target.manualEditedAt=new Date().toISOString(); target.updatedAt=new Date().toISOString();
+  await persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI();
+}
 function deleteJustification(pacote,base){ if(!confirm('Excluir a justificativa deste pacote?'))return; const scroll=captureOverlayScroll(); const sheet=returnSheetForDate(getSelectedImport()?.importDate||''); if(!sheet)return; const key=normalizePackageKey(pacote); sheet.rows=(sheet.rows||[]).filter(row=>!(normalizePackageKey(row.pacote)===key&&(!base||!row.base||normalizeBaseCode(row.base)===normalizeBaseCode(base))));persistReturnSheets();renderOverlayBody();restoreOverlayScroll(scroll);updateImportUI(); }
 function deleteJustificationPhoto(pacote,base){
   if(!confirm('Excluir a foto desta justificativa?')) return;
@@ -1608,13 +1631,13 @@ function buildOriginSheetXml(list){
   rows+='<row r="1" ht="15" customHeight="1">'+cTxt(0,1,'Origem e destino dos pacotes em rota — '+fmtDateFullBR(new Date()),1)+'</row>';
   r++; rows+='<row r="'+r+'" ht="15" customHeight="1"></row>';
   r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+ORIGIN_XLSX_COLS.map((c,i)=>cTxt(i,r,c[0],3)).join('')+'</row>';
-  list.forEach(e=>{ r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+[e.base||e.origem||'',e.pacote||'',e.rota||'',e.origem||'—',e.destino||'—',e.produto||''].map((v,i)=>cTxt(i,r,v,4)).join('')+'</row>'; });
+  list.forEach(e=>{ r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+[lostPrimaryBase(e)||e.base||e.origem||'',e.pacote||'',e.rota||'',e.origem||'—',e.destino||'—',e.produto||''].map((v,i)=>cTxt(i,r,v,4)).join('')+'</row>'; });
   const cols='<cols>'+ORIGIN_XLSX_COLS.map((c,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+c[1]+'" customWidth="1"/>').join('')+'</cols>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+cols+'<sheetData>'+rows+'</sheetData><mergeCells count="1"><mergeCell ref="A1:'+colName(N-1)+'1"/></mergeCells></worksheet>';
 }
 function buildLostSheets(list){
-  const porBase=list.reduce((m,e)=>{const b=e.base||e.origem||'SEM BASE';(m[b]=m[b]||[]).push({...e,valor:Number(e.valor||0),tipo:'SVC',produto:e.produto||'',motivo:motivoExibicaoLost(e)});return m;},{});
-  const groups=Object.entries(porBase).map(([base,linhas])=>({regional:base,linhas:linhas.map(e=>({base:e.base||base,e}))}));
+  const porBase=list.reduce((m,e)=>{const b=lostPrimaryBase(e)||e.base||e.origem||'SEM BASE';(m[b]=m[b]||[]).push({...e,valor:Number(e.valor||0),tipo:'SVC',produto:e.produto||'',motivo:motivoExibicaoLost(e)});return m;},{});
+  const groups=Object.entries(porBase).map(([base,linhas])=>({regional:base,linhas:linhas.map(e=>({base,e}))}));
   const ordered=[].concat(...groups.map(g=>g.linhas.map(l=>l.e)));
   return [
     {reg:'PACOTES EM ROTA',groupKey:'LOST',groupLabel:'Pacotes em rota',xml:buildSheetXml(groups,'Pacotes em rota',{lost:true})},
@@ -1651,6 +1674,26 @@ function exportDateKey(value, fallback=''){
 }
 function lostExportDateKey(entry){ return exportDateKey(entry?.date,entry?.importDate); }
 /* Exportação formatada: uma aba por regional, blocos separados por base e justificativas atuais. */
+const REGIONAL_FILE_NAMES={'ESPÍRITO SANTO':'Espírito Santo','MINAS GERAIS':'Minas Gerais','BAHIA':'Bahia','SÃO PAULO':'São Paulo','RIO DE JANEIRO':'Rio de Janeiro','OUTROS':'Outras Bases'};
+const PAGE_FILE_NAMES={geral:'Visão Geral',ofensores:'Ofensores',regional:'Regional e Base',lostroutes:'Pacotes em Rota',diaria:'Visão Diária',analise:'Análise',revertido:'Pacote Revertido',importados:'Importados'};
+function dateFileBR(d){ return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear(); }
+/* Nome do arquivo: "<Aba> - <Regional> - <dd-mm-aaaa>.xlsx" */
+function exportFileName(entries,contexto){
+  const page=document.querySelector('.nav-btn.active')?.dataset.page||'geral';
+  const lostOnly=Boolean(contexto?.onlyLostRoutes);
+  const aba=lostOnly?'Pacotes em Rota':(PAGE_FILE_NAMES[page]||'Planilha');
+  let key=null;
+  if(page==='lostroutes') key=(lostRouteNav.level==='bases'&&lostRouteNav.regional!=='TODAS')?lostRouteNav.regional:'TODOS';
+  else if(page==='regional'&&!lostOnly) key=(regionalNav.level==='bases'&&regionalNav.regional!=='TODAS')?regionalNav.regional:'TODOS';
+  else if(page==='diaria'&&!lostOnly) key=document.getElementById('diariaRegional')?.value||'TODOS';
+  if(!key){ const regs=new Set((entries||[]).map(e=>lostOnly?lostRouteRegion(e):(regionalFromBasePrefix(e.base)||'OUTROS'))); key=regs.size===1?[...regs][0]:'TODOS'; }
+  const regional=REGIONAL_FILE_NAMES[key]||'Todas as Regionais';
+  let data=dateFileBR(new Date());
+  const sel=contexto?.selectedDays;
+  if(page==='diaria'&&!lostOnly){ const v=document.getElementById('diariaDia')?.value; if(v) data=dateFileBR(new Date(v+'T00:00:00')); }
+  else if(sel&&sel.length){ const f=s=>dateFileBR(new Date(s+'T00:00:00')); data=sel.length===1||sel[0]===sel[sel.length-1]?f(sel[0]):f(sel[0])+' a '+f(sel[sel.length-1]); }
+  return (aba+' - '+regional+' - '+data).replace(/[\\\/:*?"<>|]/g,' ')+'.xlsx';
+}
 function baixarRetornoFormatado(entries, contexto){
   showExportBusy('Gerando planilha...');
   setTimeout(()=>{ try{ EXPORT_CACHE=buildExportCache(); baixarRetornoFormatadoImpl(entries,contexto); }catch(err){ console.error(err); hideExportBusy(); alert('Não foi possível gerar o arquivo.'); } finally{ EXPORT_CACHE=null; } },30);
@@ -1678,7 +1721,7 @@ function baixarRetornoFormatadoImpl(entries, contexto){
   xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'" sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets></workbook>');
   xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   xl.file('styles.xml',STYLES_XML); const wsFolder=xl.folder('worksheets'); sheets.forEach((s,i)=>wsFolder.file('sheet'+(i+1)+'.xml',s.xml));
-  zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE',compressionOptions:{level:1}}).then(blob=>{hideExportBusy();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(contexto?.onlyLostRoutes?'pacotes_em_rota_':'planilha_dashboard_')+(contexto?.selectedDays?.length?contexto.selectedDays[0]+'_'+contexto.selectedDays[contexto.selectedDays.length-1]:new Date().toISOString().slice(0,10))+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);hideExportBusy();alert('Não foi possível gerar o arquivo neste navegador.');});
+  zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE',compressionOptions:{level:1}}).then(blob=>{hideExportBusy();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=exportFileName(entries,contexto);document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);hideExportBusy();alert('Não foi possível gerar o arquivo neste navegador.');});
 }
 const EXPORT_AGE_OPTIONS=[['3_6','3–6 dias'],['3_7','3–7 dias'],['1_2','1–2 dias'],['8_10','8–10 dias'],['11_PLUS','11 dias ou mais'],['TODOS','Todos os dias em atraso'],['CUSTOM','Escolher dias específicos']];
 function parseManualAgeSpec(value){
@@ -1766,13 +1809,31 @@ function renderRegionalAgeTabs(){
   REGIONAL_ORDER.forEach(r=>{buttons.push({value:r+'|1_2',label:(REGIONAL_SHORT_LABELS[r]||r)+' 1-2 DIAS',cls:'early'});});
   return '<div class="regional-age-tabs" aria-label="Filtrar regionais por dias em atraso">'+buttons.map(b=>'<button type="button" class="regional-age-tab '+b.cls+(regionalAgeFilter===b.value?' active':'')+'" data-regional-age="'+escHtml(b.value)+'">'+escHtml(b.label)+'</button>').join('')+'</div>';
 }
-function lostRouteRegion(e){ return regionalFromBasePrefix(e.base||e.origem||e.destino)||'OUTROS'; }
+let LOST_RISK_MAP=null, LOST_RISK_SIG='';
+/* Base de cada pacote na planilha LOST (Risco). O mais recente vence. */
+function lostRiskMap(){
+  const sig=IMPORTS.length+':'+IMPORTS.reduce((a,i)=>a+(i.entries||[]).length,0);
+  if(LOST_RISK_MAP&&LOST_RISK_SIG===sig) return LOST_RISK_MAP;
+  const m=new Map();
+  IMPORTS.slice().sort((a,b)=>((a.importDate||'')+(a.turno||'')).localeCompare((b.importDate||'')+(b.turno||''))).forEach(i=>(i.entries||[]).forEach(r=>{const k=normalizePackageKey(r.pacote); if(k&&r.base) m.set(k,r.base);}));
+  LOST_RISK_MAP=m; LOST_RISK_SIG=sig; return m;
+}
+/* Base principal: se o pacote já está numa base na planilha LOST (ex.: EMG25, destino da origem SMG13), ele fica nela. */
+function lostPrimaryBase(e){
+  const risk=normalizeBaseCode(lostRiskMap().get(normalizePackageKey(e.pacote))||e.riskBase||'');
+  return risk||normalizeBaseCode(e.base)||normalizeBaseCode(e.origem)||normalizeBaseCode(e.destino)||'';
+}
+function lostAllBases(e){
+  const out=[]; [lostPrimaryBase(e),e.base,e.origem,e.destino,e.riskBase].forEach(b=>{const c=normalizeBaseCode(b); if(c&&!out.includes(c)) out.push(c);}); return out;
+}
+function lostComplementBases(e){ const p=lostPrimaryBase(e); return lostAllBases(e).filter(b=>b!==p); }
+function lostRouteRegion(e){ return regionalFromBasePrefix(lostPrimaryBase(e))||lostAllBases(e).map(regionalFromBasePrefix).find(Boolean)||'OUTROS'; }
 function lostRouteEntriesForRegion(region){ return LOST_ROUTES.filter(e=>region==='TODOS'||lostRouteRegion(e)===region); }
 function restoreSearchFocus(id,position){ const input=document.getElementById(id); if(!input)return; input.focus(); try{input.setSelectionRange(position,position);}catch(e){} }
 function renderLostRoutesPage(){
   const content=document.getElementById('lostRoutesContent'); if(!content)return;
   const query=lostRouteSearch.trim().toUpperCase();
-  const matchesSearch=e=>!query||[e.pacote,e.driverId,getDriverName(e.driverId),e.rota,e.base,e.origem,e.destino,e.produto,e.motivo].some(value=>String(value||'').toUpperCase().includes(query));
+  const matchesSearch=e=>!query||[e.pacote,e.driverId,getDriverName(e.driverId),e.rota,e.base,lostPrimaryBase(e),e.origem,e.destino,e.produto,e.motivo].some(value=>String(value||'').toUpperCase().includes(query));
   const rows=LOST_ROUTES.filter(matchesSearch);
   const crumb=document.getElementById('lostRoutesBreadcrumb');
   const searchBox='<label class="regional-search-box lost-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="lostRouteSearch" type="search" value="'+escHtml(lostRouteSearch)+'" placeholder="Buscar pacote, motorista, rota ou base..." autocomplete="off"></label>';
@@ -1791,20 +1852,29 @@ function renderLostRoutesPage(){
     content.querySelectorAll('[data-lost-region]').forEach(card=>card.addEventListener('click',()=>{lostRouteNav={level:'bases',regional:card.dataset.lostRegion};renderLostRoutesPage();}));
     return;
   }
-  const r=lostRouteNav.regional; const entries=rows.filter(e=>r==='TODAS'||lostRouteRegion(e)===r); const byBase={}; entries.forEach(e=>{const b=e.base||e.origem||'SEM BASE';(byBase[b]=byBase[b]||[]).push(e);});
+  const r=lostRouteNav.regional; const entries=rows.filter(e=>r==='TODAS'||lostRouteRegion(e)===r); const byBase={}; entries.forEach(e=>{const b=lostPrimaryBase(e)||'SEM BASE';(byBase[b]=byBase[b]||[]).push(e);});
+  /* Bases que só aparecem como complemento (ex.: SMG13 ligada a EMG25) também ganham card, para nenhuma base ficar de fora. */
+  const compOnly={}; rows.forEach(e=>{lostComplementBases(e).forEach(b=>{ if(byBase[b]) return; if(r!=='TODAS'&&regionalFromBasePrefix(b)!==r) return; (compOnly[b]=compOnly[b]||[]).push(e); });});
   crumb.innerHTML=`<a data-lost-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||'Outras bases'))}</strong>${searchBox}<span class="lost-count">${fmtInt(entries.length)} pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostBases" title="Baixar pacotes em rota desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostBases" title="Capturar bases de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
+  const cardList=Object.keys(byBase).map(b=>({base:b,list:byBase[b],comp:false})).concat(Object.keys(compOnly).map(b=>({base:b,list:compOnly[b],comp:true}))).sort((a,b)=>a.base.localeCompare(b.base));
   let html='<div class="base-grid lost-base-grid">';
-  Object.entries(byBase).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([base,list])=>{html+=`<div class="base-card lost-base-card" data-lost-base="${escHtml(base)}"><div class="base-card-head"><div><div class="bname">${baseInfoLabel(base)}</div><div class="breg">${escHtml(REGIONAL_LABELS[regionalFromBasePrefix(base)]||regionalFromBasePrefix(base)||'Base informada')}</div></div><div><div class="bpac">${fmtInt(list.length)} pacote(s)</div></div></div><div class="base-justified lost-arrow-summary">Clique para ver os pacotes</div></div>`;});
+  cardList.forEach(({base,list,comp})=>{
+    const cc={}; if(!comp) list.forEach(e=>lostComplementBases(e).forEach(b=>{cc[b]=(cc[b]||0)+1;}));
+    const chips=Object.entries(cc).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([b,n])=>`<button type="button" class="lost-comp-chip" data-lost-comp="${escHtml(b)}" data-lost-parent="${escHtml(base)}" title="Ver pacotes ligados a ${escHtml(b)}">${escHtml(b)}<span>${fmtInt(n)}</span></button>`).join('');
+    const sub=comp?'Complementar · clique para ver os pacotes':'Clique para ver os pacotes';
+    html+=`<div class="base-card lost-base-card${comp?' comp-only':''}" data-lost-base="${escHtml(base)}"${comp?' data-lost-comp-only="1"':''}><div class="base-card-head"><div><div class="bname">${baseInfoLabel(base)}</div><div class="breg">${escHtml(REGIONAL_LABELS[regionalFromBasePrefix(base)]||regionalFromBasePrefix(base)||'Base informada')}</div></div><div><div class="bpac">${fmtInt(list.length)} pacote(s)</div></div></div><div class="base-justified lost-arrow-summary">${sub}</div>${chips?'<div class="lost-comp-row"><span>Complementar:</span>'+chips+'</div>':''}</div>`;
+  });
   content.innerHTML=html+'</div>';
   document.getElementById('btnDownloadLostBases')?.addEventListener('click',()=>abrirModalOcultarDias(entries,'Pacotes em rota',true));
   document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);});
   document.getElementById('btnCapturaLostBases')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-bases'));
-  content.querySelectorAll('[data-lost-base]').forEach(card=>card.addEventListener('click',()=>openLostRoutesOverlay(card.dataset.lostBase,entries.filter(e=>(e.base||e.origem||'SEM BASE')===card.dataset.lostBase))));
+  content.querySelectorAll('[data-lost-base]').forEach(card=>card.addEventListener('click',()=>{const b=card.dataset.lostBase; const src=card.dataset.lostCompOnly?compOnly:byBase; openLostRoutesOverlay(b,src[b]||[],card.dataset.lostCompOnly?'':'');}));
+  content.querySelectorAll('[data-lost-comp]').forEach(chip=>chip.addEventListener('click',ev=>{ev.stopPropagation();const c=chip.dataset.lostComp,p=chip.dataset.lostParent; openLostRoutesOverlay(c,(byBase[p]||[]).filter(e=>lostComplementBases(e).includes(c)),p);}));
   crumb.querySelector('[data-lost-back="list"]').addEventListener('click',()=>{lostRouteNav={level:'list',regional:null};renderLostRoutesPage();});
 }
-function openLostRoutesOverlay(base,rows){
-  const mapped=rows.map(e=>({...e,base:e.base||e.origem||base,tipo:classifyBaseCode(e.base||base,regionalFromBasePrefix(e.base||base))||'SVC',motivo:motivoExibicaoLost(e),valor:Number(e.valor||0),driverId:e.driverId||lostRouteMatchesRisk(e)?.driverId||''}));
-  mapped.forEach(e=>{e.isLost=true;}); openOverlayEntries('Perdidos em rota · '+baseInfoText(base),'',mapped,'TODOS');
+function openLostRoutesOverlay(base,rows,parent){
+  const mapped=rows.map(e=>{const p=lostPrimaryBase(e)||e.base||e.origem||base; return {...e,base:p,tipo:classifyBaseCode(p,regionalFromBasePrefix(p))||'SVC',motivo:motivoExibicaoLost(e),valor:Number(e.valor||0),driverId:e.driverId||lostRouteMatchesRisk(e)?.driverId||''};});
+  mapped.forEach(e=>{e.isLost=true;}); openOverlayEntries('Perdidos em rota · '+baseInfoText(base)+(parent&&parent!==base?' · complementar de '+parent:''),'',mapped,'TODOS');
 }
 
 /* ===== REGIONAL E BASE ===== */

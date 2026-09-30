@@ -723,3 +723,10 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .lost-risk-badge.baixo{color:#f3d316;background:rgba(243,211,22,.12)}
 .lost-risk-badge.medio{color:#ff8a00;background:rgba(255,138,0,.12)}
 .lost-risk-badge.alto{color:#ef3f56;background:rgba(239,63,86,.14)}
+
+/* Pacotes em rota: bases complementares (ex.: EMG25 com SMG13 embaixo) */
+.lost-comp-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px;font-size:9.5px;color:var(--text-secondary)}
+.lost-comp-chip{background:transparent;border:1px solid var(--border-color);border-radius:999px;padding:1px 8px;font-size:10px;font-weight:600;color:var(--text-secondary);cursor:pointer;font-family:inherit;line-height:1.5}
+.lost-comp-chip span{color:var(--spot-green);font-weight:800;margin-left:4px}
+.lost-comp-chip:hover{border-color:var(--spot-primary);color:var(--text-primary)}
+.lost-base-card.comp-only{border-left-style:dashed;opacity:.9}
