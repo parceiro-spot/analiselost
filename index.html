@@ -344,6 +344,7 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 .base-card.offender-red{border-left:5px solid #ff3b4f;background:#7f1d1d}.base-card.offender-orange{border-left:5px solid #ff9800;background:#92400e}.base-card.offender-yellow{border-left:5px solid #ffd740;background:#806600}.base-card.offender-blue{border-left:5px solid #42a5f5;background:#124e78}
 .base-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .base-card .bname{font-weight:800;font-size:14px;color:#fff}
+.lost-base-card .bname,#regionalContent .base-card .bname{font-weight:500;font-size:12px;letter-spacing:.1px}
 .base-card .breg{font-size:11.5px;color:var(--spot-green);font-weight:700;margin-top:3px}
 .base-card .bval{font-weight:800;color:var(--spot-green);font-size:14px}
 .base-card .bpac{font-size:11.5px;color:#fff;font-weight:700;text-align:right;margin-top:3px}
@@ -696,6 +697,46 @@ input[type="date"]::-webkit-calendar-picker-indicator,input[type="month"]::-webk
 :root.theme-light input[type="date"]::-webkit-calendar-picker-indicator,:root.theme-light input[type="month"]::-webkit-calendar-picker-indicator,:root.theme-pink input[type="date"]::-webkit-calendar-picker-indicator,:root.theme-pink input[type="month"]::-webkit-calendar-picker-indicator{filter:none}
 
 input[type="date"],input[type="month"]{-webkit-appearance:auto;appearance:auto}
+
+/* ===== Visualizador de fotos em alta qualidade ===== */
+#justPhotoViewer{padding:10px!important}
+#justPhotoViewer .photo-viewer-panel{width:96vw!important;max-width:2000px!important;height:94vh!important;max-height:94vh!important;padding:14px!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-head{flex:0 0 auto!important;margin-bottom:8px!important}
+#justPhotoViewer .photo-viewer-body{flex:1 1 auto!important;height:auto!important;max-height:none!important;min-height:0!important;padding:0!important;display:block!important;overflow:hidden!important}
+#justPhotoViewer .photo-viewer-stage{width:100%!important;height:100%!important;max-height:none!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;cursor:grab}
+#justPhotoViewer .photo-viewer-stage img{width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;image-rendering:auto!important;transition:none!important;will-change:transform;backface-visibility:hidden;transform-origin:center center;-webkit-user-drag:none;user-select:none}
+@media(max-width:700px){#justPhotoViewer .photo-viewer-panel{width:100vw!important;height:96vh!important;padding:8px!important}}
+
+/* ===== Visualizador v3: janela proporcional à foto, centralizada ===== */
+html body #justPhotoViewer{padding:10px!important;align-items:center!important;justify-content:center!important}
+html body #justPhotoViewer .photo-viewer-panel{width:fit-content!important;height:auto!important;min-width:min(560px,96vw)!important;max-width:98vw!important;max-height:96vh!important;margin:0 auto!important;padding:14px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;overflow:hidden!important;box-sizing:border-box!important}
+html body #justPhotoViewer .photo-viewer-head{flex:0 0 auto!important;margin-bottom:10px!important}
+html body #justPhotoViewer .photo-viewer-body{flex:0 0 auto!important;width:100%!important;height:auto!important;max-height:none!important;min-height:0!important;padding:0!important;display:flex!important;justify-content:center!important;align-items:center!important;overflow:hidden!important;background:transparent!important}
+html body #justPhotoViewer .photo-viewer-stage{flex:0 0 auto!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;position:relative;cursor:grab;background:rgba(0,0,0,.28)!important;border-radius:10px;max-height:none!important}
+html body #justPhotoViewer .photo-viewer-stage img{flex:0 0 auto!important;max-width:none!important;max-height:none!important;object-fit:fill!important;image-rendering:auto!important;transition:none!important;transform-origin:center center;backface-visibility:hidden;-webkit-user-drag:none;user-select:none}
+@media(max-width:700px){html body #justPhotoViewer .photo-viewer-panel{padding:8px!important;min-width:0!important}}
+
+/* ===== v4: centralização absoluta no meio da tela ===== */
+html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;margin:0!important}
+
+/* Complementos solicitados: vínculo visual SVC/XPT e Perdidos em rota */
+.base-relation{display:block;font-size:8px;font-weight:400;line-height:1.2;color:var(--text-secondary);margin-top:2px;letter-spacing:0}
+.lost-route-link{margin-top:10px;padding:7px 9px;border:1px solid var(--info-blue);border-radius:7px;background:var(--info-glow);color:var(--info-blue);font:800 10px inherit;cursor:pointer;letter-spacing:.3px}
+.lost-route-link:hover{background:var(--info-blue);color:#001018}
+.lost-count{font-size:11px;color:var(--spot-green);font-weight:800;margin-left:8px}
+.lost-base-grid{margin-top:14px}
+.lost-base-card{border-left:4px solid var(--info-blue)}
+.lost-arrow-summary{font-size:10.5px;color:var(--text-secondary)}
+.export-lost-option{display:flex;align-items:center;gap:8px;margin:12px 0;padding:11px 12px;border:1px solid var(--info-blue);border-radius:8px;background:var(--info-glow);font-size:12px;color:var(--text-primary);cursor:pointer}
+.export-lost-option input{accent-color:var(--info-blue)}
+.export-lost-option small{font-size:10px;color:var(--text-secondary);margin-left:auto}
+.missing-destination{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;font-weight:900;font-size:13px;line-height:1}
+.lost-overlay-btn{border-color:var(--spot-green)!important;color:var(--spot-green)!important}
+.lost-risk-badge{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;line-height:1;border:1px solid currentColor}
+.lost-risk-badge i{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor}
+.lost-risk-badge.baixo{color:#f3d316;background:rgba(243,211,22,.12)}
+.lost-risk-badge.medio{color:#ff8a00;background:rgba(255,138,0,.12)}
+.lost-risk-badge.alto{color:#ef3f56;background:rgba(239,63,86,.14)}
 
 </style>
 <style id="photo-viewer-enhancement">
@@ -1142,6 +1183,12 @@ function diasParado(date, referencia){
   const d=(rawDate instanceof Date)?new Date(rawDate.getTime()):parseDateBR(rawDate); d.setHours(0,0,0,0);
   if(isNaN(d.getTime())) return 0;
   return Math.max(0, Math.floor((t-d)/86400000));
+}
+function riscoDiasParado(dias){
+  const n=Number(dias)||0;
+  if(n>=3) return {key:'alto',label:'Alto',title:'Mais de 48 horas parado'};
+  if(n>=1) return {key:'medio',label:'Médio',title:'Entre 24 e 48 horas parado'};
+  return {key:'baixo',label:'Baixo',title:'Menos de 24 horas parado'};
 }
 function fmtDateFullBR(v){ const d=v instanceof Date?v:new Date(v); return isNaN(d)?'—':d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 function bucketOf(dias){ if(dias<=2) return 'ATE2'; if(dias<=6) return '3A6'; if(dias<=10) return '7A10'; return 'MAIS11'; }
@@ -2024,15 +2071,17 @@ function renderPackageTable(entries){
      todo o histórico. */
   const sets=planilhaSetsDoDia();
   const hasRoutePath=entries.some(e=>e.origem||e.destino);
+  const showLostRisk=String(overlayCtx?.title||'').startsWith('Perdidos em rota');
   const rows=entries.map(e=>{
     const dias=diasParado(e);
+    const risco=riscoDiasParado(dias);
     const desde=firstImportDateForPackage(e.pacote,e.date);
     const classif=classificaPlanilha(e.pacote,sets);
     const classifExibida=typeof overlayCtx!=='undefined'&&(['MANHA','TARDE'].includes(overlayCtx.period)) ? overlayCtx.period : classif;
     const planilhaHtml = classifExibida==='AMBAS' ? '<span class="tag ambas">Manhã + Tarde</span>' : classifExibida==='TARDE' ? '<span class="tag tarde">Tarde</span>' : classifExibida==='MANHA' ? '<span class="tag manha">Manhã</span>' : '—';
-    const just=returnRecordForEntry(e); const origin=escHtml(e.origem||'—'); const destination=e.destino?escHtml(e.destino):'<span class="missing-destination" title="Destino não informado">✕</span>'; const routePath=hasRoutePath?'<td>'+origin+' → '+destination+'</td>':''; const displayReason=e.motivo; const justText=just?.justificativa||'—'; const photo=just?.photo?`<button class="just-photo" type="button" data-just-photo-view="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Ver foto</button><button class="just-photo-delete" type="button" data-just-photo-delete="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Excluir foto</button>`:''; return `<tr><td><span class="tag ${e.tipo.toLowerCase()}">${e.tipo}</span></td><td><strong>${e.base?baseInfoLabel(e.base):'—'}</strong></td><td>${escHtml(e.pacote)||'—'}</td><td>${escHtml(e.rota)||'—'}</td>${routePath}<td class="ellipsis" title="${escHtml(e.produto)}">${escHtml(resumo(e.produto,60))}</td><td>${escHtml(displayReason)}</td><td><button type="button" class="driver-link" data-driver="${escHtml(e.driverId||'')}">${escHtml(getDriverName(e.driverId))}</button></td><td><span class="tag ${diasClass(dias)}">${dias}d</span></td><td><strong>${fmtBRL(e.valor)}</strong></td><td><div class="just-cell"><span title="${escHtml(justText)}">${escHtml(resumo(justText,38))}</span>${photo}<button class="just-edit" type="button" data-just-pacote="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">${just?'Editar':'Adicionar'}</button>${just?`<button class="just-delete" type="button" data-just-delete="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Excluir</button>`:''}<label class="just-photo-btn">Foto<input type="file" accept="image/*" data-just-photo="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}"></label></div></td><td>${planilhaHtml}</td><td>${escHtml('Desde '+fmtDateFullBR(desde))}</td></tr>`;
+    const just=returnRecordForEntry(e); const origin=escHtml(e.origem||'—'); const destination=e.destino?escHtml(e.destino):'<span class="missing-destination" title="Destino não informado">✕</span>'; const routePath=hasRoutePath?'<td>'+origin+' → '+destination+'</td>':''; const displayReason=e.motivo; const justText=just?.justificativa||'—'; const photo=just?.photo?`<button class="just-photo" type="button" data-just-photo-view="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Ver foto</button><button class="just-photo-delete" type="button" data-just-photo-delete="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Excluir foto</button>`:''; return `<tr><td><span class="tag ${e.tipo.toLowerCase()}">${e.tipo}</span></td><td><strong>${e.base?baseInfoLabel(e.base):'—'}</strong></td><td>${escHtml(e.pacote)||'—'}</td><td>${escHtml(e.rota)||'—'}</td>${routePath}<td class="ellipsis" title="${escHtml(e.produto)}">${escHtml(resumo(e.produto,60))}</td><td>${escHtml(displayReason)}</td><td><button type="button" class="driver-link" data-driver="${escHtml(e.driverId||'')}">${escHtml(getDriverName(e.driverId))}</button></td><td><span class="tag ${diasClass(dias)}">${dias}d</span></td>${showLostRisk?`<td><span class="lost-risk-badge ${risco.key}" title="${risco.title}"><i></i>${risco.label}</span></td>`:''}<td><strong>${fmtBRL(e.valor)}</strong></td><td><div class="just-cell"><span title="${escHtml(justText)}">${escHtml(resumo(justText,38))}</span>${photo}<button class="just-edit" type="button" data-just-pacote="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">${just?'Editar':'Adicionar'}</button>${just?`<button class="just-delete" type="button" data-just-delete="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Excluir</button>`:''}<label class="just-photo-btn">Foto<input type="file" accept="image/*" data-just-photo="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}"></label></div></td><td>${planilhaHtml}</td><td>${escHtml('Desde '+fmtDateFullBR(desde))}</td></tr>`;
   }).join('');
-  return `<div class="table-scroll" style="max-height:460px;"><table><thead><tr><th>Tipo</th><th>Base</th><th>Pacote</th><th>Rota</th>${hasRoutePath?'<th>Origem → Destino</th>':''}<th>Produto</th><th>Motivo</th><th>Motorista</th><th>Dias Parado</th><th>Valor</th><th>Justificativa</th><th>Planilha</th><th>Na planilha desde</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="table-scroll" style="max-height:460px;"><table><thead><tr><th>Tipo</th><th>Base</th><th>Pacote</th><th>Rota</th>${hasRoutePath?'<th>Origem → Destino</th>':''}<th>Produto</th><th>Motivo</th><th>Motorista</th><th>Dias Parado</th>${showLostRisk?'<th>Risco</th>':''}<th>Valor</th><th>Justificativa</th><th>Planilha</th><th>Na planilha desde</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 /* Contexto do detalhe: guarda os pacotes da base/faixa aberta para permitir
    busca, filtro por turno e ordenação sem fechar a janela. */

@@ -718,3 +718,8 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .export-lost-option small{font-size:10px;color:var(--text-secondary);margin-left:auto}
 .missing-destination{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;font-weight:900;font-size:13px;line-height:1}
 .lost-overlay-btn{border-color:var(--spot-green)!important;color:var(--spot-green)!important}
+.lost-risk-badge{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;line-height:1;border:1px solid currentColor}
+.lost-risk-badge i{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor}
+.lost-risk-badge.baixo{color:#f3d316;background:rgba(243,211,22,.12)}
+.lost-risk-badge.medio{color:#ff8a00;background:rgba(255,138,0,.12)}
+.lost-risk-badge.alto{color:#ef3f56;background:rgba(239,63,86,.14)}
