@@ -1003,9 +1003,14 @@ html.in-landing:not(.theme-light):not(.theme-pink){background:#000}
 /* ===== Abertura: fundo verde, nome, caminhão passa e para no meio ===== */
 #spotSplash{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:#8dc63f;color:#0b1226;overflow:hidden;text-align:center;font-family:'Montserrat','Plus Jakarta Sans',system-ui,sans-serif}
 #spotSplash::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 60%,rgba(11,18,38,.10) 60% 72%,transparent 72% 78%,rgba(11,18,38,.18) 78% 86%,transparent 86%)}
+#spotSplash .sp-stripes{position:absolute;inset:-25% -80%;z-index:0;pointer-events:none;opacity:.95;background:repeating-linear-gradient(115deg,transparent 0 55px,rgba(74,126,18,.58) 55px 135px,rgba(178,232,77,.32) 135px 168px,transparent 168px 270px);transform:translateX(-72vw) skewX(-8deg)}
+#spotSplash .sp-stripes::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 170px,rgba(255,255,255,.13) 170px 188px,transparent 188px 360px)}
+html.splash-on #spotSplash .sp-stripes{animation:spStripes .58s linear both}
+html.splash-enter #spotSplash .sp-stripes{transform:translateX(-72vw) skewX(-8deg)}
+@keyframes spStripes{0%{transform:translateX(-72vw) skewX(-8deg);opacity:0}12%{opacity:.95}36%{transform:translateX(0) skewX(-8deg);opacity:.95}60%{transform:translateX(0) skewX(-8deg);opacity:.95}100%{transform:translateX(72vw) skewX(-8deg);opacity:0}}
 html.splash-on #spotSplash,html.splash-enter #spotSplash{display:flex}
-html.splash-leave #spotSplash{opacity:0;transition:opacity .16s linear}
-#spotSplash .sp-inner{position:relative;width:min(92vw,820px);padding:0 12px}
+html.splash-leave #spotSplash{opacity:0;transition:opacity .10s linear}
+#spotSplash .sp-inner{position:relative;z-index:1;width:min(92vw,820px);padding:0 12px}
 #spotSplash .sp-title{font-style:italic;font-weight:900;letter-spacing:-.03em;line-height:.95;text-transform:uppercase;font-size:clamp(2.4rem,9vw,6.4rem)}
 #spotSplash .sp-title span{display:block}
 #spotSplash .sp-title b{display:block;color:#fff;font-weight:900}
@@ -1013,7 +1018,7 @@ html.splash-leave #spotSplash{opacity:0;transition:opacity .16s linear}
 #spotSplash .sp-mover{position:absolute;left:50%;bottom:20px;width:230px;margin-left:-115px}
 #spotSplash .sp-truck{display:block;width:100%;overflow:visible}
 html.splash-enter #spotSplash .sp-mover{transform:translateX(-90vw)}
-html.splash-on #spotSplash .sp-mover{animation:spTruck .9s linear both}
+html.splash-on #spotSplash .sp-mover{animation:spTruck .58s linear both}
 @keyframes spTruck{0%{transform:translateX(-90vw);animation-timing-function:cubic-bezier(.1,.7,.3,1)}36%{transform:none}60%{transform:none;animation-timing-function:cubic-bezier(.7,0,.9,.5)}100%{transform:translateX(90vw)}}
 #spotSplash .sp-body{animation:spBump .2s ease-in-out infinite alternate}
 @keyframes spBump{from{transform:translateY(0)}to{transform:translateY(-2.5px)}}
@@ -1031,6 +1036,7 @@ html.splash-on #spotSplash .sp-mover{animation:spTruck .9s linear both}
 </head>
 <body>
 <div id="spotSplash" aria-hidden="true">
+  <div class="sp-stripes" aria-hidden="true"></div>
   <div class="sp-inner">
     <div class="sp-title"><span>ANALISE</span><b id="spTitle2">LOST</b></div>
     <div class="sp-scene">
@@ -1058,9 +1064,9 @@ html.splash-on #spotSplash .sp-mover{animation:spTruck .9s linear both}
   var de=document.documentElement;
   if(!de.classList.contains('splash-on'))return;
   var t=document.getElementById('spTitle2');if(t)t.textContent=(window.SPLASH_TITLES||{})[window.SPOT_MODE]||'';
-  var done=false;function leave(){if(done)return;done=true;de.classList.add('splash-leave');setTimeout(function(){de.classList.remove('splash-on','splash-leave');},170);}
+  var done=false;function leave(){if(done)return;done=true;de.classList.add('splash-leave');setTimeout(function(){de.classList.remove('splash-on','splash-leave');},110);}
   var m=document.querySelector('#spotSplash .sp-mover');if(m)m.addEventListener('animationend',leave);
-  setTimeout(leave,1100);
+  setTimeout(leave,750);
 })();</script>
 <div id="landing">
   <div class="l-theme" role="group" aria-label="Aparência">
