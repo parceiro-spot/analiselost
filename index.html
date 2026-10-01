@@ -747,7 +747,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .lost-comp-chip span{color:var(--spot-green);font-weight:800;margin-left:4px}
 .lost-comp-chip:hover{border-color:var(--spot-primary);color:var(--text-primary)}
 .lost-base-card.comp-only{border-left-style:dashed;opacity:.9}
-</style>
+ .brand-badge{cursor:pointer;transition:transform .2s,box-shadow .2s}.brand-badge:hover{transform:translateY(-2px);box-shadow:0 5px 16px var(--spot-glow)}</style>
 <style id="photo-viewer-enhancement">
 /* ===== Visualizador de fotos em alta qualidade ===== */
 #justPhotoViewer{padding:10px!important}
@@ -777,7 +777,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 <header>
   <div class="header-inner">
     <div class="brand">
-      <div class="brand-badge"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 8h9v8H2z"/><path d="M11 11h5l3 3v2h-8z"/><circle cx="7" cy="18" r="1.6"/><circle cx="16.5" cy="18" r="1.6"/></svg></div>
+      <div class="brand-badge" role="button" tabindex="0" onclick="window.location.href='../'" onkeydown="if(event.key==='Enter'||event.key===' ')window.location.href='../'" title="Voltar para escolher LOST ou Pacote em Rota"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 8h9v8H2z"/><path d="M11 11h5l3 3v2h-8z"/><circle cx="7" cy="18" r="1.6"/><circle cx="16.5" cy="18" r="1.6"/></svg></div>
       <div class="brand-text">
         <div class="eyebrow">Parceiro Spot &middot; Brasil</div>
         <h1>Dashboard de <span>Pacotes em Rota</span></h1>
@@ -1014,7 +1014,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
         <div class="import-lastbox" id="lastImportLost" style="display:none;"><div class="lbl">Última planilha de Pacotes em Rota</div><div class="dt" id="lastImportLostDt">—</div><div class="meta" id="lastImportLostMeta">—</div></div>
         <div class="import-confirm-line" style="margin-top:18px;"><label class="upload-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg> Anexar planilha de Pacotes em Rota<input type="file" id="fileInputLost" accept=".xlsx,.xls,.csv"></label><button type="button" class="import-ok-btn" id="btnConfirmLost" disabled>OK</button></div>
       </div>
-      <div class="import-card route-only-hide">
+      <div class="import-card">
         <h3>4) Planilha de retorno</h3>
         <div class="hint"><strong>Justificativas dos pacotes.</strong> Anexe uma planilha completa, uma única base ou até uma lista enviada para uma pessoa. O sistema lê várias abas, regionais e blocos separados por base, desde que existam PACOTE e JUSTIFICATIVA. O pacote é a chave principal; rota, base e motorista reforçam a conferência. Ela ficará vinculada ao dia selecionado — inclusive quando tiver somente uma base — e poderá ser editada no detalhe da base. Se o mesmo arquivo ou uma planilha parecida, com pacotes compartilhados, for enviado novamente no mesmo dia, a nova versão substitui a anterior com as justificativas atualizadas.</div>
         <div class="import-lastbox" id="lastImportReturn" style="display:none;">
@@ -1459,6 +1459,7 @@ function routeDateKey(e){
   const d=parseDateBR(raw); return isNaN(d)?todayStr():d.toISOString().slice(0,10);
 }
 function loadPersistedRoutePackages(){try{const raw=localStorage.getItem(ROUTE_STORAGE_KEY);return raw?JSON.parse(raw).map(e=>({...e,date:new Date(e.date||e.importDate)})):[];}catch(e){return [];}}
+async function loadInitialRoutePackages(){try{const response=await fetch('initial-route-data.json',{cache:'no-store'});if(!response.ok)return [];const rows=await response.json();return Array.isArray(rows)?rows:[];}catch(e){return [];}}
 function persistRoutePackages(){try{localStorage.setItem(ROUTE_STORAGE_KEY,JSON.stringify(LOST_ROUTES));}catch(e){console.warn('Pacotes em rota mantidos apenas nesta sessão.',e);}}
 function rebuildRouteOnlyImports(){
   const groups={};
@@ -3271,6 +3272,7 @@ document.getElementById('impDia').value=todayStr();
   IMPORTS=await loadPersistedImports();
   RETURN_SHEETS=await loadPersistedReturnSheets();
   LOST_ROUTES=ROUTE_ONLY_MODE?loadPersistedRoutePackages():loadPersistedLostRoutes();
+  if(ROUTE_ONLY_MODE&&!LOST_ROUTES.length){LOST_ROUTES=await loadInitialRoutePackages();if(LOST_ROUTES.length)persistRoutePackages();}
   if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); } else { selectedImportId=loadSelectedImport(); }
   if(IMPORTS.length){ rebuildStateData(); document.getElementById('emptyState').style.display='none'; renderAll(); }
   updateImportUI();

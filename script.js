@@ -369,6 +369,7 @@ function routeDateKey(e){
   const d=parseDateBR(raw); return isNaN(d)?todayStr():d.toISOString().slice(0,10);
 }
 function loadPersistedRoutePackages(){try{const raw=localStorage.getItem(ROUTE_STORAGE_KEY);return raw?JSON.parse(raw).map(e=>({...e,date:new Date(e.date||e.importDate)})):[];}catch(e){return [];}}
+async function loadInitialRoutePackages(){try{const response=await fetch('initial-route-data.json',{cache:'no-store'});if(!response.ok)return [];const rows=await response.json();return Array.isArray(rows)?rows:[];}catch(e){return [];}}
 function persistRoutePackages(){try{localStorage.setItem(ROUTE_STORAGE_KEY,JSON.stringify(LOST_ROUTES));}catch(e){console.warn('Pacotes em rota mantidos apenas nesta sessão.',e);}}
 function rebuildRouteOnlyImports(){
   const groups={};
@@ -2181,6 +2182,7 @@ document.getElementById('impDia').value=todayStr();
   IMPORTS=await loadPersistedImports();
   RETURN_SHEETS=await loadPersistedReturnSheets();
   LOST_ROUTES=ROUTE_ONLY_MODE?loadPersistedRoutePackages():loadPersistedLostRoutes();
+  if(ROUTE_ONLY_MODE&&!LOST_ROUTES.length){LOST_ROUTES=await loadInitialRoutePackages();if(LOST_ROUTES.length)persistRoutePackages();}
   if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); } else { selectedImportId=loadSelectedImport(); }
   if(IMPORTS.length){ rebuildStateData(); document.getElementById('emptyState').style.display='none'; renderAll(); }
   updateImportUI();
