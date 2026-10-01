@@ -1986,7 +1986,19 @@ async function loadPersistedImports(){
   try{ const raw=localStorage.getItem(IMPORTS_KEY); if(!raw)return []; const parsed=JSON.parse(raw); const result=parsed.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>({...e,date:new Date(e.date)}))})); IMPORTS=result; persistImports(); return result; }catch(err){return [];}
 }
 function serializeReturnSheets(){ return RETURN_SHEETS.map(sheet=>({...sheet,rows:(sheet.rows||[]).map(row=>({...row}))})); }
+let JUSTIFICATION_INDEX=null;
+function rebuildJustificationIndex(){
+  const packages=new Set(), routes=new Set();
+  RETURN_SHEETS.forEach(sheet=>(sheet.rows||[]).forEach(row=>{
+    if(!returnRowHasContent(row)) return;
+    const pacote=normalizePackageKey(row.pacote), rota=normalizePackageKey(row.rota||row.route);
+    if(pacote) packages.add(pacote);
+    if(rota) routes.add(rota);
+  }));
+  JUSTIFICATION_INDEX={packages,routes};
+}
 async function persistReturnSheets(){
+  JUSTIFICATION_INDEX=null;
   const payload=serializeReturnSheets();
   try{ const db=await openImportsDB(); await new Promise((resolve,reject)=>{const tx=db.transaction('app','readwrite');tx.objectStore('app').put({key:'returnSheets',payload});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);}); }
   catch(err){ try{ localStorage.setItem('spot_dashboard_return_sheets_v1',JSON.stringify(payload)); }catch(e){ console.warn('Justificativas mantidas nesta sessão; armazenamento cheio.',e); } }
@@ -2043,7 +2055,11 @@ function returnRecordForEntry(entry){
   }
   return emptyPackageMatch||null;
 }
-function entryHasJustification(entry){ const row=returnRecordForEntry(entry); return Boolean(row&&(String(row.justificativa||'').trim()||row.photo||row.photoIndicator)); }
+function entryHasJustification(entry){
+  if(!JUSTIFICATION_INDEX) rebuildJustificationIndex();
+  const pacote=normalizePackageKey(entry?.pacote), rota=normalizePackageKey(entry?.rota);
+  return Boolean((pacote&&JUSTIFICATION_INDEX.packages.has(pacote))||(rota&&JUSTIFICATION_INDEX.routes.has(rota)));
+}
 function justifiedCount(entries){ return (entries||[]).filter(entryHasJustification).length; }
 function percentLabel(count,total){ return total?Math.round((count/total)*100)+'%':'0%'; }
 function findManualReturnRecord(pacote,rota){ const p=normalizePackageKey(pacote), r=normalizePackageKey(rota); for(const sheet of RETURN_SHEETS){ const found=(sheet.rows||[]).find(row=>row.manualEditedAt&&((p&&normalizePackageKey(row.pacote)===p)||(r&&normalizePackageKey(row.rota||row.route)===r))); if(found) return found; } return null; }
@@ -3609,15 +3625,20 @@ function renderDiaria(){
   (tarde?tarde.entries:[]).forEach(e=>{ if(regional!=='TODOS'&&regionalFromBasePrefix(e.base)!==regional) return; if(basesOfensor&&!basesOfensor.has(e.base)) return; if(tipo!=='TODOS'&&e.tipo!==tipo) return; tardeCount[e.base]=(tardeCount[e.base]||0)+1; });
 
   renderAgingStrip('diariaAging', entries, ()=>{});
-  const baseMap={};
-  entries.forEach(e=>{ if(!baseMap[e.base]) baseMap[e.base]={base:e.base, regional:regionalFromBasePrefix(e.base), valor:0}; baseMap[e.base].valor+=e.valor; });
+  const baseMap={}, entriesByBase={};
+  entries.forEach(e=>{
+    const base=e.base||'—';
+    (entriesByBase[base]||(entriesByBase[base]=[])).push(e);
+    if(!baseMap[base]) baseMap[base]={base, regional:regionalFromBasePrefix(base), valor:0};
+    baseMap[base].valor+=Number(e.valor)||0;
+  });
   const bases=Object.values(baseMap).sort((a,b)=>b.valor-a.valor);
-  if(ordem==='JUSTIFICADOS') bases.sort((a,b)=>{ const aj=justifiedCount(entries.filter(e=>e.base===a.base)), bj=justifiedCount(entries.filter(e=>e.base===b.base)); return (bj-aj)||(b.valor-a.valor); });
+  if(ordem==='JUSTIFICADOS') bases.sort((a,b)=>{ const aj=justifiedCount(entriesByBase[a.base]), bj=justifiedCount(entriesByBase[b.base]); return (bj-aj)||(b.valor-a.valor); });
 
   const tbody=document.getElementById('diariaBody');
   if(!bases.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#737373;padding:24px;">Sem dados para este dia/filtro.</td></tr>'; return; }
   let totalM=0,totalT=0,totalV=0;
-  tbody.innerHTML=bases.map(b=>{ const m=manhaCount[b.base]||0, t=tardeCount[b.base]||0, baseEntries=entries.filter(e=>e.base===b.base), justBase=justifiedCount(baseEntries); totalM+=m; totalT+=t; totalV+=b.valor; return `<tr><td>${escHtml(REGIONAL_LABELS[b.regional]||b.regional||'—')}</td><td><strong>${baseInfoLabel(b.base)}</strong></td><td>${fmtInt(m)}</td><td>${fmtInt(t)}</td><td><strong>${fmtBRL(b.valor)}</strong></td><td><strong>${fmtInt(justBase)} / ${fmtInt(baseEntries.length)}</strong> (${percentLabel(justBase,baseEntries.length)})</td></tr>`; }).join('')
+  tbody.innerHTML=bases.map(b=>{ const m=manhaCount[b.base]||0, t=tardeCount[b.base]||0, baseEntries=entriesByBase[b.base]||[], justBase=justifiedCount(baseEntries); totalM+=m; totalT+=t; totalV+=b.valor; return `<tr><td>${escHtml(REGIONAL_LABELS[b.regional]||b.regional||'—')}</td><td><strong>${baseInfoLabel(b.base)}</strong></td><td>${fmtInt(m)}</td><td>${fmtInt(t)}</td><td><strong>${fmtBRL(b.valor)}</strong></td><td><strong>${fmtInt(justBase)} / ${fmtInt(baseEntries.length)}</strong> (${percentLabel(justBase,baseEntries.length)})</td></tr>`; }).join('')
     + `<tr style="background:#000;"><td colspan="2"><strong>TOTAL &middot; ${bases.length} base(s)</strong></td><td><strong>${fmtInt(totalM)}</strong></td><td><strong>${fmtInt(totalT)}</strong></td><td><strong>${fmtBRL(totalV)}</strong></td><td><strong>${fmtInt(justifiedCount(entries))} / ${fmtInt(entries.length)}</strong> (${percentLabel(justifiedCount(entries),entries.length)})</td></tr>`;
 }
 document.getElementById('diariaDia').addEventListener('change', renderDiaria);
@@ -3786,6 +3807,7 @@ window.__spotRun(async function init(){
   offendersBucket=loadOffendersBucket();
   IMPORTS=await loadPersistedImports();
   RETURN_SHEETS=await loadPersistedReturnSheets();
+  rebuildJustificationIndex();
   if(ROUTE_ONLY_MODE){ LOST_ROUTES=loadPersistedRoutePackages(); } else { LOST_ROUTES_ALL=loadPersistedLostRoutesAll(); LOST_ROUTES=dedupeLostRoutes(LOST_ROUTES_ALL); }
   if(ROUTE_ONLY_MODE&&!LOST_ROUTES.length){LOST_ROUTES=await loadInitialRoutePackages();if(LOST_ROUTES.length)persistRoutePackages();}
   if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); } else { selectedImportId=loadSelectedImport(); }
