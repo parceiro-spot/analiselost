@@ -930,7 +930,7 @@ html.in-landing.theme-light{background:#f7faef}
 @media(prefers-reduced-motion:reduce){#landing *{transition:none!important}}
 
 :root:not(.theme-light) #landing .l-swoosh .s2{opacity:1}
-:root:not(.theme-light) #landing .l-swoosh .s3{fill:#3556b8;opacity:1}
+:root:not(.theme-light) #landing .l-swoosh .s3{fill:var(--lime);opacity:1}
 
 </style>
 <script>(function(){
@@ -938,8 +938,19 @@ var h=(location.hash||'').toLowerCase();
 window.SPOT_MODE=h==='#rota'?'rota':(h==='#lost'?'lost':'');
 var de=document.documentElement;
 de.classList.add(window.SPOT_MODE?'in-app':'in-landing');
+var reduceMotion=false;try{reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+window.SPLASH_TITLES={lost:'LOST',rota:'PACOTES EM ROTA'};
+try{var sf=sessionStorage.getItem('spot_splash');sessionStorage.removeItem('spot_splash');
+  if(sf&&sf===window.SPOT_MODE&&!reduceMotion)de.classList.add('splash-on');}catch(e){}
 try{var t=localStorage.getItem('spot_dashboard_theme_v1');if(t==='light'||t==='pink')de.classList.add('theme-light');}catch(e){}
-window.openPanel=function(m){location.hash='#'+m;location.reload();};
+window.openPanel=function(m){
+  function go(){location.hash='#'+m;location.reload();}
+  if(reduceMotion){go();return;}
+  try{sessionStorage.setItem('spot_splash',m);}catch(e){}
+  var t=document.getElementById('spTitle');if(t)t.textContent=window.SPLASH_TITLES[m]||'';
+  de.classList.add('splash-enter');
+  setTimeout(go,400);
+};
 window.setLandingTheme=function(t){
   de.classList.remove('theme-light','theme-pink');
   if(t==='light')de.classList.add('theme-light');
@@ -962,7 +973,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var eb=document.querySelector('.brand-text .eyebrow');
     if(eb)eb.innerHTML='Parceiro Spot &middot; '+(rota?'Pacotes em Rota':'LOST');
   }else{
-    document.title='Vitoria Spot';
+    document.title='Analise LOST';
   }
 });
 })();
@@ -988,15 +999,73 @@ html.in-landing:not(.theme-light):not(.theme-pink){background:#000}
 :root:not(.theme-light):not(.theme-pink):not(#_) .tag.dias-ok{color:#64b5f6!important}
 .nav-btn.active:hover,.nav-btn.active:focus-visible,.tab-btn.active:hover{background:var(--spot-primary)!important;color:var(--ink-on-lime,#000)!important}
 </style>
+<style id="spot-splash">
+/* ===== Abertura (LOST / PACOTES EM ROTA) ===== */
+#spotSplash{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:#8dc63f;color:#0b1226;overflow:hidden;text-align:center;font-family:'Montserrat','Plus Jakarta Sans',system-ui,sans-serif}
+#spotSplash::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 60%,rgba(11,18,38,.10) 60% 72%,transparent 72% 78%,rgba(11,18,38,.18) 78% 86%,transparent 86%)}
+html.splash-on #spotSplash,html.splash-enter #spotSplash{display:flex}
+html.splash-enter #spotSplash{animation:spIn .4s cubic-bezier(.7,0,.3,1) both}
+html.splash-leave #spotSplash{animation:spOut .5s cubic-bezier(.7,0,.3,1) both}
+@keyframes spIn{from{transform:translateX(-100%)}to{transform:none}}
+@keyframes spOut{from{transform:none}to{transform:translateX(100%)}}
+#spotSplash .sp-inner{position:relative;width:min(92vw,820px);padding:0 12px}
+#spotSplash .sp-title{font-style:italic;font-weight:900;letter-spacing:-.03em;line-height:.95;text-transform:uppercase;font-size:clamp(2.6rem,10vw,7rem)}
+#spotSplash .sp-sub{margin-top:10px;font-weight:800;font-size:.8rem;letter-spacing:.28em;text-transform:uppercase;opacity:.75}
+#spotSplash .sp-scene{position:relative;height:150px;margin-top:26px}
+#spotSplash .sp-truck{position:absolute;left:50%;bottom:20px;width:230px;margin-left:-115px;overflow:visible}
+html.splash-leave #spotSplash .sp-truck{transform:translateX(75vw);transition:transform .5s cubic-bezier(.6,0,1,1)}
+#spotSplash .sp-body{animation:spBump .32s ease-in-out infinite alternate}
+@keyframes spBump{from{transform:translateY(0)}to{transform:translateY(-2.5px)}}
+#spotSplash .sp-spin{transform-box:fill-box;transform-origin:center;animation:spSpin .5s linear infinite}
+@keyframes spSpin{to{transform:rotate(360deg)}}
+#spotSplash .sp-road{position:absolute;left:-10%;right:-10%;bottom:14px;height:6px;background:repeating-linear-gradient(90deg,#0b1226 0 34px,transparent 34px 60px);animation:spRoad .45s linear infinite;border-radius:3px}
+@keyframes spRoad{to{background-position:-60px 0}}
+#spotSplash .sp-lines{position:absolute;left:calc(50% - 215px);bottom:60px;width:90px;height:60px}
+#spotSplash .sp-lines i{position:absolute;height:4px;border-radius:2px;background:#0b1226;opacity:.55;animation:spLine .6s linear infinite}
+#spotSplash .sp-lines i:nth-child(1){top:6px;width:60px}
+#spotSplash .sp-lines i:nth-child(2){top:26px;width:80px;animation-delay:.2s}
+#spotSplash .sp-lines i:nth-child(3){top:46px;width:50px;animation-delay:.4s}
+@keyframes spLine{from{transform:translateX(30px);opacity:0}30%{opacity:.55}to{transform:translateX(-40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){#spotSplash{display:none!important}}
+</style>
 </head>
 <body>
+<div id="spotSplash" aria-hidden="true">
+  <div class="sp-inner">
+    <div class="sp-title" id="spTitle">LOST</div>
+    <div class="sp-sub">Carregando painel</div>
+    <div class="sp-scene">
+      <div class="sp-lines"><i></i><i></i><i></i></div>
+      <svg class="sp-truck" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
+        <g class="sp-body">
+          <rect x="8" y="14" width="140" height="70" rx="8" fill="#0b1226"/>
+          <rect x="20" y="40" width="116" height="6" rx="3" fill="#8dc63f"/>
+          <rect x="20" y="54" width="70" height="6" rx="3" fill="#fff" opacity=".85"/>
+          <path d="M154 34h42c6 0 10 3 13 8l14 20c2 3 3 6 3 10v12H154z" fill="#fff"/>
+          <path d="M164 44h28c3 0 5 1 7 4l9 13h-44z" fill="#8dc63f" opacity=".6"/>
+          <rect x="8" y="84" width="218" height="8" rx="3" fill="#0b1226"/>
+        </g>
+        <g transform="translate(40 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
+        <g transform="translate(104 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
+        <g transform="translate(196 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
+      </svg>
+      <div class="sp-road"></div>
+    </div>
+  </div>
+</div>
+<script>(function(){
+  var de=document.documentElement;
+  if(!de.classList.contains('splash-on'))return;
+  var t=document.getElementById('spTitle');if(t)t.textContent=(window.SPLASH_TITLES||{})[window.SPOT_MODE]||'';
+  setTimeout(function(){de.classList.add('splash-leave');setTimeout(function(){de.classList.remove('splash-on','splash-leave');},520);},900);
+})();</script>
 <div id="landing">
   <div class="l-theme" role="group" aria-label="Aparência">
     <button type="button" data-t="dark" aria-pressed="true" onclick="setLandingTheme('dark')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg>Tela escura</button>
     <button type="button" data-t="light" aria-pressed="false" onclick="setLandingTheme('light')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8"/></svg>Tela clara</button>
   </div>
   <div class="l-copy">
-    <h1 class="l-word"><span class="w1">VITORIA</span><span class="w2">SPOT</span></h1>
+    <h1 class="l-word"><span class="w1">ANALISE</span><span class="w2">LOST</span></h1>
     <p class="l-lead">Escolha qual painel você quer abrir.</p>
     <div class="l-cards">
       <button type="button" class="l-card" onclick="openPanel('lost')">
