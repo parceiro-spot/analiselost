@@ -16,6 +16,8 @@ const OFF_BUCKET_KEY='spot_off_bucket_v2';
 const SELECTED_IMPORT_KEY='spot_selected_import_v1';
 const THEME_KEY='spot_dashboard_theme_v1';
 const LOST_ROUTES_KEY='spot_dashboard_lost_routes_v1';
+const ROUTE_ONLY_MODE=true;
+const ROUTE_STORAGE_KEY='spot_dashboard_route_packages_v1';
 let LOST_ROUTES=[];
 let pendingLostFile=null;
 let exportLostOnlyMode=false;
@@ -358,6 +360,33 @@ function buildLostRoutesFromRawRows(rows){
   }
   return out.length?out:null;
 }
+
+function routeDateKey(e){
+  const raw=e?.importDate||e?.date;
+  if(raw instanceof Date&&!isNaN(raw)) return raw.toISOString().slice(0,10);
+  const text=String(raw||'').trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0,10);
+  const d=parseDateBR(raw); return isNaN(d)?todayStr():d.toISOString().slice(0,10);
+}
+function loadPersistedRoutePackages(){try{const raw=localStorage.getItem(ROUTE_STORAGE_KEY);return raw?JSON.parse(raw).map(e=>({...e,date:new Date(e.date||e.importDate)})):[];}catch(e){return [];}}
+function persistRoutePackages(){try{localStorage.setItem(ROUTE_STORAGE_KEY,JSON.stringify(LOST_ROUTES));}catch(e){console.warn('Pacotes em rota mantidos apenas nesta sessão.',e);}}
+function rebuildRouteOnlyImports(){
+  const groups={};
+  LOST_ROUTES.forEach(raw=>{
+    const day=routeDateKey(raw); const e={...raw,importDate:day,tipo:raw.tipo||classifyBaseCode(raw.base,regionalFromBasePrefix(raw.base))||'SVC',valor:parseBRNumber(raw.valor),diasPlanilha:(raw.diasPlanilha??raw.dias??0),date:raw.date||new Date(day+'T00:00:00')};
+    (groups[day]??=[]).push(e);
+  });
+  IMPORTS=Object.keys(groups).sort().map(day=>({id:'route-'+day,importDate:day,turno:'Manhã',fileName:'Pacotes em Rota · '+day,savedAt:new Date().toISOString(),entries:groups[day]}));
+  selectedImportId=IMPORTS.length?IMPORTS[IMPORTS.length-1].id:null;
+}
+function configureRouteOnlyUI(){
+  document.body.classList.add('route-only-dashboard');
+  ['fileInput','fileInputReturn'].forEach(id=>document.getElementById(id)?.closest('.card')?.classList.add('route-only-hide'));
+  const lost=document.getElementById('fileInputLost');
+  if(lost){const label=lost.closest('label'); if(label) label.childNodes.forEach(n=>{if(n.nodeType===3&&n.textContent.includes('Anexar')) n.textContent=' Anexar planilha de Pacotes em Rota';});}
+  setPage('geral');
+}
+
 function persistLostRoutes(){try{localStorage.setItem(LOST_ROUTES_KEY,JSON.stringify(LOST_ROUTES));}catch(e){console.warn('Perdidos em rota mantidos apenas nesta sessão.',e);}}
 function loadPersistedLostRoutes(){try{const raw=localStorage.getItem(LOST_ROUTES_KEY);return raw?JSON.parse(raw).map(e=>({...e,date:new Date(e.date)})):[];}catch(e){return [];}}
 var EXPORT_CACHE=null;
@@ -745,7 +774,7 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   else { reader.onload=async e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=await buildReturnRowsFromWorkbook(wb,e.target.result);finish(rows,rows?'':'Não encontrei uma aba com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
 });
 document.getElementById('fileInputLost').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='OK';e.target.value='';});
-document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}LOST_ROUTES=rows.map(e=>({...e,importDate:todayStr(),fileName:file.name}));persistLostRoutes();updateImportUI();renderLostRoutesPage();};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildLostRoutesFromRawRows(parseDelimitedText(text,delim)));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){rows=buildLostRoutesFromRawRows(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true}));if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
+document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}LOST_ROUTES=rows.map(e=>({...e,importDate:todayStr(),fileName:file.name,tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'}));if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();}else{persistLostRoutes();updateImportUI();renderLostRoutesPage();}};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildLostRoutesFromRawRows(parseDelimitedText(text,delim)));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){rows=buildLostRoutesFromRawRows(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true}));if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
 document.getElementById('fileInputDrivers').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingDriverFile=file; document.getElementById('btnConfirmDrivers').disabled=false; document.getElementById('btnConfirmDrivers').textContent='OK'; e.target.value='';
 });
@@ -2151,8 +2180,8 @@ document.getElementById('impDia').value=todayStr();
   offendersBucket=loadOffendersBucket();
   IMPORTS=await loadPersistedImports();
   RETURN_SHEETS=await loadPersistedReturnSheets();
-  LOST_ROUTES=loadPersistedLostRoutes();
-  selectedImportId=loadSelectedImport();
+  LOST_ROUTES=ROUTE_ONLY_MODE?loadPersistedRoutePackages():loadPersistedLostRoutes();
+  if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); } else { selectedImportId=loadSelectedImport(); }
   if(IMPORTS.length){ rebuildStateData(); document.getElementById('emptyState').style.display='none'; renderAll(); }
   updateImportUI();
 })();
