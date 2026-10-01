@@ -947,9 +947,9 @@ window.openPanel=function(m){
   function go(){location.hash='#'+m;location.reload();}
   if(reduceMotion){go();return;}
   try{sessionStorage.setItem('spot_splash',m);}catch(e){}
-  var t=document.getElementById('spTitle');if(t)t.textContent=window.SPLASH_TITLES[m]||'';
+  var t=document.getElementById('spTitle2');if(t)t.textContent=window.SPLASH_TITLES[m]||'';
   de.classList.add('splash-enter');
-  setTimeout(go,250);
+  setTimeout(go,70);
 };
 window.setLandingTheme=function(t){
   de.classList.remove('theme-light','theme-pink');
@@ -1000,55 +1000,56 @@ html.in-landing:not(.theme-light):not(.theme-pink){background:#000}
 .nav-btn.active:hover,.nav-btn.active:focus-visible,.tab-btn.active:hover{background:var(--spot-primary)!important;color:var(--ink-on-lime,#000)!important}
 </style>
 <style id="spot-splash">
-/* ===== Abertura (LOST / PACOTES EM ROTA) ===== */
+/* ===== Abertura: fundo verde, nome, caminhão passa e para no meio ===== */
 #spotSplash{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:#8dc63f;color:#0b1226;overflow:hidden;text-align:center;font-family:'Montserrat','Plus Jakarta Sans',system-ui,sans-serif}
 #spotSplash::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 60%,rgba(11,18,38,.10) 60% 72%,transparent 72% 78%,rgba(11,18,38,.18) 78% 86%,transparent 86%)}
 html.splash-on #spotSplash,html.splash-enter #spotSplash{display:flex}
-html.splash-enter #spotSplash{animation:spIn .26s cubic-bezier(.7,0,.3,1) both}
-html.splash-leave #spotSplash{animation:spOut .34s cubic-bezier(.7,0,.3,1) both}
-@keyframes spIn{from{transform:translateX(-100%)}to{transform:none}}
-@keyframes spOut{from{transform:none}to{transform:translateX(100%)}}
+html.splash-leave #spotSplash{opacity:0;transition:opacity .16s linear}
 #spotSplash .sp-inner{position:relative;width:min(92vw,820px);padding:0 12px}
-#spotSplash .sp-title{font-style:italic;font-weight:900;letter-spacing:-.03em;line-height:.95;text-transform:uppercase;font-size:clamp(2.6rem,10vw,7rem)}
-#spotSplash .sp-sub{margin-top:10px;font-weight:800;font-size:.8rem;letter-spacing:.28em;text-transform:uppercase;opacity:.75}
-#spotSplash .sp-scene{position:relative;height:150px;margin-top:26px}
-#spotSplash .sp-truck{position:absolute;left:50%;bottom:20px;width:230px;margin-left:-115px;overflow:visible}
-html.splash-leave #spotSplash .sp-truck{transform:translateX(75vw);transition:transform .34s cubic-bezier(.6,0,1,1)}
+#spotSplash .sp-title{font-style:italic;font-weight:900;letter-spacing:-.03em;line-height:.95;text-transform:uppercase;font-size:clamp(2.4rem,9vw,6.4rem)}
+#spotSplash .sp-title span{display:block}
+#spotSplash .sp-title b{display:block;color:#fff;font-weight:900}
+#spotSplash .sp-scene{position:relative;height:140px;margin-top:22px}
+#spotSplash .sp-mover{position:absolute;left:50%;bottom:20px;width:230px;margin-left:-115px}
+#spotSplash .sp-truck{display:block;width:100%;overflow:visible}
+html.splash-enter #spotSplash .sp-mover{transform:translateX(-90vw)}
+html.splash-on #spotSplash .sp-mover{animation:spTruck .9s linear both}
+@keyframes spTruck{0%{transform:translateX(-90vw);animation-timing-function:cubic-bezier(.1,.7,.3,1)}36%{transform:none}60%{transform:none;animation-timing-function:cubic-bezier(.7,0,.9,.5)}100%{transform:translateX(90vw)}}
 #spotSplash .sp-body{animation:spBump .2s ease-in-out infinite alternate}
 @keyframes spBump{from{transform:translateY(0)}to{transform:translateY(-2.5px)}}
 #spotSplash .sp-spin{transform-box:fill-box;transform-origin:center;animation:spSpin .28s linear infinite}
 @keyframes spSpin{to{transform:rotate(360deg)}}
-#spotSplash .sp-road{position:absolute;left:-10%;right:-10%;bottom:14px;height:6px;background:repeating-linear-gradient(90deg,#0b1226 0 34px,transparent 34px 60px);animation:spRoad .25s linear infinite;border-radius:3px}
-@keyframes spRoad{to{background-position:-60px 0}}
-#spotSplash .sp-lines{position:absolute;left:calc(50% - 215px);bottom:60px;width:90px;height:60px}
-#spotSplash .sp-lines i{position:absolute;height:4px;border-radius:2px;background:#0b1226;opacity:.55;animation:spLine .35s linear infinite}
+#spotSplash .sp-road{position:absolute;left:-10%;right:-10%;bottom:14px;height:6px;background:repeating-linear-gradient(90deg,#0b1226 0 34px,transparent 34px 60px);border-radius:3px}
+#spotSplash .sp-lines{position:absolute;left:-95px;bottom:40px;width:90px;height:60px}
+#spotSplash .sp-lines i{position:absolute;height:4px;border-radius:2px;background:#0b1226;opacity:.5;animation:spLine .3s linear infinite}
 #spotSplash .sp-lines i:nth-child(1){top:6px;width:60px}
-#spotSplash .sp-lines i:nth-child(2){top:26px;width:80px;animation-delay:.2s}
-#spotSplash .sp-lines i:nth-child(3){top:46px;width:50px;animation-delay:.4s}
-@keyframes spLine{from{transform:translateX(30px);opacity:0}30%{opacity:.55}to{transform:translateX(-40px);opacity:0}}
+#spotSplash .sp-lines i:nth-child(2){top:26px;width:80px;animation-delay:.1s}
+#spotSplash .sp-lines i:nth-child(3){top:46px;width:50px;animation-delay:.2s}
+@keyframes spLine{from{transform:translateX(30px);opacity:0}30%{opacity:.5}to{transform:translateX(-40px);opacity:0}}
 @media (prefers-reduced-motion:reduce){#spotSplash{display:none!important}}
 </style>
 </head>
 <body>
 <div id="spotSplash" aria-hidden="true">
   <div class="sp-inner">
-    <div class="sp-title" id="spTitle">LOST</div>
-    <div class="sp-sub">Carregando painel</div>
+    <div class="sp-title"><span>ANALISE</span><b id="spTitle2">LOST</b></div>
     <div class="sp-scene">
-      <div class="sp-lines"><i></i><i></i><i></i></div>
-      <svg class="sp-truck" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
-        <g class="sp-body">
-          <rect x="8" y="14" width="140" height="70" rx="8" fill="#0b1226"/>
-          <rect x="20" y="40" width="116" height="6" rx="3" fill="#8dc63f"/>
-          <rect x="20" y="54" width="70" height="6" rx="3" fill="#fff" opacity=".85"/>
-          <path d="M154 34h42c6 0 10 3 13 8l14 20c2 3 3 6 3 10v12H154z" fill="#fff"/>
-          <path d="M164 44h28c3 0 5 1 7 4l9 13h-44z" fill="#8dc63f" opacity=".6"/>
-          <rect x="8" y="84" width="218" height="8" rx="3" fill="#0b1226"/>
-        </g>
-        <g transform="translate(40 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
-        <g transform="translate(104 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
-        <g transform="translate(196 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
-      </svg>
+      <div class="sp-mover">
+        <div class="sp-lines"><i></i><i></i><i></i></div>
+        <svg class="sp-truck" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
+          <g class="sp-body">
+            <rect x="8" y="14" width="140" height="70" rx="8" fill="#0b1226"/>
+            <rect x="20" y="40" width="116" height="6" rx="3" fill="#8dc63f"/>
+            <rect x="20" y="54" width="70" height="6" rx="3" fill="#fff" opacity=".85"/>
+            <path d="M154 34h42c6 0 10 3 13 8l14 20c2 3 3 6 3 10v12H154z" fill="#fff"/>
+            <path d="M164 44h28c3 0 5 1 7 4l9 13h-44z" fill="#8dc63f" opacity=".6"/>
+            <rect x="8" y="84" width="218" height="8" rx="3" fill="#0b1226"/>
+          </g>
+          <g transform="translate(40 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
+          <g transform="translate(104 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
+          <g transform="translate(196 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
+        </svg>
+      </div>
       <div class="sp-road"></div>
     </div>
   </div>
@@ -1056,8 +1057,10 @@ html.splash-leave #spotSplash .sp-truck{transform:translateX(75vw);transition:tr
 <script>(function(){
   var de=document.documentElement;
   if(!de.classList.contains('splash-on'))return;
-  var t=document.getElementById('spTitle');if(t)t.textContent=(window.SPLASH_TITLES||{})[window.SPOT_MODE]||'';
-  setTimeout(function(){de.classList.add('splash-leave');setTimeout(function(){de.classList.remove('splash-on','splash-leave');},360);},420);
+  var t=document.getElementById('spTitle2');if(t)t.textContent=(window.SPLASH_TITLES||{})[window.SPOT_MODE]||'';
+  var done=false;function leave(){if(done)return;done=true;de.classList.add('splash-leave');setTimeout(function(){de.classList.remove('splash-on','splash-leave');},170);}
+  var m=document.querySelector('#spotSplash .sp-mover');if(m)m.addEventListener('animationend',leave);
+  setTimeout(leave,1100);
 })();</script>
 <div id="landing">
   <div class="l-theme" role="group" aria-label="Aparência">
