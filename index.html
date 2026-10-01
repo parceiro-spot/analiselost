@@ -747,7 +747,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .lost-comp-chip span{color:var(--spot-green);font-weight:800;margin-left:4px}
 .lost-comp-chip:hover{border-color:var(--spot-primary);color:var(--text-primary)}
 .lost-base-card.comp-only{border-left-style:dashed;opacity:.9}
- .brand-badge{cursor:pointer;transition:transform .2s,box-shadow .2s}.brand-badge:hover{transform:translateY(-2px);box-shadow:0 5px 16px var(--spot-glow)}</style>
+</style>
 <style id="photo-viewer-enhancement">
 /* ===== Visualizador de fotos em alta qualidade ===== */
 #justPhotoViewer{padding:10px!important}
@@ -776,7 +776,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 <header>
   <div class="header-inner">
     <div class="brand">
-      <div class="brand-badge" role="button" tabindex="0" onclick="window.location.href='../'" onkeydown="if(event.key==='Enter'||event.key===' ')window.location.href='../'" title="Voltar para escolher LOST ou Pacote em Rota"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 8h9v8H2z"/><path d="M11 11h5l3 3v2h-8z"/><circle cx="7" cy="18" r="1.6"/><circle cx="16.5" cy="18" r="1.6"/></svg></div>
+      <div class="brand-badge"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 8h9v8H2z"/><path d="M11 11h5l3 3v2h-8z"/><circle cx="7" cy="18" r="1.6"/><circle cx="16.5" cy="18" r="1.6"/></svg></div>
       <div class="brand-text">
         <div class="eyebrow">Parceiro Spot &middot; Brasil</div>
         <h1>Monitoramento de <span>Valores em Risco</span></h1>
@@ -828,7 +828,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
   </div>
 
   <!-- ===================== VISÃO GERAL ===================== -->
-  <div class="page active" id="page-geral">
+  <div class="page" id="page-geral">
     <div class="dashboard-planilha-toolbar">
       <div class="active-planilha-badge" id="activePlanilhaBadge">Nenhuma planilha importada</div><button type="button" class="mini-camera" id="btnCapturaGeral" title="Capturar página inicial" aria-label="Capturar página inicial"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>
     </div>
@@ -981,7 +981,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
   </div>
 
   <!-- ===================== IMPORTADOS ===================== -->
-  <div class="page" id="page-importados">
+  <div class="page active" id="page-importados">
     <div class="import-grid">
       <div class="import-card">
         <h3>Lost &middot; 1) Pacotes perdidos</h3>
