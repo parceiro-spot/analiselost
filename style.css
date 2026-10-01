@@ -178,7 +178,7 @@ header{background:rgba(10,10,10,.9);backdrop-filter:blur(12px);border-bottom:1px
 :root.theme-light .aging-chip .lbl,:root.theme-pink .aging-chip .lbl{color:#000!important}
 :root.theme-light .aging-chip[data-bucket="ATE2"] .cnt,:root.theme-pink .aging-chip[data-bucket="ATE2"] .cnt{color:#1565c0!important}
 :root.theme-light .aging-chip[data-bucket="3A6"] .cnt,:root.theme-pink .aging-chip[data-bucket="3A6"] .cnt{color:#e65100!important}
-:root.theme-light .aging-chip[data-bucket="7A10"] .cnt,:root.theme-pink .aging-chip[data-bucket="7A10"] .cnt{color:#c62828!important}
+:root.theme-light .aging-chip[data-bucket="7A10"] .cnt,:root.theme-pink .aging-chip[data-bucket="7A10"] .cnt{color:#b71c1c!important}
 :root.theme-light .aging-chip[data-bucket="MAIS11"] .cnt,:root.theme-pink .aging-chip[data-bucket="MAIS11"] .cnt{color:#8e0000!important}
 :root .aging-chip.active[data-bucket="ATE2"] .lbl{color:#2196f3!important}
 :root .aging-chip.active[data-bucket="3A6"] .lbl{color:#ff9800!important}
@@ -735,5 +735,5 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .lost-dist-line{margin-top:6px;font-size:12px;font-weight:600;color:#f5a623;cursor:pointer}
 
 /* Indicador de variação: sem cápsula/fundo, somente cor e seta. */
-.delta-badge.up{background:transparent!important;color:#c62828!important;border:0!important;box-shadow:none!important}
+.delta-badge.up{background:transparent!important;color:#b71c1c!important;border:0!important;box-shadow:none!important}
 .delta-badge.down{background:transparent!important;color:#218739!important;border:0!important;box-shadow:none!important}
