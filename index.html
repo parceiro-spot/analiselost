@@ -967,6 +967,27 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 })();
 </script>
+<style id="dark-black-theme">
+/* ===== Tema escuro PRETO (substitui o azul-marinho do tema escuro) ===== */
+:root:not(.theme-light):not(.theme-pink){
+  --bg-main:#000000;--bg-card:#0b0b0b;--bg-card-hover:#171717;--border-color:#2e2e2e;
+  --bg-inset:#000000;--bg-nav:#000000;--bg-head:#000000;
+  --text-primary:#ffffff;--text-secondary:#e4e4e4;--text-muted:#b5b5b5;
+  --ink-on-lime:#000000;
+}
+:root:not(.theme-light):not(.theme-pink) body{background:#000;color:#fff}
+html.in-landing:not(.theme-light):not(.theme-pink){background:#000}
+:root:not(.theme-light):not(.theme-pink) #landing{--bg:#000000;--surface:#0d0d0d;--surface2:#1a1a1a;--line:rgba(255,255,255,.22);--ink:#ffffff;--ink2:#e4e4e4;--w1:#ffffff}
+/* fonte preta vira branca no escuro (exceto sobre fundo verde, onde o preto precisa ficar) */
+:root:not(.theme-light):not(.theme-pink) input,
+:root:not(.theme-light):not(.theme-pink) select,
+:root:not(.theme-light):not(.theme-pink) textarea{color:#fff;background-color:#0b0b0b;border-color:#2e2e2e}
+:root:not(.theme-light):not(.theme-pink) select option{background:#0b0b0b;color:#fff}
+:root:not(.theme-light):not(.theme-pink):not(#_) .aging-chip[data-bucket="MAIS11"] .lbl,
+:root:not(.theme-light):not(.theme-pink):not(#_) .aging-chip.active[data-bucket="MAIS11"] .lbl{color:#ff5252!important}
+:root:not(.theme-light):not(.theme-pink):not(#_) .tag.dias-ok{color:#64b5f6!important}
+.nav-btn.active:hover,.nav-btn.active:focus-visible,.tab-btn.active:hover{background:var(--spot-primary)!important;color:var(--ink-on-lime,#000)!important}
+</style>
 </head>
 <body>
 <div id="landing">
