@@ -949,7 +949,7 @@ window.openPanel=function(m){
   try{sessionStorage.setItem('spot_splash',m);}catch(e){}
   var t=document.getElementById('spTitle');if(t)t.textContent=window.SPLASH_TITLES[m]||'';
   de.classList.add('splash-enter');
-  setTimeout(go,400);
+  setTimeout(go,250);
 };
 window.setLandingTheme=function(t){
   de.classList.remove('theme-light','theme-pink');
@@ -1004,8 +1004,8 @@ html.in-landing:not(.theme-light):not(.theme-pink){background:#000}
 #spotSplash{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:#8dc63f;color:#0b1226;overflow:hidden;text-align:center;font-family:'Montserrat','Plus Jakarta Sans',system-ui,sans-serif}
 #spotSplash::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 60%,rgba(11,18,38,.10) 60% 72%,transparent 72% 78%,rgba(11,18,38,.18) 78% 86%,transparent 86%)}
 html.splash-on #spotSplash,html.splash-enter #spotSplash{display:flex}
-html.splash-enter #spotSplash{animation:spIn .4s cubic-bezier(.7,0,.3,1) both}
-html.splash-leave #spotSplash{animation:spOut .5s cubic-bezier(.7,0,.3,1) both}
+html.splash-enter #spotSplash{animation:spIn .26s cubic-bezier(.7,0,.3,1) both}
+html.splash-leave #spotSplash{animation:spOut .34s cubic-bezier(.7,0,.3,1) both}
 @keyframes spIn{from{transform:translateX(-100%)}to{transform:none}}
 @keyframes spOut{from{transform:none}to{transform:translateX(100%)}}
 #spotSplash .sp-inner{position:relative;width:min(92vw,820px);padding:0 12px}
@@ -1013,15 +1013,15 @@ html.splash-leave #spotSplash{animation:spOut .5s cubic-bezier(.7,0,.3,1) both}
 #spotSplash .sp-sub{margin-top:10px;font-weight:800;font-size:.8rem;letter-spacing:.28em;text-transform:uppercase;opacity:.75}
 #spotSplash .sp-scene{position:relative;height:150px;margin-top:26px}
 #spotSplash .sp-truck{position:absolute;left:50%;bottom:20px;width:230px;margin-left:-115px;overflow:visible}
-html.splash-leave #spotSplash .sp-truck{transform:translateX(75vw);transition:transform .5s cubic-bezier(.6,0,1,1)}
-#spotSplash .sp-body{animation:spBump .32s ease-in-out infinite alternate}
+html.splash-leave #spotSplash .sp-truck{transform:translateX(75vw);transition:transform .34s cubic-bezier(.6,0,1,1)}
+#spotSplash .sp-body{animation:spBump .2s ease-in-out infinite alternate}
 @keyframes spBump{from{transform:translateY(0)}to{transform:translateY(-2.5px)}}
-#spotSplash .sp-spin{transform-box:fill-box;transform-origin:center;animation:spSpin .5s linear infinite}
+#spotSplash .sp-spin{transform-box:fill-box;transform-origin:center;animation:spSpin .28s linear infinite}
 @keyframes spSpin{to{transform:rotate(360deg)}}
-#spotSplash .sp-road{position:absolute;left:-10%;right:-10%;bottom:14px;height:6px;background:repeating-linear-gradient(90deg,#0b1226 0 34px,transparent 34px 60px);animation:spRoad .45s linear infinite;border-radius:3px}
+#spotSplash .sp-road{position:absolute;left:-10%;right:-10%;bottom:14px;height:6px;background:repeating-linear-gradient(90deg,#0b1226 0 34px,transparent 34px 60px);animation:spRoad .25s linear infinite;border-radius:3px}
 @keyframes spRoad{to{background-position:-60px 0}}
 #spotSplash .sp-lines{position:absolute;left:calc(50% - 215px);bottom:60px;width:90px;height:60px}
-#spotSplash .sp-lines i{position:absolute;height:4px;border-radius:2px;background:#0b1226;opacity:.55;animation:spLine .6s linear infinite}
+#spotSplash .sp-lines i{position:absolute;height:4px;border-radius:2px;background:#0b1226;opacity:.55;animation:spLine .35s linear infinite}
 #spotSplash .sp-lines i:nth-child(1){top:6px;width:60px}
 #spotSplash .sp-lines i:nth-child(2){top:26px;width:80px;animation-delay:.2s}
 #spotSplash .sp-lines i:nth-child(3){top:46px;width:50px;animation-delay:.4s}
@@ -1057,7 +1057,7 @@ html.splash-leave #spotSplash .sp-truck{transform:translateX(75vw);transition:tr
   var de=document.documentElement;
   if(!de.classList.contains('splash-on'))return;
   var t=document.getElementById('spTitle');if(t)t.textContent=(window.SPLASH_TITLES||{})[window.SPOT_MODE]||'';
-  setTimeout(function(){de.classList.add('splash-leave');setTimeout(function(){de.classList.remove('splash-on','splash-leave');},520);},900);
+  setTimeout(function(){de.classList.add('splash-leave');setTimeout(function(){de.classList.remove('splash-on','splash-leave');},360);},420);
 })();</script>
 <div id="landing">
   <div class="l-theme" role="group" aria-label="Aparência">
@@ -1331,6 +1331,10 @@ html.splash-leave #spotSplash .sp-truck{transform:translateX(75vw);transition:tr
         <h3>3) Perdidos em rota</h3>
         <div class="hint"><strong>Planilha de pacotes perdidos em rota.</strong> Anexe o segundo Excel do dia. O painel cruza pacote, rota, origem, destino e motorista com o Risco LM e mostra os possíveis vínculos entre as bases SVC e XPT.</div>
         <div class="import-lastbox" id="lastImportLost" style="display:none;"><div class="lbl">Última planilha de perdidos em rota</div><div class="dt" id="lastImportLostDt">—</div><div class="meta" id="lastImportLostMeta">—</div></div>
+        <div class="import-row2" id="lostDateTurno">
+          <div class="form-row" style="margin-bottom:0;"><label>Dia do arquivo</label><input type="date" id="lostDia"></div>
+          <div class="form-row" style="margin-bottom:0;"><label>Turno</label><select id="lostTurno"><option value="Manhã">Manhã</option><option value="Tarde">Tarde</option></select></div>
+        </div>
         <div class="import-confirm-line" style="margin-top:18px;"><label class="upload-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg> Anexar perdidos em rota<input type="file" id="fileInputLost" accept=".xlsx,.xls,.csv"></label><button type="button" class="import-ok-btn" id="btnConfirmLost" disabled>OK</button></div>
       </div>
       <div class="import-card">
@@ -1431,6 +1435,8 @@ const LOST_ROUTES_KEY='spot_dashboard_lost_routes_v1';
 const ROUTE_ONLY_MODE=(window.SPOT_MODE==='rota');
 const ROUTE_STORAGE_KEY='spot_dashboard_route_packages_v1';
 let LOST_ROUTES=[];
+let LOST_ROUTES_ALL=[];
+const LOST_ROUTES_ALL_KEY='spot_dashboard_lost_routes_all_v1';
 let pendingLostFile=null;
 let exportLostOnlyMode=false;
 const PASSWORD_CONFIRM='Mudar123';
@@ -1786,10 +1792,10 @@ function persistRoutePackages(){try{localStorage.setItem(ROUTE_STORAGE_KEY,JSON.
 function rebuildRouteOnlyImports(){
   const groups={};
   LOST_ROUTES.forEach(raw=>{
-    const day=routeDateKey(raw); const e={...raw,importDate:day,tipo:raw.tipo||classifyBaseCode(raw.base,regionalFromBasePrefix(raw.base))||'SVC',valor:parseBRNumber(raw.valor),diasPlanilha:(raw.diasPlanilha??raw.dias??0),date:raw.date||new Date(day+'T00:00:00')};
-    (groups[day]??=[]).push(e);
+    const day=routeDateKey(raw); const turno=raw.turno==='Tarde'?'Tarde':'Manhã'; const e={...raw,importDate:day,turno,tipo:raw.tipo||classifyBaseCode(raw.base,regionalFromBasePrefix(raw.base))||'SVC',valor:parseBRNumber(raw.valor),diasPlanilha:(raw.diasPlanilha??raw.dias??0),date:raw.date||new Date(day+'T00:00:00')};
+    (groups[day+'|'+turno]??=[]).push(e);
   });
-  IMPORTS=Object.keys(groups).sort().map(day=>({id:'route-'+day,importDate:day,turno:'Manhã',fileName:'Pacotes em Rota · '+day,savedAt:new Date().toISOString(),entries:groups[day]}));
+  IMPORTS=Object.keys(groups).sort().map(k=>{const [day,turno]=k.split('|'); const list=groups[k]; return {id:'route-'+day+'-'+turno,importDate:day,turno,fileName:list[0]?.fileName||('Pacotes em Rota · '+day),savedAt:new Date().toISOString(),entries:list};});
   selectedImportId=IMPORTS.length?IMPORTS[IMPORTS.length-1].id:null;
 }
 function configureRouteOnlyUI(){
@@ -1800,7 +1806,23 @@ function configureRouteOnlyUI(){
   setPage('geral');
 }
 
-function persistLostRoutes(){try{localStorage.setItem(LOST_ROUTES_KEY,JSON.stringify(LOST_ROUTES));}catch(e){console.warn('Perdidos em rota mantidos apenas nesta sessão.',e);}}
+function persistLostRoutes(){try{localStorage.setItem(LOST_ROUTES_KEY,JSON.stringify(LOST_ROUTES));localStorage.setItem(LOST_ROUTES_ALL_KEY,JSON.stringify(LOST_ROUTES_ALL));}catch(e){console.warn('Perdidos em rota mantidos apenas nesta sessão.',e);}}
+function dedupeLostRoutes(all){
+  const ordem=x=>routeDateKey(x)+(x.turno==='Tarde'?'1':'0');
+  const sorted=all.slice().sort((a,b)=>ordem(a).localeCompare(ordem(b)));
+  const m=new Map(); const semChave=[];
+  sorted.forEach(e=>{const k=normalizePackageKey(e.pacote); if(!k){semChave.push(e);return;} m.set(k,e);});
+  return [...m.values(),...semChave];
+}
+function loadPersistedLostRoutesAll(){
+  try{const raw=localStorage.getItem(LOST_ROUTES_ALL_KEY); if(raw) return JSON.parse(raw).map(e=>({...e,date:new Date(e.date)}));}catch(e){}
+  return loadPersistedLostRoutes().map(e=>({...e,turno:e.turno||'Manhã'}));
+}
+function lostSetsSummary(){
+  const g={}; LOST_ROUTES_ALL.forEach(e=>{const k=routeDateKey(e)+'|'+(e.turno==='Tarde'?'Tarde':'Manhã'); g[k]=(g[k]||0)+1;});
+  const keys=Object.keys(g).sort(); if(keys.length<2) return '';
+  return '<br>Importações: '+keys.map(k=>{const [d,t]=k.split('|');return escHtml(d.split('-').reverse().slice(0,2).join('/')+' '+t+' ('+fmtInt(g[k])+')');}).join(' · ');
+}
 function loadPersistedLostRoutes(){try{const raw=localStorage.getItem(LOST_ROUTES_KEY);return raw?JSON.parse(raw).map(e=>({...e,date:new Date(e.date)})):[];}catch(e){return [];}}
 var EXPORT_CACHE=null;
 function buildExportCache(){
@@ -1972,7 +1994,7 @@ function updateImportUI(){
   const returnBox=document.getElementById('lastImportReturn'); const returnSheet=latestReturnSheet()||returnSheetForDate(document.getElementById('impDia')?.value||getSelectedImport()?.importDate||'');
   if(returnBox){ returnBox.style.display=returnSheet?'block':'none'; if(returnSheet){ document.getElementById('lastImportReturnDt').textContent=new Date(returnSheet.savedAt).toLocaleString('pt-BR'); document.getElementById('lastImportReturnMeta').innerHTML=fmtInt((returnSheet.rows||[]).length)+' justificativa(s)<br>'+escHtml(returnSheet.fileName)+'<br>Vinculada ao dia '+String(returnSheet.importDate).split('-').reverse().join('/'); } }
   const lostBox=document.getElementById('lastImportLost');
-  if(lostBox){ if(LOST_ROUTES.length){ lostBox.style.display='block'; const lastLost=LOST_ROUTES[LOST_ROUTES.length-1]; document.getElementById('lastImportLostDt').textContent=new Date().toLocaleString('pt-BR'); document.getElementById('lastImportLostMeta').innerHTML=fmtInt(LOST_ROUTES.length)+' pacote(s)<br>'+escHtml(lastLost.fileName||'Arquivo importado')+'<br>Atualizado em '+escHtml(String(lastLost.importDate||todayStr()).split('-').reverse().join('/')); } else lostBox.style.display='none'; }
+  if(lostBox){ if(LOST_ROUTES.length){ lostBox.style.display='block'; const lastLost=LOST_ROUTES[LOST_ROUTES.length-1]; document.getElementById('lastImportLostDt').textContent=new Date().toLocaleString('pt-BR'); document.getElementById('lastImportLostMeta').innerHTML=fmtInt(LOST_ROUTES.length)+' pacote(s)<br>'+escHtml(lastLost.fileName||'Arquivo importado')+'<br>'+escHtml(String(lastLost.importDate||todayStr()).split('-').reverse().join('/'))+' · '+escHtml(lastLost.turno||'Manhã')+(ROUTE_ONLY_MODE?'':lostSetsSummary()); } else lostBox.style.display='none'; }
   const box=document.getElementById('lastImportRisco');
   if(IMPORTS.length){
     const last=IMPORTS.slice().sort((a,b)=>b.savedAt.localeCompare(a.savedAt))[0];
@@ -2187,7 +2209,10 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   else { reader.onload=async e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=await buildReturnRowsFromWorkbook(wb,e.target.result);finish(rows,rows?'':'Não encontrei uma aba com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
 });
 document.getElementById('fileInputLost').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='OK';e.target.value='';});
-document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}LOST_ROUTES=rows.map(e=>({...e,importDate:todayStr(),fileName:file.name,tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'}));if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();}else{persistLostRoutes();updateImportUI();renderLostRoutesPage();}};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildLostRoutesFromRawRows(parseDelimitedText(text,delim)));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){rows=buildLostRoutesFromRawRows(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true}));if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
+document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}const lostDay=document.getElementById('lostDia')?.value||todayStr(); const lostTurno=document.getElementById('lostTurno')?.value||'Manhã';
+const novosRota=rows.map(e=>({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'}));
+if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); } else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=dedupeLostRoutes(LOST_ROUTES_ALL); }
+if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();updateImportUI();}else{persistLostRoutes();updateImportUI();renderLostRoutesPage();}};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildLostRoutesFromRawRows(parseDelimitedText(text,delim)));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){rows=buildLostRoutesFromRawRows(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true}));if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
 document.getElementById('fileInputDrivers').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingDriverFile=file; document.getElementById('btnConfirmDrivers').disabled=false; document.getElementById('btnConfirmDrivers').textContent='OK'; e.target.value='';
 });
@@ -3449,7 +3474,7 @@ function selectedPeriodEntries(){
 }
 function dateInputSet(id,value){ const el=document.getElementById(id); if(el) el.value=value||''; }
 function enableNativeDatePickers(){
-  ['diariaDia','analiseDe','analiseAte','impDia'].forEach(id=>{
+  ['diariaDia','analiseDe','analiseAte','impDia','lostDia'].forEach(id=>{
     const el=document.getElementById(id); if(!el||el.dataset.pickerReady) return;
     el.dataset.pickerReady='1';
     el.addEventListener('click',()=>{ if(typeof el.showPicker==='function'){ try{el.showPicker();}catch(e){} } });
@@ -3582,7 +3607,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&motoristaSelecionad
 
 const WEEKDAY_ABBR=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-document.getElementById('impDia').value=todayStr();
+document.getElementById('impDia').value=todayStr(); { const ld=document.getElementById('lostDia'); if(ld) ld.value=todayStr(); }
 
 /* ===== INICIALIZAÇÃO ===== */
 (async function init(){
@@ -3593,7 +3618,7 @@ document.getElementById('impDia').value=todayStr();
   offendersBucket=loadOffendersBucket();
   IMPORTS=await loadPersistedImports();
   RETURN_SHEETS=await loadPersistedReturnSheets();
-  LOST_ROUTES=ROUTE_ONLY_MODE?loadPersistedRoutePackages():loadPersistedLostRoutes();
+  if(ROUTE_ONLY_MODE){ LOST_ROUTES=loadPersistedRoutePackages(); } else { LOST_ROUTES_ALL=loadPersistedLostRoutesAll(); LOST_ROUTES=dedupeLostRoutes(LOST_ROUTES_ALL); }
   if(ROUTE_ONLY_MODE&&!LOST_ROUTES.length){LOST_ROUTES=await loadInitialRoutePackages();if(LOST_ROUTES.length)persistRoutePackages();}
   if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); } else { selectedImportId=loadSelectedImport(); }
   if(IMPORTS.length){ rebuildStateData(); document.getElementById('emptyState').style.display='none'; renderAll(); }
