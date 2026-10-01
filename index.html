@@ -222,7 +222,7 @@ main{max-width:1560px;margin:0 auto;padding:28px}
 .kpi-value{font-size:26px;font-weight:800;letter-spacing:-.5px;color:#fff}
 .kpi-sub{font-size:12px;color:var(--text-muted);margin-top:6px}
 .kpi-sub.kpi-sub-strong{color:var(--spot-green);font-weight:700}
-.delta-badge{align-items:center;gap:6px;margin-top:9px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:800;display:inline-flex}
+.delta-badge{align-items:center;gap:6px;margin-top:9px;padding:0;border-radius:0;font-size:11.5px;font-weight:800;display:inline-flex;background:transparent!important;border:0!important;box-shadow:none!important}
 .delta-badge .ico{width:12px;height:12px;flex:0 0 auto}
 .delta-badge.up{background:rgba(255,82,82,.14);color:var(--svc-danger);border:1px solid rgba(255,82,82,.4)}
 .delta-badge.down{background:rgba(141,198,63,.14);color:var(--spot-green);border:1px solid rgba(141,198,63,.4)}
@@ -859,6 +859,10 @@ tbody tr:hover{background:var(--spot-glow)}
 /* selo "Valor subiu/desceu" legível sobre o cartão verde */
 :root:not(.theme-light) .kpi-card.total .delta-badge.up{background:rgba(255,255,255,.62);color:#7a0000;border:1px solid rgba(122,0,0,.55);font-weight:900}
 :root:not(.theme-light) .kpi-card.total .delta-badge.down{background:rgba(255,255,255,.62);color:#0d3b00;border:1px solid rgba(13,59,0,.55);font-weight:900}
+:root:not(.theme-light) .kpi-card.total .delta-badge.up{background:transparent!important;color:#ff5252!important;border:0!important}
+:root:not(.theme-light) .kpi-card.total .delta-badge.down{background:transparent!important;color:#155b19!important;border:0!important}
+:root.theme-light .kpi-card.total .delta-badge.up{background:transparent!important;color:#c62828!important;border:0!important}
+:root.theme-light .kpi-card.total .delta-badge.down{background:transparent!important;color:#218739!important;border:0!important}
 :root:not(.theme-light) .section-title{color:#fff}
 :root:not(.theme-light) .section-title::after{background:linear-gradient(90deg,rgba(255,255,255,.35),transparent)}
 :root:not(.theme-light) thead th{background:var(--bg-inset);color:#dfe6fb}
@@ -2557,10 +2561,10 @@ function renderAll(){
     const delta=tarde.total-manha.total;
     if(delta>0.004){
       deltaEl.className='delta-badge up'; deltaEl.style.display='inline-flex';
-      deltaEl.textContent='Valor subiu '+fmtBRL(delta)+' em relação à manhã';
+      deltaEl.textContent='Valor subiu '+fmtBRL(delta)+' em relação à manhã ↑';
     } else if(delta<-0.004){
       deltaEl.className='delta-badge down'; deltaEl.style.display='inline-flex';
-      deltaEl.textContent='Valor desceu '+fmtBRL(Math.abs(delta))+' em relação à manhã';
+      deltaEl.textContent='Valor desceu '+fmtBRL(Math.abs(delta))+' em relação à manhã ↓';
     } else {
       deltaEl.style.display='none'; deltaEl.textContent='';
     }
@@ -3487,7 +3491,7 @@ function renderLostRoutesPage(){
   const matchesDay=e=>!lostRouteDay||routeDateKey(e)===lostRouteDay;
   const rows=LOST_ROUTES.filter(e=>matchesDay(e)&&matchesSearch(e));
   const crumb=document.getElementById('lostRoutesBreadcrumb');
-  const dateBox='<label class="lost-day-filter"><span>Dia</span><input id="lostRouteDay" type="date" value="'+escHtml(lostRouteDay)+'" title="Filtrar por dia"><button type="button" class="clear-date-filter" id="clearLostRouteDay" title="Mostrar todos os dias" aria-label="Limpar filtro de dia">×</button></label>';
+  const dateBox=ROUTE_ONLY_MODE?'<label class="lost-day-filter"><span>Dia</span><input id="lostRouteDay" type="date" value="'+escHtml(lostRouteDay)+'" title="Filtrar por dia"><button type="button" class="clear-date-filter" id="clearLostRouteDay" title="Mostrar todos os dias" aria-label="Limpar filtro de dia">×</button></label>':'';
   const searchBox='<label class="regional-search-box lost-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="lostRouteSearch" type="search" value="'+escHtml(lostRouteSearch)+'" placeholder="Buscar pacote, motorista, rota ou base..." autocomplete="off"></label>';
   if(!rows.length){ crumb.innerHTML='<strong>Perdidos em rota</strong>'+dateBox+searchBox; content.innerHTML='<div class="history-empty" style="padding:40px 0;">'+(LOST_ROUTES.length?'Nenhum pacote encontrado para esta busca.':'Anexe a planilha de Perdidos em rota em Importados para visualizar os pacotes.')+'</div>'; const input=document.getElementById('lostRouteSearch'); input?.addEventListener('input',()=>{lostRouteSearch=input.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);}); return; }
   const byRegion={}; rows.forEach(e=>{const r=lostRouteRegion(e);(byRegion[r]=byRegion[r]||[]).push(e);});

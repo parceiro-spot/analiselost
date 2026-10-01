@@ -733,3 +733,7 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 
 .lost-comp-chip.empty,.lost-comp-chip:disabled{opacity:.55;cursor:default}
 .lost-dist-line{margin-top:6px;font-size:12px;font-weight:600;color:#f5a623;cursor:pointer}
+
+/* Indicador de variação: sem cápsula/fundo, somente cor e seta. */
+.delta-badge.up{background:transparent!important;color:#c62828!important;border:0!important;box-shadow:none!important}
+.delta-badge.down{background:transparent!important;color:#218739!important;border:0!important;box-shadow:none!important}
