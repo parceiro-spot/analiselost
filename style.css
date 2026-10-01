@@ -733,8 +733,3 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 
 .lost-comp-chip.empty,.lost-comp-chip:disabled{opacity:.55;cursor:default}
 .lost-dist-line{margin-top:6px;font-size:12px;font-weight:600;color:#f5a623;cursor:pointer}
-/* Dashboard independente: Pacotes em Rota */
-.route-only-hide{display:none!important}
-.route-only-dashboard .brand-text .eyebrow{color:var(--spot-green)}
-.route-only-dashboard .brand-text h1 span{color:var(--spot-green)}
-.route-only-dashboard #page-importados .card:first-child{display:none}
