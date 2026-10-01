@@ -856,6 +856,9 @@ tbody tr:hover{background:var(--spot-glow)}
 :root:not(.theme-light) .kpi-card.total .kpi-label,:root:not(.theme-light) .kpi-card.total .kpi-value,:root:not(.theme-light) .kpi-card.total .kpi-sub{color:var(--ink-on-lime)}
 :root:not(.theme-light) .kpi-card.total .kpi-icon{background:var(--ink-on-lime);color:var(--spot-primary)}
 :root:not(.theme-light) .kpi-card.total .kpi-sub.kpi-sub-strong{color:var(--ink-on-lime)}
+/* selo "Valor subiu/desceu" legível sobre o cartão verde */
+:root:not(.theme-light) .kpi-card.total .delta-badge.up{background:rgba(255,255,255,.62);color:#7a0000;border:1px solid rgba(122,0,0,.55);font-weight:900}
+:root:not(.theme-light) .kpi-card.total .delta-badge.down{background:rgba(255,255,255,.62);color:#0d3b00;border:1px solid rgba(13,59,0,.55);font-weight:900}
 :root:not(.theme-light) .section-title{color:#fff}
 :root:not(.theme-light) .section-title::after{background:linear-gradient(90deg,rgba(255,255,255,.35),transparent)}
 :root:not(.theme-light) thead th{background:var(--bg-inset);color:#dfe6fb}
@@ -995,8 +998,9 @@ html.in-landing:not(.theme-light):not(.theme-pink){background:#000}
 </style>
 <style id="spot-splash">
 /* ===== Abertura: faixas verdes de "corrida" se juntam enquanto o caminhão chega; depois abrem ===== */
-#spotSplash{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:#0b1226;color:#0b1226;overflow:hidden;text-align:center;font-family:'Montserrat','Plus Jakarta Sans',system-ui,sans-serif}
+#spotSplash{--sp-bg:#0b1226;--sp-ink:#0b1226;--sp-title2:#fff;--sp-line:#0b1226;--sp-box:#0b1226;--sp-s1:#8dc63f;--sp-s2:#fff;--sp-cab:#fff;--sp-win:#8dc63f;--sp-chassis:#0b1226;--sp-tire:#0b1226;--sp-hub:#fff;--sp-streak:#fff;position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:var(--sp-bg);color:var(--sp-ink);overflow:hidden;text-align:center;font-family:'Montserrat','Plus Jakarta Sans',system-ui,sans-serif}
 html.splash-on{background:#0b1226}
+html.splash-on:not(.theme-light){background:#000}
 html.splash-on #spotSplash{display:flex}
 html.splash-go #spotSplash{background:transparent;pointer-events:none}
 /* faixas inclinadas */
@@ -1030,13 +1034,13 @@ html.splash-go #spotSplash .sp-strips i:nth-child(6){animation-delay:.1s}
 @keyframes spOpen{from{transform:translateX(0) skewX(-18deg)}to{transform:translateY(var(--to)) skewX(-18deg)}}
 /* riscos de velocidade (corrida) */
 #spotSplash .sp-speed{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-#spotSplash .sp-speed i{position:absolute;left:0;height:4px;border-radius:2px;background:#fff;opacity:0;will-change:transform;animation:spStreak .38s linear infinite}
+#spotSplash .sp-speed i{position:absolute;left:0;height:4px;border-radius:2px;background:var(--sp-streak);opacity:0;will-change:transform;animation:spStreak .38s linear infinite}
 #spotSplash .sp-speed i:nth-child(1){top:12%;width:22vw;animation-delay:.00s}
-#spotSplash .sp-speed i:nth-child(2){top:24%;width:32vw;animation-delay:.12s;background:#0b1226}
+#spotSplash .sp-speed i:nth-child(2){top:24%;width:32vw;animation-delay:.12s;background:var(--sp-line)}
 #spotSplash .sp-speed i:nth-child(3){top:36%;width:18vw;animation-delay:.22s}
-#spotSplash .sp-speed i:nth-child(4){top:60%;width:28vw;animation-delay:.06s;background:#0b1226}
+#spotSplash .sp-speed i:nth-child(4){top:60%;width:28vw;animation-delay:.06s;background:var(--sp-line)}
 #spotSplash .sp-speed i:nth-child(5){top:72%;width:36vw;animation-delay:.18s}
-#spotSplash .sp-speed i:nth-child(6){top:84%;width:20vw;animation-delay:.28s;background:#0b1226}
+#spotSplash .sp-speed i:nth-child(6){top:84%;width:20vw;animation-delay:.28s;background:var(--sp-line)}
 @keyframes spStreak{from{transform:translateX(105vw);opacity:0}15%{opacity:.55}85%{opacity:.55}to{transform:translateX(-45vw);opacity:0}}
 /* título */
 #spotSplash .sp-inner{position:relative;width:min(92vw,820px);padding:0 12px}
@@ -1046,7 +1050,7 @@ html.splash-go #spotSplash .sp-title{animation:spTitleOut .2s ease-in both}
 @keyframes spTitleIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes spTitleOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-12px)}}
 #spotSplash .sp-title span{display:block}
-#spotSplash .sp-title b{display:block;color:#fff;font-weight:900}
+#spotSplash .sp-title b{display:block;color:var(--sp-title2);font-weight:900}
 #spotSplash .sp-scene{position:relative;height:140px;margin-top:22px}
 /* caminhão: chega freando, para, e sai acelerando */
 #spotSplash .sp-mover{position:absolute;left:50%;bottom:20px;width:230px;margin-left:-115px;transform:translateX(-90vw);will-change:transform}
@@ -1060,15 +1064,29 @@ html.splash-go #spotSplash .sp-mover{animation:spTruckGo .4s cubic-bezier(.55,0,
 #spotSplash .sp-spin{transform-box:fill-box;transform-origin:center;animation:spSpin .28s linear infinite}
 @keyframes spSpin{to{transform:rotate(360deg)}}
 #spotSplash .sp-road{position:absolute;left:-10%;right:-10%;bottom:14px;height:6px;overflow:hidden;border-radius:3px}
-#spotSplash .sp-road::before{content:"";position:absolute;top:0;bottom:0;left:0;right:-60px;background:repeating-linear-gradient(90deg,#0b1226 0 34px,transparent 34px 60px);animation:spRoad .18s linear infinite}
+#spotSplash .sp-road::before{content:"";position:absolute;top:0;bottom:0;left:0;right:-60px;background:repeating-linear-gradient(90deg,var(--sp-line) 0 34px,transparent 34px 60px);animation:spRoad .18s linear infinite}
 @keyframes spRoad{to{transform:translateX(-60px)}}
 #spotSplash .sp-lines{position:absolute;left:-95px;bottom:40px;width:90px;height:60px}
-#spotSplash .sp-lines i{position:absolute;height:4px;border-radius:2px;background:#0b1226;opacity:.5;animation:spLine .3s linear infinite}
+#spotSplash .sp-lines i{position:absolute;height:4px;border-radius:2px;background:var(--sp-line);opacity:.5;animation:spLine .3s linear infinite}
 #spotSplash .sp-lines i:nth-child(1){top:6px;width:60px}
 #spotSplash .sp-lines i:nth-child(2){top:26px;width:80px;animation-delay:.1s}
 #spotSplash .sp-lines i:nth-child(3){top:46px;width:50px;animation-delay:.2s}
 @keyframes spLine{from{transform:translateX(30px);opacity:0}30%{opacity:.5}to{transform:translateX(-40px);opacity:0}}
+
+/* ---- versão ESCURA (tema escuro do painel): preto, faixas grafite com filete verde ---- */
+html:not(.theme-light) #spotSplash{--sp-bg:#000;--sp-ink:#fff;--sp-title2:#8dc63f;--sp-line:#8dc63f;--sp-box:#8dc63f;--sp-s1:#0b0b0b;--sp-s2:#0b0b0b;--sp-cab:#f2f2f2;--sp-win:#2b2b2b;--sp-chassis:#d9d9d9;--sp-tire:#fff;--sp-hub:#0b0b0b;--sp-streak:#8dc63f}
+html:not(.theme-light) #spotSplash .sp-strips i{box-shadow:inset 5px 0 0 #8dc63f}
+html:not(.theme-light) #spotSplash .sp-strips i:nth-child(odd){--c:#0d0d0d}
+html:not(.theme-light) #spotSplash .sp-strips i:nth-child(even){--c:#1a1a1a}
+html:not(.theme-light) #spotSplash .sp-strips i:nth-child(3),html:not(.theme-light) #spotSplash .sp-strips i:nth-child(6){--c:#141414}
 @media (prefers-reduced-motion:reduce){#spotSplash{display:none!important}}
+
+/* Filtros de data dos dashboards LOST e Pacotes em Rota */
+.lost-day-filter{display:inline-flex;align-items:center;gap:6px;margin-left:auto;padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:11px;font-weight:800;color:var(--text-muted);white-space:nowrap}
+.lost-day-filter input{min-width:132px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg,var(--card));color:var(--text);font:inherit;font-weight:700}
+.clear-date-filter{border:0;background:transparent;color:var(--text-muted);font-size:18px;line-height:1;padding:0 2px;cursor:pointer}
+.clear-date-filter:hover{color:var(--spot-green)}
+@media(max-width:760px){.lost-day-filter{order:3;margin-left:0}.lost-day-filter input{min-width:120px}}
 </style>
 </head>
 <body>
@@ -1082,16 +1100,16 @@ html.splash-go #spotSplash .sp-mover{animation:spTruckGo .4s cubic-bezier(.55,0,
         <div class="sp-lines"><i></i><i></i><i></i></div>
         <svg class="sp-truck" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
           <g class="sp-body">
-            <rect x="8" y="14" width="140" height="70" rx="8" fill="#0b1226"/>
-            <rect x="20" y="40" width="116" height="6" rx="3" fill="#8dc63f"/>
-            <rect x="20" y="54" width="70" height="6" rx="3" fill="#fff" opacity=".85"/>
-            <path d="M154 34h42c6 0 10 3 13 8l14 20c2 3 3 6 3 10v12H154z" fill="#fff"/>
-            <path d="M164 44h28c3 0 5 1 7 4l9 13h-44z" fill="#8dc63f" opacity=".6"/>
-            <rect x="8" y="84" width="218" height="8" rx="3" fill="#0b1226"/>
+            <rect x="8" y="14" width="140" height="70" rx="8" style="fill:var(--sp-box)"/>
+            <rect x="20" y="40" width="116" height="6" rx="3" style="fill:var(--sp-s1)"/>
+            <rect x="20" y="54" width="70" height="6" rx="3" style="fill:var(--sp-s2)" opacity=".85"/>
+            <path d="M154 34h42c6 0 10 3 13 8l14 20c2 3 3 6 3 10v12H154z" style="fill:var(--sp-cab)"/>
+            <path d="M164 44h28c3 0 5 1 7 4l9 13h-44z" style="fill:var(--sp-win)" opacity=".6"/>
+            <rect x="8" y="84" width="218" height="8" rx="3" style="fill:var(--sp-chassis)"/>
           </g>
-          <g transform="translate(40 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
-          <g transform="translate(104 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
-          <g transform="translate(196 98)"><g class="sp-spin"><circle r="17" fill="#0b1226"/><circle r="8" fill="#fff"/><rect x="-1.6" y="-8" width="3.2" height="16" fill="#0b1226"/></g></g>
+          <g transform="translate(40 98)"><g class="sp-spin"><circle r="17" style="fill:var(--sp-tire)"/><circle r="8" style="fill:var(--sp-hub)"/><rect x="-1.6" y="-8" width="3.2" height="16" style="fill:var(--sp-tire)"/></g></g>
+          <g transform="translate(104 98)"><g class="sp-spin"><circle r="17" style="fill:var(--sp-tire)"/><circle r="8" style="fill:var(--sp-hub)"/><rect x="-1.6" y="-8" width="3.2" height="16" style="fill:var(--sp-tire)"/></g></g>
+          <g transform="translate(196 98)"><g class="sp-spin"><circle r="17" style="fill:var(--sp-tire)"/><circle r="8" style="fill:var(--sp-hub)"/><rect x="-1.6" y="-8" width="3.2" height="16" style="fill:var(--sp-tire)"/></g></g>
         </svg>
       </div>
       <div class="sp-road"></div>
@@ -1431,6 +1449,17 @@ html.splash-go #spotSplash .sp-mover{animation:spTruckGo .4s cubic-bezier(.55,0,
       <div class="history-empty" id="returnHistoryEmpty">Nenhuma planilha de retorno importada.</div>
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;" id="routeHistHead">
+      <div class="section-title return-history-title" style="flex:1;margin:36px 0 16px;"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/></svg> <span id="routeHistTitle">Perdidos em rota importados</span></div>
+      <button type="button" class="btn-reset" id="btnToggleRouteHist" style="margin:36px 0 16px;" title="Minimizar/expandir histórico"><svg class="ico" id="routeHistCaret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg></button>
+    </div>
+    <div class="card return-history-card" id="routeHistoryCard">
+      <p class="return-history-help" id="routeHistHelp">Aqui ficam todas as planilhas de perdidos em rota anexadas. Cada linha informa o dia, o turno, o arquivo e quantos pacotes vieram nele. O ícone de lixeira exclui a importação.</p>
+      <div class="history-month-toolbar"><svg class="ico history-calendar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></svg><label for="routeHistMonth">Selecionar mês e ano</label><input type="month" id="routeHistMonth" title="Selecionar mês e ano"><button type="button" class="btn-reset" id="btnClearRouteMonth">Todos os meses</button><div class="history-sheets-folder"><button type="button" class="history-sheets-folder-title" id="btnToggleRouteFolder" aria-expanded="false" title="Abrir pasta"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/></svg> <span id="routeFolderLabel">Perdidos</span> <span class="folder-caret">▸</span></button><div class="history-month-chips folder-closed" id="routeMonthChips"></div></div></div>
+      <div class="table-scroll"><table style="min-width:760px"><thead><tr><th>Dia</th><th>Turno</th><th>Arquivo</th><th>Pacotes</th><th>Importado em</th><th></th></tr></thead><tbody id="routeHistoryBody"></tbody></table></div>
+      <div class="history-empty" id="routeHistoryEmpty">Nenhuma planilha importada.</div>
+    </div>
+
 
 
 </main>
@@ -1524,6 +1553,7 @@ const offendersCollapsedRegionals=new Set();
 let regionalNav={level:'list', regional:null};
 let lostRouteNav={level:'list', regional:null};
 let lostRouteSearch='';
+let lostRouteDay='';
 let regionalSearch='';
 let regionalBaseBucket='TODOS';
 let regionalAgeFilter='TODOS';
@@ -1532,6 +1562,8 @@ let importsHistCollapsed=false;
 let historyDayFilters=new Set();
 let returnHistMonth='';
 let returnHistCollapsed=false;
+let routeHistMonth='';
+let routeHistCollapsed=false;
 let importsHistMonth='';
 let pendingImportFile=null;
 let pendingReturnFile=null;
@@ -2073,6 +2105,7 @@ function updateImportUI(){
   else { dbox.style.display='none'; }
   renderImportsHistory();
   renderReturnHistory();
+  renderRouteHistory();
 }
 function renderDashboardImportSelector(){
   const select=document.getElementById('dashboardImportSelect'); if(!select)return;
@@ -2133,6 +2166,66 @@ function renderReturnHistory(){
   }).join('');
   renderReturnMonthChips();
 }
+
+/* ===== Histórico de importações: Perdidos em rota (LOST) e Pacotes em Rota ===== */
+function routeSource(){ return ROUTE_ONLY_MODE?LOST_ROUTES:LOST_ROUTES_ALL; }
+function routeImportGroups(){
+  const g=new Map();
+  routeSource().forEach(e=>{
+    const day=routeDateKey(e), turno=e.turno==='Tarde'?'Tarde':'Manhã', k=day+'|'+turno;
+    let it=g.get(k); if(!it){ it={key:k,day,turno,fileName:e.fileName||'Arquivo importado',count:0,savedAt:''}; g.set(k,it); }
+    it.count++; if(e.savedAt&&String(e.savedAt)>it.savedAt) it.savedAt=String(e.savedAt); if(e.fileName) it.fileName=e.fileName;
+  });
+  return Array.from(g.values());
+}
+function renderRouteHistory(){
+  const body=document.getElementById('routeHistoryBody'), empty=document.getElementById('routeHistoryEmpty'); if(!body||!empty)return;
+  const ttl=document.getElementById('routeHistTitle'), lbl=document.getElementById('routeFolderLabel'), help=document.getElementById('routeHistHelp');
+  if(ROUTE_ONLY_MODE){ if(ttl)ttl.textContent='Pacotes em rota importados'; if(lbl)lbl.textContent='Pacotes em Rota'; if(help)help.textContent='Aqui ficam todas as planilhas de Pacotes em Rota anexadas. Cada linha informa o dia, o turno, o arquivo e quantos pacotes vieram nele. O ícone de lixeira exclui a importação.'; }
+  const all=routeImportGroups();
+  const list=all.filter(x=>!routeHistMonth||x.day.slice(0,7)===routeHistMonth).sort((a,b)=>b.day.localeCompare(a.day)||(a.turno==='Manhã'?0:1)-(b.turno==='Manhã'?0:1));
+  const monthInput=document.getElementById('routeHistMonth'); if(monthInput)monthInput.value=routeHistMonth;
+  renderRouteMonthChips(all);
+  empty.style.display=list.length?'none':'block';
+  let lastMonth='';
+  body.innerHTML=list.map(x=>{
+    const month=x.day.slice(0,7); const [yy,mm]=month.split('-'); const monthLabel=new Date(Number(yy),Number(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    const sep=month!==lastMonth?'<tr class="history-month-row"><td colspan="6">'+escHtml(monthLabel)+'</td></tr>':''; lastMonth=month;
+    return sep+'<tr data-route-key="'+escHtml(x.key)+'"><td>'+escHtml(x.day.split('-').reverse().join('/'))+'</td><td>'+escHtml(x.turno)+'</td><td><strong>'+escHtml(x.fileName)+'</strong></td><td>'+fmtInt(x.count)+'</td><td>'+(x.savedAt?escHtml(new Date(x.savedAt).toLocaleString('pt-BR')):'—')+'</td><td><button type="button" class="del-btn" data-del-route="'+escHtml(x.key)+'" title="Excluir esta importação"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l-1-13M10 11v5M14 11v5"/></svg></button></td></tr>';
+  }).join('');
+}
+function renderRouteMonthChips(all){
+  const box=document.getElementById('routeMonthChips'); if(!box)return;
+  const months=Array.from(new Set((all||routeImportGroups()).map(x=>x.day.slice(0,7)).filter(Boolean))).sort().reverse();
+  box.innerHTML=months.map(month=>{const [y,m]=month.split('-');const label=new Date(Number(y),Number(m)-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase();return '<span class="history-month-folder '+(routeHistMonth===month?'active':'')+'"><button type="button" class="month-select" data-route-month="'+month+'">▰ '+label+' '+y+'</button><button type="button" class="month-delete" data-delete-route-month="'+month+'" title="Excluir importações do mês"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l-1-13M10 11v5M14 11v5"/></svg></button></span>';}).join('');
+}
+function removeRouteImports(match){
+  if(ROUTE_ONLY_MODE){
+    LOST_ROUTES=LOST_ROUTES.filter(e=>!match(e)); persistRoutePackages(); rebuildRouteOnlyImports(); rebuildStateData();
+    document.getElementById('emptyState').style.display=IMPORTS.length?'none':'block';
+    updateImportUI(); if(Object.keys(STATE_DATA).length) renderAll();
+  }else{
+    LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(e=>!match(e)); LOST_ROUTES=dedupeLostRoutes(LOST_ROUTES_ALL); persistLostRoutes();
+    updateImportUI(); renderLostRoutesPage(); if(Object.keys(STATE_DATA).length) renderAll();
+  }
+}
+document.getElementById('routeHistMonth').addEventListener('change',e=>{routeHistMonth=e.target.value||'';renderRouteHistory();});
+document.getElementById('btnClearRouteMonth').addEventListener('click',()=>{routeHistMonth='';renderRouteHistory();});
+document.getElementById('btnToggleRouteFolder').addEventListener('click',function(){const open=this.getAttribute('aria-expanded')==='true';this.setAttribute('aria-expanded',String(!open));this.title=open?'Abrir pasta':'Fechar pasta';document.getElementById('routeMonthChips').classList.toggle('folder-closed',open);});
+document.getElementById('routeMonthChips').addEventListener('click',e=>{
+  const sel=e.target.closest('[data-route-month]'); if(sel){routeHistMonth=sel.dataset.routeMonth;renderRouteHistory();return;}
+  const del=e.target.closest('[data-delete-route-month]'); if(!del)return; const month=del.dataset.deleteRouteMonth;
+  if(!confirm('Excluir todas as importações deste mês? Esta ação não pode ser desfeita.'))return;
+  if(routeHistMonth===month)routeHistMonth='';
+  removeRouteImports(x=>routeDateKey(x).slice(0,7)===month);
+});
+document.getElementById('routeHistoryBody').addEventListener('click',e=>{
+  const del=e.target.closest('[data-del-route]'); if(!del)return; e.stopPropagation();
+  if(!confirm('Excluir esta importação do histórico? Esta ação não pode ser desfeita.'))return;
+  const key=del.dataset.delRoute;
+  removeRouteImports(x=>(routeDateKey(x)+'|'+(x.turno==='Tarde'?'Tarde':'Manhã'))===key);
+});
+document.getElementById('btnToggleRouteHist').addEventListener('click',function(){routeHistCollapsed=!routeHistCollapsed;document.getElementById('routeHistoryCard').style.display=routeHistCollapsed?'none':'block';document.getElementById('routeHistCaret').style.transform=routeHistCollapsed?'rotate(-90deg)':'rotate(0)';});
 function renderReturnMonthChips(){
   const box=document.getElementById('returnMonthChips'); if(!box)return;
   const months=Array.from(new Set(RETURN_SHEETS.map(s=>String(s.importDate||'').slice(0,7)).filter(Boolean))).sort().reverse();
@@ -2276,7 +2369,7 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
 });
 document.getElementById('fileInputLost').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='OK';e.target.value='';});
 document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}const lostDay=document.getElementById('lostDia')?.value||todayStr(); const lostTurno=document.getElementById('lostTurno')?.value||'Manhã';
-const novosRota=rows.map(e=>({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'}));
+const novosRota=rows.map(e=>({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'}));
 if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); } else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=dedupeLostRoutes(LOST_ROUTES_ALL); }
 if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();updateImportUI();}else{persistLostRoutes();updateImportUI();renderLostRoutesPage();}};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildLostRoutesFromRawRows(parseDelimitedText(text,delim)));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){rows=buildLostRoutesFromRawRows(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true}));if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
 document.getElementById('fileInputDrivers').addEventListener('change', function(e){
@@ -2294,15 +2387,20 @@ function setPage(page){
   if(PUBLIC_VIEW_MODE && page!=='geral' && page!=='regional') page='geral';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
   ['geral','ofensores','regional','lostroutes','diaria','analise','revertido','importados'].forEach(p=>{
-    document.getElementById('page-'+p).classList.toggle('active', p===page);
+    const el=document.getElementById('page-'+p); if(el) el.classList.toggle('active', p===page);
   });
-  document.getElementById('subtabsBar').style.display = page==='geral' ? 'block' : 'none';
-  if(page==='ofensores') renderOffenders();
-  if(page==='regional'){ regionalNav={level:'list',regional:null}; renderRegionalPage(); }
-  if(page==='lostroutes'){ lostRouteNav={level:'list',regional:null}; renderLostRoutesPage(); }
-  if(page==='diaria') renderDiaria();
-  if(page==='analise') renderAnalise();
-  if(page==='revertido') renderRevertido();
+  const subtabs=document.getElementById('subtabsBar'); if(subtabs) subtabs.style.display = page==='geral' ? 'block' : 'none';
+  try {
+    if(page==='ofensores') renderOffenders();
+    if(page==='regional'){ regionalNav={level:'list',regional:null}; renderRegionalPage(); }
+    if(page==='lostroutes'){ lostRouteNav={level:'list',regional:null}; renderLostRoutesPage(); }
+    if(page==='diaria') renderDiaria();
+    if(page==='analise') renderAnalise();
+    if(page==='revertido') renderRevertido();
+  } catch(err) {
+    console.error('Falha ao abrir a aba '+page,err);
+    const target=document.getElementById('page-'+page); if(target) target.insertAdjacentHTML('afterbegin','<div class="history-empty nav-error">Não foi possível carregar esta aba. Tente novamente.</div>');
+  }
 }
 document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click', ()=>setPage(btn.dataset.page)));
 
@@ -3370,13 +3468,15 @@ function renderLostRoutesPage(){
   const content=document.getElementById('lostRoutesContent'); if(!content)return;
   const query=lostRouteSearch.trim().toUpperCase();
   const matchesSearch=e=>!query||[e.pacote,e.driverId,getDriverName(e.driverId),e.rota,e.base,lostPrimaryBase(e),e.origem,e.destino,e.produto,e.motivo].some(value=>String(value||'').toUpperCase().includes(query));
-  const rows=LOST_ROUTES.filter(matchesSearch);
+  const matchesDay=e=>!lostRouteDay||routeDateKey(e)===lostRouteDay;
+  const rows=LOST_ROUTES.filter(e=>matchesDay(e)&&matchesSearch(e));
   const crumb=document.getElementById('lostRoutesBreadcrumb');
+  const dateBox='<label class="lost-day-filter"><span>Dia</span><input id="lostRouteDay" type="date" value="'+escHtml(lostRouteDay)+'" title="Filtrar por dia"><button type="button" class="clear-date-filter" id="clearLostRouteDay" title="Mostrar todos os dias" aria-label="Limpar filtro de dia">×</button></label>';
   const searchBox='<label class="regional-search-box lost-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="lostRouteSearch" type="search" value="'+escHtml(lostRouteSearch)+'" placeholder="Buscar pacote, motorista, rota ou base..." autocomplete="off"></label>';
-  if(!rows.length){ crumb.innerHTML='<strong>Perdidos em rota</strong>'+searchBox; content.innerHTML='<div class="history-empty" style="padding:40px 0;">'+(LOST_ROUTES.length?'Nenhum pacote encontrado para esta busca.':'Anexe a planilha de Perdidos em rota em Importados para visualizar os pacotes.')+'</div>'; const input=document.getElementById('lostRouteSearch'); input?.addEventListener('input',()=>{lostRouteSearch=input.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);}); return; }
+  if(!rows.length){ crumb.innerHTML='<strong>Perdidos em rota</strong>'+dateBox+searchBox; content.innerHTML='<div class="history-empty" style="padding:40px 0;">'+(LOST_ROUTES.length?'Nenhum pacote encontrado para esta busca.':'Anexe a planilha de Perdidos em rota em Importados para visualizar os pacotes.')+'</div>'; const input=document.getElementById('lostRouteSearch'); input?.addEventListener('input',()=>{lostRouteSearch=input.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);}); return; }
   const byRegion={}; rows.forEach(e=>{const r=lostRouteRegion(e);(byRegion[r]=byRegion[r]||[]).push(e);});
   if(lostRouteNav.level==='list'){
-    crumb.innerHTML='<strong>Todas as regionais</strong>'+searchBox+'<span class="lost-count">'+fmtInt(rows.length)+' pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostRoutes" title="Baixar pacotes em rota"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostRoutes" title="Capturar regionais de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>';
+    crumb.innerHTML='<strong>Todas as regionais</strong>'+dateBox+searchBox+'<span class="lost-count">'+fmtInt(rows.length)+' pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostRoutes" title="Baixar pacotes em rota"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostRoutes" title="Capturar regionais de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>';
     let html='<div class="regional-grid lost-summary"><div class="regional-card" data-lost-region="TODAS"><div class="rname">Todas as regionais</div><div class="rsub">'+fmtInt(rows.length)+' pacote(s) em rota</div><div class="rval">'+fmtBRL(rows.reduce((a,e)=>a+Number(e.valor||0),0))+'</div></div>';
     REGIONAL_ORDER.forEach(r=>{const list=byRegion[r];if(!list)return;html+=`<div class="regional-card" data-lost-region="${escHtml(r)}"><div class="rname">${escHtml(REGIONAL_LABELS[r]||r)}</div><div class="rsub">${fmtInt(list.length)} pacote(s) em rota</div><div class="rval">${fmtBRL(list.reduce((a,e)=>a+Number(e.valor||0),0))}</div></div>`;});
     if(byRegion.OUTROS) html+=`<div class="regional-card" data-lost-region="OUTROS"><div class="rname">Outras bases</div><div class="rsub">${fmtInt(byRegion.OUTROS.length)} pacote(s) em rota</div><div class="rval">${fmtBRL(byRegion.OUTROS.reduce((a,e)=>a+Number(e.valor||0),0))}</div></div>`;
@@ -3392,7 +3492,7 @@ function renderLostRoutesPage(){
   /* Bases que só aparecem como complemento (ex.: SMG13 ligada a EMG25) também ganham card, para nenhuma base ficar de fora. */
   /* Quantidade REAL de cada base: só conta o pacote na base onde ele está de fato (base principal). Pacote que já está em outra base não é somado na base complementar. */
   const ownByBase={}; rows.forEach(e=>{ const b=lostPrimaryBase(e)||'SEM BASE';(ownByBase[b]=ownByBase[b]||[]).push(e);});
-  crumb.innerHTML=`<a data-lost-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||'Outras bases'))}</strong>${searchBox}<span class="lost-count">${fmtInt(entries.length)} pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostBases" title="Baixar pacotes em rota desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostBases" title="Capturar bases de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
+  crumb.innerHTML=dateBox+`<a data-lost-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||'Outras bases'))}</strong>${searchBox}<span class="lost-count">${fmtInt(entries.length)} pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostBases" title="Baixar pacotes em rota desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostBases" title="Capturar bases de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
   const cardList=Object.keys(byBase).map(b=>({base:b,list:byBase[b],comp:false})).sort((a,b)=>a.base.localeCompare(b.base));
   let html='<div class="base-grid lost-base-grid">';
   cardList.forEach(({base,list,comp})=>{
@@ -3409,6 +3509,8 @@ function renderLostRoutesPage(){
   content.querySelectorAll('[data-lost-comp]').forEach(chip=>chip.addEventListener('click',ev=>{ev.stopPropagation();const c=chip.dataset.lostComp,p=chip.dataset.lostParent; openLostRoutesOverlay(c,ownByBase[c]||[],'');}));
   crumb.querySelector('[data-lost-back="list"]').addEventListener('click',()=>{lostRouteNav={level:'list',regional:null};renderLostRoutesPage();});
 }
+document.addEventListener('change',e=>{if(e.target?.id==='lostRouteDay'){lostRouteDay=e.target.value||'';renderLostRoutesPage();}});
+document.addEventListener('click',e=>{if(e.target?.id==='clearLostRouteDay'){lostRouteDay='';renderLostRoutesPage();}});
 function openLostRoutesOverlay(base,rows,parent){
   const mapped=rows.map(e=>{const p=lostPrimaryBase(e)||e.base||e.origem||base; return {...e,base:p,tipo:classifyBaseCode(p,regionalFromBasePrefix(p))||'SVC',motivo:motivoExibicaoLost(e),valor:Number(e.valor||0),driverId:e.driverId||lostRouteMatchesRisk(e)?.driverId||''};});
   mapped.forEach(e=>{e.isLost=true;}); openOverlayEntries('Perdidos em rota · '+baseInfoText(base)+(parent&&parent!==base?' · complementar de '+parent:''),'',mapped,'TODOS');
@@ -3540,7 +3642,7 @@ function selectedPeriodEntries(){
 }
 function dateInputSet(id,value){ const el=document.getElementById(id); if(el) el.value=value||''; }
 function enableNativeDatePickers(){
-  ['diariaDia','analiseDe','analiseAte','impDia','lostDia'].forEach(id=>{
+  ['diariaDia','analiseDe','analiseAte','impDia','lostDia','revAtual','revComparar','lostRouteDay'].forEach(id=>{
     const el=document.getElementById(id); if(!el||el.dataset.pickerReady) return;
     el.dataset.pickerReady='1';
     el.addEventListener('click',()=>{ if(typeof el.showPicker==='function'){ try{el.showPicker();}catch(e){} } });
