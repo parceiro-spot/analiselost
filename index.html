@@ -3916,7 +3916,8 @@ function renderRevertido(){
   /* Valor atual é sempre o total da base na data "Até", independente do status
      da linha. Assim, uma base não aparece com R$ 0,00 só porque a linha exibida
      contém pacotes revertidos; o status continua sendo calculado por pacote. */
-  const currentByBase={};
+  const currentByBase={}, beforeByBase={}, baseWithin={}, baseRisk={};
+  revertidoEntriesForDay(startDay).forEach(e=>{if(baseOk(e.base))beforeByBase[e.base]=(beforeByBase[e.base]||0)+(Number(e.valor)||0);});
   revertidoEntriesForDay(endDay).forEach(e=>{if(baseOk(e.base))currentByBase[e.base]=(currentByBase[e.base]||0)+(Number(e.valor)||0);});
   const rowsMap=new Map();
   const getRow=(base,st)=>{
@@ -3939,28 +3940,42 @@ function renderRevertido(){
     if(st!=='green'){
       /* Os indicadores seguem exatamente a mesma regra do status: 24h a partir
          da primeira aparição, com proteção operacional de sexta a segunda. */
-      if(revPacoteVencido(p.lastEntry,endDay,horaAtual,firstSeen))r.persistentComRisco++;
-      else r.persistentSemRisco++;
+      if(revPacoteVencido(p.lastEntry,endDay,horaAtual,firstSeen)){
+        r.persistentComRisco++;baseRisk[p.base]=(baseRisk[p.base]||0)+1;
+      }else{
+        r.persistentSemRisco++;baseWithin[p.base]=(baseWithin[p.base]||0)+1;
+      }
     }
   });
-  const rows=Array.from(rowsMap.values()).map(r=>({...r,baseCurrent:currentByBase[r.base]||0})).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
+  const rows=Array.from(rowsMap.values()).map(r=>({...r,
+    baseBefore:beforeByBase[r.base]||0,
+    baseCurrent:currentByBase[r.base]||0,
+    baseDelta:(currentByBase[r.base]||0)-(beforeByBase[r.base]||0),
+    baseWithin:baseWithin[r.base]||0,
+    baseRisk:baseRisk[r.base]||0
+  })).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
   const visibleRows=revStatusFilter==='TODOS'?rows:rows.filter(r=>r.status===revStatusFilter);
   const sumBy=f=>visibleRows.reduce((s,r)=>s+f(r),0);
   const totalBefore=sumBy(r=>r.before), totalRev=sumBy(r=>r.reverted), totalCur=sumBy(r=>r.current);
+  const metricBases=new Set(visibleRows.map(r=>r.base));
+  const totalBaseCurrent=Array.from(metricBases).reduce((n,base)=>n+(currentByBase[base]||0),0);
+  const totalBaseBefore=Array.from(metricBases).reduce((n,base)=>n+(beforeByBase[base]||0),0);
+  const totalBaseWithin=Array.from(metricBases).reduce((n,base)=>n+(baseWithin[base]||0),0);
+  const totalBaseRisk=Array.from(metricBases).reduce((n,base)=>n+(baseRisk[base]||0),0);
   const kpiValue=(revStatusFilter==='red'||revStatusFilter==='orange')?totalCur:totalRev;
   const basesCount=new Set((revStatusFilter==='TODOS'?visibleRows.filter(r=>r.reverted>0.005):visibleRows).map(r=>r.base)).size;
   document.getElementById('revKpiValorLabel').textContent=revStatusFilter==='red'?'Valor não revertido':(revStatusFilter==='orange'?'Valor em prazo':'Valor revertido');
   document.getElementById('revKpiBasesLabel').textContent=revStatusFilter==='red'?'Bases não revertidas':(revStatusFilter==='orange'?'Bases em prazo':'Bases com reversão');
-  document.getElementById('revValorEstava').textContent=fmtBRL(totalBefore);
+  document.getElementById('revValorEstava').textContent=fmtBRL(totalBaseBefore);
   document.getElementById('revValor').textContent=fmtBRL(kpiValue);
-  document.getElementById('revRisco').textContent=fmtBRL(totalCur);
+  document.getElementById('revRisco').textContent=fmtBRL(totalBaseCurrent);
   document.getElementById('revBases').textContent=fmtInt(basesCount);
-  document.getElementById('revPersistentesSemRisco').textContent=fmtInt(sumBy(r=>r.persistentSemRisco));
-  document.getElementById('revPersistentesComRisco').textContent=fmtInt(sumBy(r=>r.persistentComRisco));
+  document.getElementById('revPersistentesSemRisco').textContent=fmtInt(totalBaseWithin);
+  document.getElementById('revPersistentesComRisco').textContent=fmtInt(totalBaseRisk);
   setRevPeriodo('Pacote Revertido · '+fmtFull(startDay)+' até '+fmtFull(endDay)+((startDay!==comp.value||endDay!==atual.value)?' · só há planilha de '+fmtFull(startDay)+' a '+fmtFull(endDay)+' dentro do intervalo pedido':''));
   const pkgSet=revStatusFilter==='TODOS'?null:new Set(visibleRows.flatMap(r=>Array.from(r.pkgs)));
   renderRevResumo(rangeDates,e=>baseOk(e.base)&&(!pkgSet||pkgSet.has(pkgKey(e))),comp.value,atual.value,revStatusFilter);
-  document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const delta=b.current-b.before;const deltaClass=delta<-.005?'down':delta>.005?'up':'same';const deltaText=delta<-.005?'− '+fmtBRL(Math.abs(delta)):delta>.005?'+ '+fmtBRL(delta):fmtBRL(0);const statusLabel=({green:'Valor Revertido',orange:'Em prazo',red:'Não revertido'}[b.status]);return '<tr class="status-'+b.status+'"><td><span class="rev-status '+b.status+'"><i class="rev-dot '+b.status+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><strong>'+escHtml(b.base)+'</strong></td><td><strong>'+fmtBRL(b.before)+'</strong></td><td>'+fmtBRL(b.baseCurrent)+'</td><td><strong>'+fmtBRL(b.statusValue||0)+'</strong><small class="rev-value-help">'+(b.status==='green'?'revertido':(b.status==='red'?'não revertido':'em prazo'))+'</small></td><td><span class="value-delta '+deltaClass+'">'+deltaText+'</span></td><td>'+fmtInt(b.persistentSemRisco)+'</td><td>'+fmtInt(b.persistentComRisco)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtBRL(b.driverRisk)+'</td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="12" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
+  document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const delta=b.baseDelta;const deltaClass=delta<-.005?'down':delta>.005?'up':'same';const deltaText=delta<-.005?'− '+fmtBRL(Math.abs(delta)):delta>.005?'+ '+fmtBRL(delta):fmtBRL(0);const statusLabel=({green:'Valor Revertido',orange:'Em prazo',red:'Não revertido'}[b.status]);return '<tr class="status-'+b.status+'"><td><span class="rev-status '+b.status+'"><i class="rev-dot '+b.status+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><strong>'+escHtml(b.base)+'</strong></td><td><strong>'+fmtBRL(b.baseBefore)+'</strong></td><td>'+fmtBRL(b.baseCurrent)+'</td><td><strong>'+fmtBRL(b.statusValue||0)+'</strong><small class="rev-value-help">'+(b.status==='green'?'revertido':(b.status==='red'?'não revertido':'em prazo'))+'</small></td><td><span class="value-delta '+deltaClass+'">'+deltaText+'</span></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtBRL(b.driverRisk)+'</td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="12" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
 }
 ['revAtual','revComparar','revRegional','revBase','revOrigem'].forEach(id=>document.getElementById(id).addEventListener('change',renderRevertido));
 document.getElementById('revQuick').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),idx=ds.indexOf(document.getElementById('revAtual').value);const i=idx<0?ds.length-1:idx;
