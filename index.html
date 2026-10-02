@@ -1102,8 +1102,22 @@ html:not(.theme-light) #spotSplash .sp-strips i:nth-child(3),html:not(.theme-lig
 <style>
 .diaria-total-row{background:var(--bg-card-hover)!important;color:var(--text-primary)!important;border-top:2px solid var(--spot-green)!important}
 .diaria-total-row td{background:var(--bg-card-hover)!important;color:var(--text-primary)!important;font-weight:800}
-.info-logistic-active{background:rgba(128,128,128,.30)!important;box-shadow:inset 4px 0 0 #a0a0a0,0 0 0 2px rgba(160,160,160,.42)!important;transition:background .2s ease,box-shadow .2s ease}
-.info-logistic-active td{background:rgba(128,128,128,.30)!important;color:var(--text-primary)!important}
+.info-logistic-active{background:rgba(185,185,185,.13)!important;box-shadow:inset 3px 0 0 rgba(165,165,165,.65)!important;animation:infoLogisticRowFade 2.2s ease-out forwards}
+.info-logistic-active td{background:rgba(185,185,185,.13)!important;color:var(--text-primary)!important;animation:infoLogisticCellFade 2.2s ease-out forwards}
+@keyframes infoLogisticRowFade{0%,12%{background:rgba(185,185,185,.16);box-shadow:inset 3px 0 0 rgba(165,165,165,.65)}100%{background:transparent;box-shadow:inset 0 0 0 transparent}}
+@keyframes infoLogisticCellFade{0%,12%{background:rgba(185,185,185,.16)}100%{background:transparent}}
+</style><style>
+.rev-base-link{border:0;background:transparent;padding:0;color:var(--text-primary);font:inherit;font-weight:800;text-decoration:underline;text-decoration-color:rgba(141,198,63,.6);text-underline-offset:3px;cursor:pointer}
+.rev-base-link:hover{color:var(--spot-green);text-decoration-color:var(--spot-green)}
+.rev-base-history-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.rev-base-history-kpi{padding:12px;border:1px solid var(--border-color);border-radius:10px;background:var(--bg-card-hover)}
+.rev-base-history-kpi .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary)}
+.rev-base-history-kpi .val{margin-top:4px;font-size:19px;font-weight:800;color:var(--text-primary)}
+.rev-base-history-table{width:100%;border-collapse:collapse;font-size:12px}
+.rev-base-history-table th,.rev-base-history-table td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--border-color);white-space:nowrap}
+.rev-base-history-table th{font-size:10px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-secondary)}
+.rev-base-history-table td strong{color:var(--text-primary)}
+@media(max-width:700px){.rev-base-history-kpis{grid-template-columns:1fr}.rev-base-history-table{font-size:11px}}
 </style></head>
 <body>
 <div id="spotSplash" aria-hidden="true">
@@ -3900,6 +3914,25 @@ function setRevPeriodo(txt){
   if(!span){span=document.createElement('span');span.className='rev-periodo-txt';Array.from(p.childNodes).forEach(n=>{if(n.nodeType===3)p.removeChild(n);});p.insertBefore(span,p.firstChild);}
   span.textContent=txt;
 }
+function openRevertidoBaseHistory(base){
+  const de=document.getElementById('revComparar')?.value||'';
+  const ate=document.getElementById('revAtual')?.value||'';
+  const dates=availableImportDates().filter(d=>(!de||d>=de)&&(!ate||d<=ate));
+  const rows=dates.map(day=>{
+    const entries=revertidoEntriesForDay(day).filter(e=>normalizeBaseCode(e.base)===normalizeBaseCode(base));
+    const unique=new Map(); entries.forEach(e=>{const key=normalizePackageKey(e.pacote)||('__'+e.base+'|'+e.driverId+'|'+e.valor+'|'+e.date);unique.set(key,e);});
+    const list=Array.from(unique.values());
+    return {day,list,value:list.reduce((n,e)=>n+(Number(e.valor)||0),0),svc:list.filter(e=>String(e.tipo||'').toUpperCase()==='SVC').reduce((n,e)=>n+(Number(e.valor)||0),0),xpt:list.filter(e=>String(e.tipo||'').toUpperCase()==='XPT').reduce((n,e)=>n+(Number(e.valor)||0),0)};
+  }).filter(row=>row.list.length);
+  const current=rows[rows.length-1], first=rows[0], diff=current&&first?current.value-first.value:0;
+  const fmtDay=d=>d?d.split('-').reverse().join('/'):'—';
+  const rowsHtml=rows.length?rows.map((row,i)=>{const prev=rows[i-1];const delta=prev?row.value-prev.value:0;const deltaHtml=prev?(delta>0.005?'<span class="value-delta up">+ '+fmtBRL(delta)+'</span>':delta<-.005?'<span class="value-delta down">− '+fmtBRL(Math.abs(delta))+'</span>':'<span class="value-delta same">R$ 0,00</span>'):'<span class="mut">—</span>';return '<tr><td><strong>'+fmtDay(row.day)+'</strong></td><td>'+fmtInt(row.list.length)+'</td><td>'+fmtBRL(row.value)+'</td><td>'+fmtBRL(row.svc)+'</td><td>'+fmtBRL(row.xpt)+'</td><td>'+deltaHtml+'</td></tr>';}).join(''):'<tr><td colspan="6" class="history-empty">Nenhuma planilha encontrada para esta base no período selecionado.</td></tr>';
+  document.getElementById('overlayTitle').textContent='Histórico da base '+base;
+  document.getElementById('overlayBody').innerHTML='<div class="overlay-tools"><div class="osub">Evolução do valor atual da base no período selecionado</div></div>'
+    +'<div class="rev-base-history-kpis"><div class="rev-base-history-kpi"><div class="lbl">Valor atual da base</div><div class="val">'+fmtBRL(current?.value||0)+'</div></div><div class="rev-base-history-kpi"><div class="lbl">Pacotes atuais</div><div class="val">'+fmtInt(current?.list.length||0)+'</div></div><div class="rev-base-history-kpi"><div class="lbl">Variação no período</div><div class="val">'+(diff>0.005?'+ ':'')+fmtBRL(diff)+'</div></div></div>'
+    +'<div class="table-scroll"><table class="rev-base-history-table"><thead><tr><th>Data</th><th>Pacotes</th><th>Valor atual</th><th>SVC</th><th>XPT</th><th>Variação vs. dia anterior</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
+  document.getElementById('baseOverlay').classList.add('show');
+}
 function renderRevertido(){
   const dates=availableImportDates(), atual=document.getElementById('revAtual'), comp=document.getElementById('revComparar'), regSel=document.getElementById('revRegional'), baseSel=document.getElementById('revBase'), origemSel=document.getElementById('revOrigem');
   if(!regSel.dataset.filled){regSel.innerHTML='<option value="TODOS">Todas</option>'+REGIONAL_ORDER.map(r=>'<option value="'+r+'">'+(REGIONAL_LABELS[r]||r)+'</option>').join('');regSel.dataset.filled='1';}
@@ -4010,7 +4043,7 @@ function renderRevertido(){
   setRevPeriodo('Pacote Revertido · '+fmtFull(startDay)+' até '+fmtFull(endDay)+((startDay!==comp.value||endDay!==atual.value)?' · só há planilha de '+fmtFull(startDay)+' a '+fmtFull(endDay)+' dentro do intervalo pedido':''));
   const pkgSet=revStatusFilter==='TODOS'?null:new Set(visibleRows.flatMap(r=>Array.from(r.pkgs)));
   renderRevResumo(rangeDates,e=>baseOk(e.base)&&(!pkgSet||pkgSet.has(pkgKey(e))),comp.value,atual.value,revStatusFilter);
-  document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const delta=b.baseDelta;const deltaClass=delta<-.005?'down':delta>.005?'up':'same';const deltaText=delta<-.005?'− '+fmtBRL(Math.abs(delta)):delta>.005?'+ '+fmtBRL(delta):fmtBRL(0);const statusLabel=({green:'Valor Revertido',orange:'Em prazo',red:'Não revertido'}[b.status]);return '<tr class="status-'+b.status+'"><td><span class="rev-status '+b.status+'"><i class="rev-dot '+b.status+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><strong>'+escHtml(b.base)+'</strong></td><td><strong>'+fmtBRL(b.baseBefore)+'</strong></td><td>'+fmtBRL(b.baseCurrent)+'</td><td><span class="value-delta '+deltaClass+'">'+deltaText+'</span></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtBRL(b.driverRisk)+'</td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="11" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
+  document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const delta=b.baseDelta;const deltaClass=delta<-.005?'down':delta>.005?'up':'same';const deltaText=delta<-.005?'− '+fmtBRL(Math.abs(delta)):delta>.005?'+ '+fmtBRL(delta):fmtBRL(0);const statusLabel=({green:'Valor Revertido',orange:'Em prazo',red:'Não revertido'}[b.status]);return '<tr class="status-'+b.status+'"><td><span class="rev-status '+b.status+'"><i class="rev-dot '+b.status+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+fmtBRL(b.baseBefore)+'</strong></td><td>'+fmtBRL(b.baseCurrent)+'</td><td><span class="value-delta '+deltaClass+'">'+deltaText+'</span></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtBRL(b.driverRisk)+'</td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="11" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
 }
 ['revAtual','revComparar','revRegional','revBase','revOrigem'].forEach(id=>document.getElementById(id).addEventListener('change',renderRevertido));
 document.getElementById('revQuick').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),idx=ds.indexOf(document.getElementById('revAtual').value);const i=idx<0?ds.length-1:idx;
@@ -4038,7 +4071,7 @@ document.getElementById('revQuick').addEventListener('click',e=>{const b=e.targe
 })();
 document.getElementById('revAtualHoje').addEventListener('click',()=>{const ds=availableImportDates();document.getElementById('revAtual').value=ds[ds.length-1]||todayStr();renderRevertido();});
 document.getElementById('revLegend').addEventListener('click',e=>{const btn=e.target.closest('.rev-filter');if(!btn)return;revStatusFilter=btn.dataset.status;document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x===btn));renderRevertido();});
-document.getElementById('revBody').addEventListener('click',e=>{const btn=e.target.closest('.driver-link');if(!btn)return;motoristaSelecionado=btn.dataset.driver||'';renderMotoristas();document.getElementById('motoristaDetalhePanel').scrollTop=0;});
+document.getElementById('revBody').addEventListener('click',e=>{const base=e.target.closest('[data-rev-base]');if(base){openRevertidoBaseHistory(base.dataset.revBase||'');return;}const btn=e.target.closest('.driver-link');if(!btn)return;motoristaSelecionado=btn.dataset.driver||'';renderMotoristas();document.getElementById('motoristaDetalhePanel').scrollTop=0;});
 function renderMotoristas(){
   const rows=[];
   const comparar=document.getElementById('revComparar')?.value||'';
