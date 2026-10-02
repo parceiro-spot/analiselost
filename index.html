@@ -1118,7 +1118,7 @@ html:not(.theme-light) #spotSplash .sp-strips i:nth-child(3),html:not(.theme-lig
 .rev-base-history-table th{font-size:10px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-secondary)}
 .rev-base-history-table td strong{color:var(--text-primary)}
 @media(max-width:700px){.rev-base-history-kpis{grid-template-columns:1fr}.rev-base-history-table{font-size:11px}}
-</style></head>
+</style><style>.motorista-faixa-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.motorista-faixa-filtros .preset-btn{font-size:10px;padding:5px 8px}</style></head>
 <body>
 <div id="spotSplash" aria-hidden="true">
   <div class="sp-strips"><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -1423,7 +1423,7 @@ html:not(.theme-light) #spotSplash .sp-strips i:nth-child(3),html:not(.theme-lig
         <div class="rev-kpis"><div class="rev-kpi"><div class="lbl">Valor estava</div><div class="val" id="revValorEstava">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl" id="revKpiValorLabel">Valor revertido</div><div class="val" id="revValor">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl">Valor atual</div><div class="val" id="revRisco">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl" id="revKpiBasesLabel">Bases com reversão</div><div class="val" id="revBases">0</div></div><div class="rev-kpi"><div class="lbl">Pacotes dentro do prazo</div><div class="val" id="revPersistentesSemRisco">0</div></div><div class="rev-kpi"><div class="lbl">Pacotes em risco</div><div class="val" id="revPersistentesComRisco">0</div></div></div>
     <div class="rev-table-wrap"><table class="rev-table"><thead><tr><th>Situação</th><th>Regional</th><th>Base</th><th>Valor estava</th><th>Valor atual da base (Até)</th><th>Redução / aumento</th><th>Dentro do prazo</th><th>Em risco</th><th>Motorista mais ofensor</th><th>Risco do motorista</th><th>Vezes ofensor</th></tr></thead><tbody id="revBody"></tbody></table></div>
     <div class="driver-detail-panel" id="motoristaDetalhePanel" style="display:none;"><div class="driver-detail-head"><div><h3 id="motoristaDetalheTitulo">Detalhes do motorista</h3><div class="osub">Pacotes e ocorrências do motorista selecionado</div></div><button type="button" class="overlay-close" id="motoristaDetalheFechar">Fechar detalhes</button></div><div class="rev-kpis"><div class="rev-kpi"><div class="lbl">Motorista</div><div class="val" id="motoristaNome">—</div></div><div class="rev-kpi"><div class="lbl">Valor em risco</div><div class="val" id="motoristaValor">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl">Vezes ofensor</div><div class="val" id="motoristaOcorrencias">0</div><div id="motoristaOfensorFaixas"></div></div><div class="rev-kpi"><div class="lbl">Pacotes atuais do motorista</div><div class="val" id="motoristaPacotes">0</div></div></div><div class="rev-table-wrap"><table class="rev-table"><thead><tr><th>Data</th><th>Regional</th><th>Base</th><th>Pacote</th><th>Tipo</th><th>Valor de risco</th><th>Motivo</th></tr></thead><tbody id="motoristaBody"></tbody></table></div></div>
-    <p class="rev-note">No dia da planilha ativa, a comparação usa somente o turno apresentado (Manhã ou Tarde). Nos demais dias, considera o conjunto disponível do dia sem duplicar o mesmo ID de pacote. A classificação é feita por pacote, considerando todas as planilhas do período: verde = o pacote saiu da planilha; redução de valor sem sair da planilha continua pendente; vermelho (Não revertido) = o pacote continua na última planilha e já passou do prazo de 24h; laranja (Em prazo) = continua, mas ainda está dentro do prazo. Uma base pode aparecer em mais de uma situação. Os indicadores Dentro do prazo e Em risco seguem o mesmo prazo operacional: 24h para tratar, com proteção de sexta, sábado e domingo até segunda-feira.</p>
+    <p class="rev-note">No dia da planilha ativa, a comparação usa somente o turno apresentado (Manhã ou Tarde). Nos demais dias, considera o conjunto disponível do dia sem duplicar o mesmo ID de pacote. A classificação é feita por pacote, considerando todas as planilhas do período: verde = o pacote saiu da planilha; redução de valor sem sair da planilha continua pendente; vermelho (Não revertido) = o pacote continua na última planilha e já passou do prazo de 24h; laranja (Em prazo) = continua, mas ainda está dentro do prazo. Cada base aparece uma única vez, classificada primeiro pela redução do valor total: se o valor caiu, fica como Valor Revertido; sem redução, considera Não Revertido ou Em prazo. Os indicadores Dentro do prazo e Em risco seguem o mesmo prazo operacional: 24h para tratar, com proteção de sexta, sábado e domingo até segunda-feira.</p>
   </div>
 
   <!-- ===================== IMPORTADOS ===================== -->
@@ -1617,7 +1617,7 @@ let pendingDriverFile=null;
 let exportSeedEntries=null;
 let chartAnaliseDia=null, chartAnaliseRegional=null, chartAnaliseOfensoras=null;
 let revStatusFilter='TODOS';
-let motoristaSelecionado='';
+let motoristaSelecionado=''; let motoristaFaixaFiltro='3PLUS';
 const chartValueLabels={id:'chartValueLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const horizontal=chart.options.indexAxis==='y';ctx.save();ctx.font='700 10px Arial';ctx.fillStyle=cssColor('--text-primary','#f5f5f5');ctx.textBaseline='middle';chart.data.datasets.forEach((dataset,di)=>{const meta=chart.getDatasetMeta(di);meta.data.forEach((bar,i)=>{const value=dataset.data[i];if(value==null)return;const pos=bar.tooltipPosition();if(horizontal){ctx.textAlign='left';ctx.fillText(fmtBRL(value),Math.max(pos.x,bar.base)+7,pos.y);}else{ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(fmtBRL(value),pos.x,pos.y-6);}});});ctx.restore();}};
 
 /* ===== UTILITÁRIOS ===== */
@@ -2882,7 +2882,7 @@ function openAgingDetail(bucket, entries){
 function motoristaNaFaixa(e, faixa){
   if(!faixa || faixa==='TODOS') return true;
   const d=Number(diasParado(e));
-  if(faixa==='ATE2') return d>=1 && d<=2;
+  if(faixa==='ATE2') return d>=1 && d<=2; if(faixa==='3PLUS') return d>=3;
   if(faixa==='3A6') return d>=3 && d<=6;
   if(faixa==='7A11') return d>=7 && d<=11;
   return false;
@@ -2898,7 +2898,7 @@ function motoristaMetricasDoDia(driverId, day, faixa){
   const allIds=new Set([...manhaMap.keys(),...tardeMap.keys()].filter(Boolean));
   const comparacoes=Array.from(allIds).map(id=>{const m=manhaMap.get(id),t=tardeMap.get(id);return {id,manha:m,tarde:t,delta:m&&t?(t.valor-m.valor):0,turno:m&&t?'TARDE':t?'TARDE':'MANHA'};});
   const diasOfensora=new Set(), diasPorFaixa={ATE2:new Set(),'3A6':new Set(), '7A11':new Set()};
-  IMPORTS.filter(imp=>!day||imp.importDate<=day).forEach(imp=>{(imp.entries||[]).forEach(e=>{if(String(e.driverId||'')!==String(driverId||'')) return; const d=Number(diasParado(e,String(imp.importDate||day||'')+'T00:00:00')); diasOfensora.add(String(imp.importDate)); if(d>=1&&d<=2) diasPorFaixa.ATE2.add(String(imp.importDate)); else if(d>=3&&d<=6) diasPorFaixa['3A6'].add(String(imp.importDate)); else if(d>=7&&d<=11) diasPorFaixa['7A11'].add(String(imp.importDate));});});
+  IMPORTS.filter(imp=>!day||imp.importDate<=day).forEach(imp=>{(imp.entries||[]).forEach(e=>{if(String(e.driverId||'')!==String(driverId||'')) return; const d=Number(diasParado(e,String(imp.importDate||day||'')+'T00:00:00')); if(d>=3) diasOfensora.add(String(imp.importDate)); if(d>=1&&d<=2) diasPorFaixa.ATE2.add(String(imp.importDate)); else if(d>=3&&d<=6) diasPorFaixa['3A6'].add(String(imp.importDate)); else if(d>=7) diasPorFaixa['7A11'].add(String(imp.importDate));});});
   return {vezes:diasOfensora.size,vezesPorFaixa:{ATE2:diasPorFaixa.ATE2.size,'3A6':diasPorFaixa['3A6'].size,'7A11':diasPorFaixa['7A11'].size},atuais,pacotesManha:pacotesManha.size,pacotesTarde:pacotesTarde.size,totalAtual:atuais.size,saiuDaPlanilha,comparacoes};
 }
 function motoristaOfensorNoPeriodo(driverId, inicio, fim){
@@ -2906,10 +2906,7 @@ function motoristaOfensorNoPeriodo(driverId, inicio, fim){
   availableImportDates().filter(day=>(!inicio||day>=inicio)&&(!fim||day<=fim)).forEach(day=>{
     snapshotEntriesForDay(day).forEach(e=>{
       if(String(e.driverId||'')!==String(driverId||'')) return;
-      const d=Number(diasParado(e,String(day)+'T00:00:00'));
-      const faixa=d>=7&&d<=11?'7A11':d>=3&&d<=6?'3A6':d>=1&&d<=2?'ATE2':null;
-      const nivel=faixa==='7A11'?3:faixa==='3A6'?2:faixa==='ATE2'?1:0;
-      if(nivel>(porDia.get(day)?.nivel||0)) porDia.set(day,{faixa,nivel});
+      const d=Number(diasParado(e,String(day)+'T00:00:00')); if(d<3) return; const faixa=d>=7?'7A11':'3A6'; const nivel=faixa==='7A11'?3:2; if(nivel>(porDia.get(day)?.nivel||0)) porDia.set(day,{faixa,nivel});
     });
   });
   const out={ATE2:0,'3A6':0,'7A11':0}; porDia.forEach(item=>{if(item.faixa) out[item.faixa]++;});
@@ -3933,6 +3930,7 @@ function openRevertidoBaseHistory(base){
     +'<div class="table-scroll"><table class="rev-base-history-table"><thead><tr><th>Data</th><th>Pacotes</th><th>Valor atual</th><th>SVC</th><th>XPT</th><th>Variação vs. dia anterior</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
   document.getElementById('baseOverlay').classList.add('show');
 }
+function openRevertidoBasePackageDetail(base){ const day=document.getElementById('revAtual')?.value||availableImportDates().slice(-1)[0]||''; const entries=snapshotEntriesForDay(day).filter(e=>normalizeBaseCode(e.base)===normalizeBaseCode(base)); const regional=entries.length?regionalFromBasePrefix(entries[0].base):findRegionalByBase(base); openOverlayEntries('Base '+baseInfoText(base),regional?REGIONAL_LABELS[regional]:'',entries,'TODOS'); }
 function renderRevertido(){
   const dates=availableImportDates(), atual=document.getElementById('revAtual'), comp=document.getElementById('revComparar'), regSel=document.getElementById('revRegional'), baseSel=document.getElementById('revBase'), origemSel=document.getElementById('revOrigem');
   if(!regSel.dataset.filled){regSel.innerHTML='<option value="TODOS">Todas</option>'+REGIONAL_ORDER.map(r=>'<option value="'+r+'">'+(REGIONAL_LABELS[r]||r)+'</option>').join('');regSel.dataset.filled='1';}
@@ -4015,13 +4013,26 @@ function renderRevertido(){
       }
     }
   });
-  const rows=Array.from(rowsMap.values()).map(r=>({...r,
-    baseBefore:beforeByBase[r.base]||0,
-    baseCurrent:currentByBase[r.base]||0,
-    baseDelta:(currentByBase[r.base]||0)-(beforeByBase[r.base]||0),
-    baseWithin:baseWithin[r.base]||0,
-    baseRisk:baseRisk[r.base]||0
-  })).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
+  /* Uma única linha por base: a situação exibida é a mais crítica encontrada
+     entre os pacotes da base (Não Revertido > Em Prazo > Valor Revertido). */
+  const statusPriority={green:1,orange:2,red:3};
+  const oneRowPerBase=new Map();
+  rowsMap.forEach(r=>{
+    const current=oneRowPerBase.get(r.base);
+    if(!current){ oneRowPerBase.set(r.base,{...r,pkgs:new Set(r.pkgs)}); return; }
+    current.before+=r.before; current.current+=r.current; current.reverted+=r.reverted; current.statusValue+=r.statusValue||0;
+    current.persistentSemRisco+=r.persistentSemRisco||0; current.persistentComRisco+=r.persistentComRisco||0;
+    r.pkgs.forEach(k=>current.pkgs.add(k));
+    if((statusPriority[r.status]||0)>(statusPriority[current.status]||0)){ current.status=r.status; current.driverId=r.driverId; current.driverName=r.driverName; current.driverRisk=r.driverRisk; current.driverCount=r.driverCount; }
+  });
+  const rows=Array.from(oneRowPerBase.values()).map(r=>{
+    const baseBefore=beforeByBase[r.base]||0, baseCurrent=currentByBase[r.base]||0;
+    const baseDelta=baseCurrent-baseBefore, baseWithinValue=baseWithin[r.base]||0, baseRiskValue=baseRisk[r.base]||0;
+    /* Se o valor total caiu, a base teve reversão. Só sem redução usamos a
+       situação operacional dos pacotes restantes para desempatar. */
+    const status=baseDelta < -0.005 ? 'green' : baseRiskValue>0 ? 'red' : 'orange';
+    return {...r,status,baseBefore,baseCurrent,baseDelta,baseWithin:baseWithinValue,baseRisk:baseRiskValue};
+  }).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
   const visibleRows=revStatusFilter==='TODOS'?rows:rows.filter(r=>r.status===revStatusFilter);
   const sumBy=f=>visibleRows.reduce((s,r)=>s+f(r),0);
   const totalBefore=sumBy(r=>r.before), totalRev=sumBy(r=>r.reverted), totalCur=sumBy(r=>r.current);
@@ -4071,7 +4082,7 @@ document.getElementById('revQuick').addEventListener('click',e=>{const b=e.targe
 })();
 document.getElementById('revAtualHoje').addEventListener('click',()=>{const ds=availableImportDates();document.getElementById('revAtual').value=ds[ds.length-1]||todayStr();renderRevertido();});
 document.getElementById('revLegend').addEventListener('click',e=>{const btn=e.target.closest('.rev-filter');if(!btn)return;revStatusFilter=btn.dataset.status;document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x===btn));renderRevertido();});
-document.getElementById('revBody').addEventListener('click',e=>{const base=e.target.closest('[data-rev-base]');if(base){openRevertidoBaseHistory(base.dataset.revBase||'');return;}const btn=e.target.closest('.driver-link');if(!btn)return;motoristaSelecionado=btn.dataset.driver||'';renderMotoristas();document.getElementById('motoristaDetalhePanel').scrollTop=0;});
+document.getElementById('revBody').addEventListener('click',e=>{const base=e.target.closest('[data-rev-base]');if(base){openRevertidoBasePackageDetail(base.dataset.revBase||'');return;}const btn=e.target.closest('.driver-link');if(!btn)return;motoristaSelecionado=btn.dataset.driver||'';renderMotoristas();document.getElementById('motoristaDetalhePanel').scrollTop=0;});
 function renderMotoristas(){
   const rows=[];
   const comparar=document.getElementById('revComparar')?.value||'';
@@ -4084,10 +4095,11 @@ function renderMotoristas(){
   const historicoRows=[];
   diasHistorico.forEach(day=>snapshotEntriesForDay(day).forEach(e=>{if(e.driverId)historicoRows.push({day,e});}));
   const ids=Array.from(new Set(rows.map(x=>String(x.e.driverId)))).sort((a,b)=>getDriverName(a).localeCompare(getDriverName(b),'pt-BR'));
-  const selected=ids.includes(motoristaSelecionado)?motoristaSelecionado:''; const filtered=selected?rows.filter(x=>String(x.e.driverId)===selected):[]; const historicoFiltered=selected?historicoRows.filter(x=>String(x.e.driverId)===selected):[]; const total=filtered.reduce((s,x)=>s+x.e.valor,0); const diasOfensor=new Set(), diasPorFaixa={ATE2:new Set(),'3A6':new Set(),'7A11':new Set()}, maiorFaixaPorDia=new Map(); historicoFiltered.forEach(x=>{const d=Number(diasParado(x.e,String(x.day)+'T00:00:00')); const faixa=d>=7&&d<=11?'7A11':d>=3&&d<=6?'3A6':d>=1&&d<=2?'ATE2':null; const nivel=faixa==='7A11'?3:faixa==='3A6'?2:faixa==='ATE2'?1:0; if(nivel>(maiorFaixaPorDia.get(x.day)?.nivel||0)) maiorFaixaPorDia.set(x.day,{faixa,nivel});}); maiorFaixaPorDia.forEach((item,day)=>{if(!item.faixa)return; diasOfensor.add(day); diasPorFaixa[item.faixa].add(day);}); const pacotes=new Set(filtered.map(x=>String(x.e.pacote||'')).filter(Boolean));
+  const selected=ids.includes(motoristaSelecionado)?motoristaSelecionado:''; const filtered=selected?rows.filter(x=>String(x.e.driverId)===selected):[]; const historicoFiltered=selected?historicoRows.filter(x=>String(x.e.driverId)===selected):[]; const diasOfensor=new Set(), diasPorFaixa={ATE2:new Set(),'3A6':new Set(),'7A11':new Set()}; historicoFiltered.forEach(x=>{const d=Number(diasParado(x.e,String(x.day)+'T00:00:00')); if(d>=1&&d<=2)diasPorFaixa.ATE2.add(String(x.day)); else if(d>=3&&d<=6){diasOfensor.add(String(x.day));diasPorFaixa['3A6'].add(String(x.day));} else if(d>=7){diasOfensor.add(String(x.day));diasPorFaixa['7A11'].add(String(x.day));}}); const latestDriverDay=filtered.length?filtered.map(x=>x.day).sort().slice(-1)[0]:''; const currentDriverRows=latestDriverDay?filtered.filter(x=>x.day===latestDriverDay):[]; const currentFiltered=currentDriverRows.filter(x=>motoristaNaFaixa(x.e,motoristaFaixaFiltro)); const total=currentFiltered.reduce((sum,x)=>sum+(Number(x.e.valor)||0),0); const pacotes=new Set(currentFiltered.map(x=>String(x.e.pacote||'')).filter(Boolean)); const detailRows=filtered.filter(x=>motoristaNaFaixa(x.e,motoristaFaixaFiltro));
   document.getElementById('motoristaDetalhePanel').style.display=selected?'block':'none';
-  const latestDriverDay=filtered.length?filtered.map(x=>x.day).sort().slice(-1)[0]:''; const turnoMetricas=selected&&latestDriverDay?motoristaMetricasDoDia(selected,latestDriverDay):{totalAtual:pacotes.size}; document.getElementById('motoristaNome').textContent=selected?getDriverName(selected):'—';document.getElementById('motoristaValor').textContent=fmtBRL(total);document.getElementById('motoristaOcorrencias').textContent=fmtInt(diasOfensor.size);document.getElementById('motoristaOfensorFaixas').innerHTML='<div class="driver-offender-breakdown"><span class="driver-age-blue" style="color:#000!important">1–2 dias: <strong style="color:#000!important">'+fmtInt(diasPorFaixa.ATE2.size)+'</strong></span><span class="driver-age-yellow" style="color:#000!important">3–6 dias: <strong style="color:#000!important">'+fmtInt(diasPorFaixa['3A6'].size)+'</strong></span><span class="driver-age-red" style="color:#000!important">7–11 dias: <strong style="color:#000!important">'+fmtInt(diasPorFaixa['7A11'].size)+'</strong></span></div>';document.getElementById('motoristaPacotes').textContent=fmtInt(turnoMetricas.totalAtual);document.getElementById('motoristaBody').innerHTML=filtered.length?filtered.sort((a,b)=>b.day.localeCompare(a.day)).map(x=>'<tr><td>'+escHtml(x.day.split('-').reverse().join('/'))+'</td><td>'+escHtml(REGIONAL_LABELS[regionalFromBasePrefix(x.e.base)]||regionalFromBasePrefix(x.e.base)||'—')+'</td><td>'+escHtml(x.e.base)+'</td><td>'+escHtml(x.e.pacote||'—')+'</td><td>'+escHtml(x.e.tipo||'—')+'</td><td><strong>'+fmtBRL(x.e.valor)+'</strong></td><td>'+escHtml(x.e.motivo||'—')+'</td></tr>').join(''):'<tr><td colspan="7" class="history-empty">Selecione um motorista para ver os pacotes e ocorrências.</td></tr>';
+  const turnoMetricas=selected&&latestDriverDay?motoristaMetricasDoDia(selected,latestDriverDay,motoristaFaixaFiltro):{totalAtual:pacotes.size}; document.getElementById('motoristaNome').textContent=selected?getDriverName(selected):'—';document.getElementById('motoristaValor').textContent=fmtBRL(total);document.getElementById('motoristaOcorrencias').textContent=fmtInt(diasOfensor.size);document.getElementById('motoristaOfensorFaixas').innerHTML='<div class="driver-offender-breakdown"><span class="driver-age-blue" style="color:#000!important">1–2 dias: <strong style="color:#000!important">'+fmtInt(diasPorFaixa.ATE2.size)+'</strong></span><span class="driver-age-yellow" style="color:#000!important">3–6 dias: <strong style="color:#000!important">'+fmtInt(diasPorFaixa['3A6'].size)+'</strong></span><span class="driver-age-red" style="color:#000!important">7–11 dias: <strong style="color:#000!important">'+fmtInt(diasPorFaixa['7A11'].size)+'</strong></span></div><div class="motorista-faixa-filtros"><button type="button" class="preset-btn '+(motoristaFaixaFiltro==='3PLUS'?'active':'')+'" data-motorista-faixa="3PLUS">3+ dias (foco)</button><button type="button" class="preset-btn '+(motoristaFaixaFiltro==='ATE2'?'active':'')+'" data-motorista-faixa="ATE2">2 dias</button><button type="button" class="preset-btn '+(motoristaFaixaFiltro==='TODOS'?'active':'')+'" data-motorista-faixa="TODOS">Todos</button></div>';document.getElementById('motoristaPacotes').textContent=fmtInt(turnoMetricas.totalAtual);document.getElementById('motoristaBody').innerHTML=detailRows.length?detailRows.sort((a,b)=>b.day.localeCompare(a.day)).map(x=>'<tr><td>'+escHtml(x.day.split('-').reverse().join('/'))+'</td><td>'+escHtml(REGIONAL_LABELS[regionalFromBasePrefix(x.e.base)]||regionalFromBasePrefix(x.e.base)||'—')+'</td><td>'+escHtml(x.e.base)+'</td><td>'+escHtml(x.e.pacote||'—')+'</td><td>'+escHtml(x.e.tipo||'—')+'</td><td><strong>'+fmtBRL(x.e.valor)+'</strong></td><td>'+escHtml(x.e.motivo||'—')+'</td></tr>').join(''):'<tr><td colspan="7" class="history-empty">Selecione um motorista para ver os pacotes e ocorrências.</td></tr>';
 }
+document.getElementById('motoristaDetalhePanel').addEventListener('click',e=>{const b=e.target.closest('[data-motorista-faixa]');if(!b)return;motoristaFaixaFiltro=b.dataset.motoristaFaixa||'3PLUS';renderMotoristas();});
 document.getElementById('motoristaDetalheFechar').addEventListener('click',()=>{motoristaSelecionado='';document.getElementById('motoristaDetalhePanel').style.display='none';});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&motoristaSelecionado){motoristaSelecionado='';document.getElementById('motoristaDetalhePanel').style.display='none';}});
 
