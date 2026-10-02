@@ -737,3 +737,8 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 /* Indicador de variação: sem cápsula/fundo, somente cor e seta. */
 .delta-badge.up{background:transparent!important;color:#b71c1c!important;border:0!important;box-shadow:none!important}
 .delta-badge.down{background:transparent!important;color:#218739!important;border:0!important;box-shadow:none!important}
+
+.diaria-total-row{background:var(--bg-card-hover)!important;color:var(--text-primary)!important;border-top:2px solid var(--spot-green)!important}
+.diaria-total-row td{background:var(--bg-card-hover)!important;color:var(--text-primary)!important;font-weight:800}
+.info-logistic-active{background:rgba(128,128,128,.30)!important;box-shadow:inset 4px 0 0 #a0a0a0,0 0 0 2px rgba(160,160,160,.42)!important;transition:background .2s ease,box-shadow .2s ease}
+.info-logistic-active td{background:rgba(128,128,128,.30)!important;color:var(--text-primary)!important}
