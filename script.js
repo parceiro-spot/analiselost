@@ -881,8 +881,15 @@ function populateBaseSelect(){
 }
 async function captureDashboardElement(selector,filename){
   const alvo=document.querySelector(selector); if(!alvo||typeof html2canvas!=='function') return;
-  const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale:2,useCORS:true,logging:false,windowWidth:document.documentElement.scrollWidth,windowHeight:document.documentElement.scrollHeight});
-  const a=document.createElement('a'); a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=canvas.toDataURL('image/png'); a.click();
+  const previous={overflow:alvo.style.overflow,height:alvo.style.height,maxHeight:alvo.style.maxHeight,display:alvo.style.display};
+  const scrollWidth=Math.max(alvo.scrollWidth,alvo.offsetWidth,document.documentElement.clientWidth);
+  const scrollHeight=Math.max(alvo.scrollHeight,alvo.offsetHeight);
+  try{
+    alvo.style.overflow='visible'; alvo.style.height='auto'; alvo.style.maxHeight='none'; alvo.style.display='block';
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale:Math.min(2,window.devicePixelRatio||2),useCORS:true,logging:false,allowTaint:false,width:scrollWidth,height:scrollHeight,windowWidth:scrollWidth,windowHeight:scrollHeight,scrollX:0,scrollY:0});
+    const a=document.createElement('a'); a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=canvas.toDataURL('image/png'); a.click();
+  }finally{ alvo.style.overflow=previous.overflow; alvo.style.height=previous.height; alvo.style.maxHeight=previous.maxHeight; alvo.style.display=previous.display; }
 }
 function renderAll(){
   populateBaseSelect();
@@ -1983,7 +1990,7 @@ function renderDiaria(){
   if(!bases.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#737373;padding:24px;">Sem dados para este dia/filtro.</td></tr>'; return; }
   let totalM=0,totalT=0,totalV=0;
   tbody.innerHTML=bases.map(b=>{ const m=manhaCount[b.base]||0, t=tardeCount[b.base]||0, baseEntries=entries.filter(e=>e.base===b.base), justBase=justifiedCount(baseEntries); totalM+=m; totalT+=t; totalV+=b.valor; return `<tr><td>${escHtml(REGIONAL_LABELS[b.regional]||b.regional||'—')}</td><td><strong>${baseInfoLabel(b.base)}</strong></td><td>${fmtInt(m)}</td><td>${fmtInt(t)}</td><td><strong>${fmtBRL(b.valor)}</strong></td><td><strong>${fmtInt(justBase)} / ${fmtInt(baseEntries.length)}</strong> (${percentLabel(justBase,baseEntries.length)})</td></tr>`; }).join('')
-    + `<tr style="background:#000;"><td colspan="2"><strong>TOTAL &middot; ${bases.length} base(s)</strong></td><td><strong>${fmtInt(totalM)}</strong></td><td><strong>${fmtInt(totalT)}</strong></td><td><strong>${fmtBRL(totalV)}</strong></td><td><strong>${fmtInt(justifiedCount(entries))} / ${fmtInt(entries.length)}</strong> (${percentLabel(justifiedCount(entries),entries.length)})</td></tr>`;
+    + `<tr class="diaria-total-row"><td colspan="2"><strong>TOTAL &middot; ${bases.length} base(s)</strong></td><td><strong>${fmtInt(totalM)}</strong></td><td><strong>${fmtInt(totalT)}</strong></td><td><strong>${fmtBRL(totalV)}</strong></td><td><strong>${fmtInt(justifiedCount(entries))} / ${fmtInt(entries.length)}</strong> (${percentLabel(justifiedCount(entries),entries.length)})</td></tr>`;
 }
 document.getElementById('diariaDia').addEventListener('change', renderDiaria);
 document.getElementById('diariaRegional').addEventListener('change', renderDiaria);
