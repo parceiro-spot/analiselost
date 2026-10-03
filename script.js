@@ -48,6 +48,7 @@ let returnHistMonth='';
 let returnHistCollapsed=false;
 let importsHistMonth='';
 let pendingImportFile=null;
+let importDateManuallySet=false, lostDateManuallySet=false;
 let pendingReturnFile=null;
 let pendingDriverFile=null;
 let exportSeedEntries=null;
@@ -186,6 +187,21 @@ function findDaysColumn(idx){
   return key===undefined?undefined:idx[key];
 }
 function parseDelimitedText(text,delim){ const rows=[]; let row=[],field='',inQ=false; for(let i=0;i<text.length;i++){ const c=text[i]; if(inQ){ if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else inQ=false; } else field+=c; } else if(c==='"'){ inQ=true; } else if(c===delim){ row.push(field);field=''; } else if(c==='\r'){ } else if(c==='\n'){ row.push(field);field=''; rows.push(row);row=[]; } else field+=c; } if(field.length||row.length){ row.push(field);rows.push(row); } return rows.filter(r=>!(r.length===1&&r[0].trim()==='')); }
+function detectDelimiter(text){
+  const sample=String(text||'').split(/\r?\n/).filter(line=>line.trim()!=='').slice(0,16).join('\n');
+  const candidates=[',',';','\t'];
+  let best=',', bestScore=Infinity;
+  candidates.forEach(delim=>{
+    const parsed=parseDelimitedText(sample,delim), widths=parsed.map(row=>row.length);
+    if(widths.length<2){if(widths[0]>1&&bestScore===Infinity)best=delim;return;}
+    const data=widths.slice(1), sorted=data.slice().sort((a,b)=>a-b), median=sorted[Math.floor(sorted.length/2)]||1;
+    const mean=data.reduce((sum,n)=>sum+n,0)/data.length;
+    const variance=data.reduce((sum,n)=>sum+(n-mean)*(n-mean),0)/data.length;
+    const score=Math.abs(widths[0]-median)*10+variance+Math.abs(mean-median)-widths[0]*0.001;
+    if(score<bestScore){bestScore=score;best=delim;}
+  });
+  return best;
+}
 function buildHeaderIndex(hr){ const idx={}; (hr||[]).forEach((h,i)=>idx[norm(h)]=i); return idx; }
 
 function buildEntriesFromRawRows(rows){
@@ -329,21 +345,21 @@ function buildLostRoutesFromRawRows(rows){
   let headerIndex=-1, idx={};
   for(let r=0;r<Math.min(rows.length,40);r++){
     const keys=(rows[r]||[]).map(normalizeReturnHeader);
-    const hasPkg=keys.some(k=>isReturnPackageKey(k)||/PACOTE|SHIPMENT|PACKAGE/.test(k));
+    const hasPkg=keys.some(k=>isReturnPackageKey(k)||/^(ID_DO_ENVIO|ID_DO_SHIPMENT|SHIPMENT_ID|PACKAGE_ID)$/.test(k)||/PACOTE|SHIPMENT|PACKAGE/.test(k));
     const hasOrigin=keys.some(k=>/ORIGEM|ORIGIN|FACILITY/.test(k));
     const hasDest=keys.some(k=>/DESTINO|DESTINATION|DEST/.test(k));
     if(hasPkg&&(hasOrigin||hasDest||keys.some(k=>/ROTA|ROUTE/.test(k)))){ headerIndex=r; keys.forEach((k,i)=>{if(k&&!Object.prototype.hasOwnProperty.call(idx,k))idx[k]=i;}); break; }
   }
   if(headerIndex<0) return null;
   const first=(...names)=>{for(const n of names){if(idx[n]!==undefined)return idx[n];} const k=Object.keys(idx).find(k=>names.some(n=>k.includes(n))); return k===undefined?undefined:idx[k];};
-  const colPacote=first('PACOTE','ID_DO_PACOTE','ID_DO_ENVIO','SHP_SHIPMENT_ID','SHIPMENT_ID','ID');
+  const colPacote=first('PACOTE','ID_DO_PACOTE','ID_DO_ENVIO','ID_DO_SHIPMENT','SHP_SHIPMENT_ID','SHIPMENT_ID','ID');
   const colOrig=first('ORIGEM','ORIGIN','CENTRO_DE_ORIGEM','ORIGIN_CENTER','FACILITY_ID','SHP_LG_FACILITY_ID');
   const colDest=first('DESTINO','DESTINATION','CENTRO_DE_DESTINO','DESTINATION_CENTER','DESTINATION_FACILITY','ROUTE_DESTINATION_FACILTY_ID');
   const colRota=first('ROTA','ROUTE','ID_DA_ROTA','SHP_LG_ROUTE_ID');
-  const colDriver=first('MOTORISTA','DRIVER','ID_DO_TRANSPORTADOR','ID_DO_MOTORISTA','SHP_LG_DRIVER_ID');
+  const colDriver=first('MOTORISTA','DRIVER','ID_DO_TRANSPORTADOR','ID_DO_MOTORISTA','ID_DO_CARRIER','SHP_LG_DRIVER_ID');
   const colBase=first('BASE','BASE_ATUAL','FACILITY','SHP_LG_FACILITY_ID');
   const colProduto=first('PRODUTO','PRODUCT','ITEM','SHP_ITEM_DESC');
-  const colValor=first('VALOR_DO_PEDIDO','VALOR','ORDER_VALUE','GMV_BRL');
+  const colValor=first('VALOR_DO_PEDIDO','VALOR_DO_PACOTE','VALOR','ORDER_VALUE','GMV_BRL','GMV');
   const colDias=first('DIAS_DE_ATRASO','DIAS_DE_PARADO','DAYS','AGING');
   const colData=first('DATA','DATE','DATA_DE_ENTRADA_NO_LOR','DATA_INSUCESSO');
   const colMotivo=first('MOTIVO','MOTIVO_DA_NAO_ENTREGA','REASON','STATUS');
@@ -354,7 +370,7 @@ function buildLostRoutesFromRawRows(rows){
     const risk=IMPORTS.flatMap(i=>i.entries||[]).find(e=>normalizePackageKey(e.pacote)===pacote);
     const parsedDias=colDias!==undefined?parsePlanilhaDias(row[colDias]):null;
     const rawMotivo=colMotivo!==undefined?String(row[colMotivo]??'').trim():'';
-    out.push({pacote,origem,destino,base:base||risk?.base||'',rota:colRota!==undefined?normalizePackageKey(row[colRota]):(risk?.rota||''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):(risk?.driverId||''),produto:colProduto!==undefined?String(row[colProduto]||'').trim():(risk?.produto||''),motivo:rawMotivo?friendlyReason(rawMotivo):(risk?.motivo||'Perdido em rota'),date:colData!==undefined?parseDateBR(row[colData]):new Date(),valor:colValor!==undefined?Number(String(row[colValor]??'').replace(',','.')):Number(risk?.valor||0),dias:parsedDias??Number(risk?.dias||0),diasPlanilha:parsedDias,riskBase:risk?.base||'',riskDriverId:risk?.driverId||''});
+    out.push({pacote,origem,destino,base:base||risk?.base||'',rota:colRota!==undefined?normalizePackageKey(row[colRota]):(risk?.rota||''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):(risk?.driverId||''),produto:colProduto!==undefined?String(row[colProduto]||'').trim():(risk?.produto||''),motivo:rawMotivo?friendlyReason(rawMotivo):(risk?.motivo||'Perdido em rota'),date:colData!==undefined?parseDateBR(row[colData]):new Date(),valor:colValor!==undefined?parseBRNumber(row[colValor]):Number(risk?.valor||0),dias:parsedDias??Number(risk?.dias||0),diasPlanilha:parsedDias,riskBase:risk?.base||'',riskDriverId:risk?.driverId||''});
   }
   return out.length?out:null;
 }
@@ -510,17 +526,21 @@ function extractFileTime(fileName){
 function extractFileTurno(fileName){
   const name=String(fileName||'');
   const exact=extractFileTime(name);
-  const match=name.match(/(?:^|[_ ])([01]?\d)(?::([0-5]\d)|h([0-5]\d)?)?(?=[ _.-]|$)/i);
+  const withoutDate=name.replace(/20\d{2}[-_.]\d{1,2}[-_.]\d{1,2}/g,' ').replace(/(?:^|[^\d])\d{1,2}[-_.]\d{1,2}(?:[^\d]|$)/g,' ');
+  const match=withoutDate.match(/(?:^|[_ ])([01]?\d)(?::([0-5]\d)|h([0-5]\d)?)?(?=[ _.-]|$)/i);
   const fallback=exact||(match?(match[1]+(match[2]||match[3]?':'+(match[2]||match[3]):'')):null);
   if(!fallback) return null;
   return Number(String(fallback).split(':')[0])>=15?'Tarde':'Manhã';
 }
 function extractFileDate(fileName){
   const s=String(fileName||'');
-  let m=s.match(/(20\d{2})[-_](\d{2})[-_](\d{2})/);
-  if(m) return m[1]+'-'+m[2]+'-'+m[3];
-  m=s.match(/(?:^|[^\d])(\d{2})[-_](\d{2})[-_](20\d{2})(?:[^\d]|$)/);
-  return m?m[3]+'-'+m[2]+'-'+m[1]:null;
+  let m=s.match(/(20\d{2})[-_.](\d{1,2})[-_.](\d{1,2})/);
+  if(m){const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]),date=new Date(y,mo-1,d);if(date.getFullYear()===y&&date.getMonth()===mo-1&&date.getDate()===d)return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+  m=s.match(/(?:^|[^\d])(\d{1,2})[-_.](\d{1,2})[-_.](20\d{2})(?:[^\d]|$)/);
+  if(m){const d=Number(m[1]),mo=Number(m[2]),y=Number(m[3]),date=new Date(y,mo-1,d);if(date.getFullYear()===y&&date.getMonth()===mo-1&&date.getDate()===d)return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+  m=s.match(/(?:^|[^\d])(\d{1,2})[-_.](\d{1,2})(?:[^\d]|$)/);
+  if(m){const d=Number(m[1]),mo=Number(m[2]),y=new Date().getFullYear(),date=new Date(y,mo-1,d);if(date.getFullYear()===y&&date.getMonth()===mo-1&&date.getDate()===d)return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+  return null;
 }
 function importDisplayTime(imp){ return extractFileTime(imp.fileName) || new Date(imp.savedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
 
@@ -660,6 +680,7 @@ document.getElementById('btnToggleImportsHist').addEventListener('click', functi
 });
 function finishImportMain(entries, fileName, importDate, turno){
   if(!entries || !entries.length){ alert('Não encontrei registros de nenhum dos 5 regionais reconhecidos nesta planilha.'); return; }
+  importDateManuallySet=false;
   const novoId=Date.now()+'';
   IMPORTS.push({ id:novoId, importDate, turno, fileName, savedAt:new Date().toISOString(), entries });
   persistImports();
@@ -671,9 +692,10 @@ function finishImportMain(entries, fileName, importDate, turno){
   updateImportUI();
   renderAll();
 }
+['input','change'].forEach(evt=>document.getElementById('impDia').addEventListener(evt,()=>{importDateManuallySet=true;}));
 document.getElementById('fileInput').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingImportFile=file; document.getElementById('btnConfirmImport').disabled=false; document.getElementById('btnConfirmImport').textContent='OK';
-  const dateFromName=extractFileDate(file.name); if(dateFromName) document.getElementById('impDia').value=dateFromName;
+  const dateFromName=extractFileDate(file.name); if(dateFromName&&!importDateManuallySet) document.getElementById('impDia').value=dateFromName;
   const turnoFromName=extractFileTurno(file.name); if(turnoFromName) document.getElementById('impTurno').value=turnoFromName;
   e.target.value='';
 });
@@ -683,7 +705,7 @@ document.getElementById('btnConfirmImport').addEventListener('click',function(){
   const turno = document.getElementById('impTurno').value;
   const reader=new FileReader();
   if(/\.csv$/i.test(file.name)){
-    reader.onload=function(evt){ try{ let text=String(evt.target.result||'').replace(/^\uFEFF/,''); const firstLine=text.split(/\r?\n/)[0]||''; const delim=firstLine.split(';').length>=firstLine.split(',').length?';':','; const entries=buildEntriesFromRawRows(parseDelimitedText(text,delim)); if(!entries){ alert('Não reconheci as colunas esperadas neste CSV.'); return; } finishImportMain(entries,file.name,importDate,turno); }catch(err){ console.error(err); alert('Erro ao carregar o CSV.'); } finally{pendingImportFile=null;document.getElementById('btnConfirmImport').textContent='OK';} };
+    reader.onload=function(evt){ try{ let text=String(evt.target.result||'').replace(/^\uFEFF/,''); const delim=detectDelimiter(text); const entries=buildEntriesFromRawRows(parseDelimitedText(text,delim)); if(!entries){ alert('Não reconheci as colunas esperadas neste CSV.'); return; } finishImportMain(entries,file.name,importDate,turno); }catch(err){ console.error(err); alert('Erro ao carregar o CSV.'); } finally{pendingImportFile=null;document.getElementById('btnConfirmImport').textContent='OK';} };
     reader.readAsText(file,'UTF-8');
   } else {
     reader.onload=function(evt){ try{ const wb=XLSX.read(new Uint8Array(evt.target.result),{type:'array',cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]]; const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true}); const entries=buildEntriesFromRawRows(rows); if(!entries){ alert('Não reconheci as colunas esperadas nesta planilha.'); return; } finishImportMain(entries,file.name,importDate,turno); }catch(err){ console.error(err); alert('Erro ao carregar o Excel.'); } finally{pendingImportFile=null;document.getElementById('btnConfirmImport').textContent='OK';} };
@@ -741,11 +763,11 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
     persistReturnSheets(); updateImportUI(); if(Object.keys(STATE_DATA).length) renderAll();
     if(parseError) alert('O arquivo foi salvo no histórico de hoje, mas algumas colunas não foram reconhecidas: '+parseError);
   };
-  if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';const rows=buildReturnRowsFromRawRows(parseDelimitedText(text,delim));finish(rows,rows?'':'Não encontrei uma linha com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do CSV');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
+  if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const delim=detectDelimiter(text);const rows=buildReturnRowsFromRawRows(parseDelimitedText(text,delim));finish(rows,rows?'':'Não encontrei uma linha com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do CSV');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
   else { reader.onload=async e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=await buildReturnRowsFromWorkbook(wb,e.target.result);finish(rows,rows?'':'Não encontrei uma aba com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
 });
 document.getElementById('fileInputLost').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='OK';e.target.value='';});
-document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}LOST_ROUTES=rows.map(e=>({...e,importDate:todayStr(),fileName:file.name}));persistLostRoutes();updateImportUI();renderLostRoutesPage();};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const first=text.split(/\r?\n/)[0]||'';const delim=first.split(';').length>=first.split(',').length?';':',';finish(buildLostRoutesFromRawRows(parseDelimitedText(text,delim)));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){rows=buildLostRoutesFromRawRows(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true}));if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
+document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}LOST_ROUTES=rows.map(e=>({...e,importDate:todayStr(),fileName:file.name}));persistLostRoutes();updateImportUI();renderLostRoutesPage();};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const delim=detectDelimiter(text);finish(buildLostRoutesFromRawRows(parseDelimitedText(text,delim)));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){rows=buildLostRoutesFromRawRows(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true}));if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
 document.getElementById('fileInputDrivers').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingDriverFile=file; document.getElementById('btnConfirmDrivers').disabled=false; document.getElementById('btnConfirmDrivers').textContent='OK'; e.target.value='';
 });
