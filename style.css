@@ -772,3 +772,15 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 :root.theme-light .situation-select.situation-7{background:#d1ad00!important;color:#1d1d1d!important}
 :root.theme-light .situation-select.situation-12{background:#2d78c7!important;color:#fff!important}
 :root.theme-pink .situation-select.situation-5{background:#73b83f!important;color:#102500!important}
+
+/* Histórico de pacotes em tela cheia: aproveita o viewport e mantém a rolagem na tabela. */
+#baseOverlay.overlay{padding:0;align-items:stretch;justify-content:stretch;overflow:hidden}
+#baseOverlay .overlay-panel{width:100vw;max-width:none;height:100vh;min-height:100vh;margin:0;padding:24px 26px 18px;border:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden}
+#baseOverlay .overlay-head{flex:0 0 auto}
+#baseOverlay #overlayBody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#baseOverlay #overlayBody>.overlay-tools{flex:0 0 auto}
+#baseOverlay #overlayAging{flex:0 0 auto;max-height:112px;overflow-x:auto;overflow-y:hidden}
+#baseOverlay #overlayTable{flex:1 1 auto;min-height:0;overflow:hidden}
+#baseOverlay #overlayTable>.table-scroll{height:100%;max-height:none;overflow:auto;overscroll-behavior:contain}
+#baseOverlay #overlayTable>.table-scroll table{min-width:1500px}
+@media(max-width:700px){#baseOverlay .overlay-panel{padding:16px 12px 12px}#baseOverlay #overlayAging{max-height:170px}#baseOverlay #overlayTable>.table-scroll table{min-width:1320px}}

@@ -1127,7 +1127,40 @@ html:not(.theme-light) #spotSplash .sp-strips i:nth-child(3),html:not(.theme-lig
 .return-history-card .observation-cell{min-width:300px}.return-history-card .observation-cell .just-cell>span{max-width:290px;white-space:normal;font-size:12px}
 .overlay-panel .table-scroll{max-height:calc(100vh - 245px)}
 @media(max-width:900px){.overlay-panel .observation-cell{min-width:280px;width:280px}.overlay-panel .observation-cell .just-cell{min-width:270px}.overlay-panel .observation-cell .just-cell>span{min-width:210px;max-width:270px}}
-</style></head>
+</style><style>
+/* Situação: cores semânticas adaptáveis aos temas claro, escuro e rosa. */
+.situation-select{font-weight:800!important;border:1px solid rgba(0,0,0,.28);text-shadow:none}
+.situation-select.situation-empty{background:var(--bg-inset)!important;color:var(--text-primary)!important}
+.situation-select.situation-0,.situation-select.situation-1,.situation-select.situation-7{background:#f3d316!important;color:#1d1d1d!important}
+.situation-select.situation-2,.situation-select.situation-4{background:#ff8a00!important;color:#111!important}
+.situation-select.situation-3,.situation-select.situation-11{background:#ef3f56!important;color:#fff!important}
+.situation-select.situation-5{background:#9be15d!important;color:#163300!important}
+.situation-select.situation-6{background:#00a83b!important;color:#fff!important}
+.situation-select.situation-8{background:#c7a0ff!important;color:#24103f!important}
+.situation-select.situation-9{background:#8e44ad!important;color:#fff!important}
+.situation-select.situation-10{background:#5b176f!important;color:#fff!important}
+.situation-select.situation-12{background:#4da3ff!important;color:#07182d!important}
+.situation-select option{background:var(--bg-card)!important;color:var(--text-primary)!important}
+:root.theme-light .situation-select.situation-2,:root.theme-light .situation-select.situation-4{background:#d96f00!important;color:#fff!important}
+:root.theme-light .situation-select.situation-5{background:#72b52e!important;color:#102500!important}
+:root.theme-light .situation-select.situation-7{background:#d1ad00!important;color:#1d1d1d!important}
+:root.theme-light .situation-select.situation-12{background:#2d78c7!important;color:#fff!important}
+:root.theme-pink .situation-select.situation-5{background:#73b83f!important;color:#102500!important}
+
+/* Histórico de pacotes em tela cheia: aproveita o viewport e mantém a rolagem na tabela. */
+#baseOverlay.overlay{padding:0;align-items:stretch;justify-content:stretch;overflow:hidden}
+#baseOverlay .overlay-panel{width:100vw;max-width:none;height:100vh;min-height:100vh;margin:0;padding:24px 26px 18px;border:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden}
+#baseOverlay .overlay-head{flex:0 0 auto}
+#baseOverlay #overlayBody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#baseOverlay #overlayBody>.overlay-tools{flex:0 0 auto}
+#baseOverlay #overlayAging{flex:0 0 auto;max-height:112px;overflow-x:auto;overflow-y:hidden}
+#baseOverlay #overlayTable{flex:1 1 auto;min-height:0;overflow:hidden}
+#baseOverlay #overlayTable>.table-scroll{height:100%;max-height:none;overflow:auto;overscroll-behavior:contain}
+#baseOverlay #overlayTable>.table-scroll table{min-width:1500px}
+@media(max-width:700px){#baseOverlay .overlay-panel{padding:16px 12px 12px}#baseOverlay #overlayAging{max-height:170px}#baseOverlay #overlayTable>.table-scroll table{min-width:1320px}}
+
+</style>
+</head>
 <body>
 <div id="spotSplash" aria-hidden="true">
   <div class="sp-strips"><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -4225,21 +4258,3 @@ window.__spotRun(async function init(){
 </body>
 </html>
 
-/* Situação: cores semânticas adaptáveis aos temas claro, escuro e rosa. */
-.situation-select{font-weight:800!important;border:1px solid rgba(0,0,0,.28);text-shadow:none}
-.situation-select.situation-empty{background:var(--bg-inset)!important;color:var(--text-primary)!important}
-.situation-select.situation-0,.situation-select.situation-1,.situation-select.situation-7{background:#f3d316!important;color:#1d1d1d!important}
-.situation-select.situation-2,.situation-select.situation-4{background:#ff8a00!important;color:#111!important}
-.situation-select.situation-3,.situation-select.situation-11{background:#ef3f56!important;color:#fff!important}
-.situation-select.situation-5{background:#9be15d!important;color:#163300!important}
-.situation-select.situation-6{background:#00a83b!important;color:#fff!important}
-.situation-select.situation-8{background:#c7a0ff!important;color:#24103f!important}
-.situation-select.situation-9{background:#8e44ad!important;color:#fff!important}
-.situation-select.situation-10{background:#5b176f!important;color:#fff!important}
-.situation-select.situation-12{background:#4da3ff!important;color:#07182d!important}
-.situation-select option{background:var(--bg-card)!important;color:var(--text-primary)!important}
-:root.theme-light .situation-select.situation-2,:root.theme-light .situation-select.situation-4{background:#d96f00!important;color:#fff!important}
-:root.theme-light .situation-select.situation-5{background:#72b52e!important;color:#102500!important}
-:root.theme-light .situation-select.situation-7{background:#d1ad00!important;color:#1d1d1d!important}
-:root.theme-light .situation-select.situation-12{background:#2d78c7!important;color:#fff!important}
-:root.theme-pink .situation-select.situation-5{background:#73b83f!important;color:#102500!important}
