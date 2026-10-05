@@ -2779,8 +2779,9 @@ function infoLogisticFocusMatches(entry){
     return normalizePackageKey(focus.pacote)===normalizePackageKey(entry?.pacote) && normalizeBaseCode(focus.base)===normalizeBaseCode(entry?.base);
   }catch(_){return false;}
 }
-function situationSelectHtml(entry,row){ const value=String(row?.situacao||''); const opt=SITUATION_BY_LABEL[value]||{color:'#ffffff',font:'#333333'}; const options='<option value="">Selecionar</option>'+SITUATION_OPTIONS.map(item=>'<option value="'+escHtml(item.label)+'" '+(item.label===value?'selected':'')+'>'+escHtml(item.label)+'</option>').join(''); return '<select class="situation-select" data-situation-pacote="'+escHtml(entry.pacote||'')+'" data-situation-base="'+escHtml(entry.base||'')+'" style="background:'+opt.color+';color:'+opt.font+'">'+options+'</select>'; }
-function situationStyle(value){ const opt=SITUATION_BY_LABEL[String(value||'')]; return opt?('background:'+opt.color+';color:'+opt.font):'background:#fff;color:#333'; }
+function situationClass(value){ const i=SITUATION_OPTIONS.findIndex(item=>item.label===String(value||'')); return i>=0?'situation-'+i:'situation-empty'; }
+function situationSelectHtml(entry,row){ const value=String(row?.situacao||''); const options='<option value="">Selecionar</option>'+SITUATION_OPTIONS.map(item=>'<option value="'+escHtml(item.label)+'" '+(item.label===value?'selected':'')+'>'+escHtml(item.label)+'</option>').join(''); return '<select class="situation-select '+situationClass(value)+'" data-situation-pacote="'+escHtml(entry.pacote||'')+'" data-situation-base="'+escHtml(entry.base||'')+'" aria-label="Situação (lista clicável)">'+options+'</select>'; }
+function situationStyle(value){ return situationClass(value); }
 function renderPackageTable(entries){
   if(!entries.length) return '<div class="history-empty">Nenhum pacote encontrado.</div>';
   /* "Planilha" mostra se o pacote está na importação de Manhã ou de Tarde do dia
@@ -2989,7 +2990,7 @@ function renderOverlayDriverDetail(driverId, faixa){
   document.getElementById('overlayBody').appendChild(panel); document.getElementById('overlayDriverClose').addEventListener('click',()=>panel.remove()); setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),20);
 }
 document.getElementById('overlayBody').addEventListener('change', function(e){ if(e.target?.dataset?.justPhoto){ attachJustificationPhoto(e.target); return; } if(e.target?.dataset?.situationPacote) updateSituation(e.target); });
-async function updateSituation(select){ const scroll=captureOverlayScroll(); const pacote=select.dataset.situationPacote||'',base=select.dataset.situationBase||'',value=SITUATION_BY_LABEL[select.value]?select.value:''; select.setAttribute('style',situationStyle(value)); const sheet=ensureReturnSheetForActiveDate(); let row=findReturnRow(pacote,base); if(!row){row={pacote:normalizePackageKey(pacote),base:normalizeBaseCode(base||''),justificativa:'',situacao:'',photo:null};sheet.rows.push(row);} row.situacao=value; row.manualEditedAt=new Date().toISOString(); row.updatedAt=new Date().toISOString(); await persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI(); }
+async function updateSituation(select){ const scroll=captureOverlayScroll(); const pacote=select.dataset.situationPacote||'',base=select.dataset.situationBase||'',value=SITUATION_BY_LABEL[select.value]?select.value:''; select.className='situation-select '+situationClass(value); const sheet=ensureReturnSheetForActiveDate(); let row=findReturnRow(pacote,base); if(!row){row={pacote:normalizePackageKey(pacote),base:normalizeBaseCode(base||''),justificativa:'',situacao:'',photo:null};sheet.rows.push(row);} row.situacao=value; row.manualEditedAt=new Date().toISOString(); row.updatedAt=new Date().toISOString(); await persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI(); }
 
 document.getElementById('overlayBody').addEventListener('input', function(e){
   if(e.target && e.target.id==='overlaySearch'){ overlayCtx.search=e.target.value; renderOverlayBody(); }
@@ -3296,8 +3297,8 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
    Dias parado: até 2 verde · 3 amarelo · 4 laranja · 5+ vermelho */
-const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',18],['SITUAÇÃO',32],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
-const LOST_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['RISCO',12],['VALOR (R$)',18],['SITUAÇÃO',32],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
+const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',18],['Situação (lista clicável)',32],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
+const LOST_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['RISCO',12],['VALOR (R$)',18],['Situação (lista clicável)',32],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
 const ORIGIN_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['ORIGEM',14],['DESTINO',14],['PRODUTO',60]];
 function riscoStyle(dias){ const k=riscoDiasParado(dias).key; return k==='alto'?20:(k==='medio'?21:22); }
 function riscoTexto(dias){ return riscoDiasParado(dias).label.toUpperCase(); }
@@ -3312,7 +3313,7 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<font><sz val="9"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="9"/><color rgb="FFFF0000"/><name val="Calibri"/></font>'
 +'</fonts>'
-+'<fills count="14">'
++'<fills count="23">'
 +'<fill><patternFill patternType="none"/></fill>'
 +'<fill><patternFill patternType="gray125"/></fill>'
 +'<fill><patternFill patternType="solid"><fgColor rgb="FF1F1F1F"/><bgColor indexed="64"/></patternFill></fill>'
@@ -3327,11 +3328,20 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<fill><patternFill patternType="solid"><fgColor rgb="FFF3D316"/><bgColor indexed="64"/></patternFill></fill>'
 +'<fill><patternFill patternType="solid"><fgColor rgb="FFFF8A00"/><bgColor indexed="64"/></patternFill></fill>'
 +'<fill><patternFill patternType="solid"><fgColor rgb="FFEF3F56"/><bgColor indexed="64"/></patternFill></fill>'
++'<fill><patternFill patternType="solid"><fgColor rgb="FFF3D316"/><bgColor indexed="64"/></patternFill></fill>' /* 14 situação amarelo */
++'<fill><patternFill patternType="solid"><fgColor rgb="FFFF8A00"/><bgColor indexed="64"/></patternFill></fill>' /* 15 situação laranja */
++'<fill><patternFill patternType="solid"><fgColor rgb="FFEF3F56"/><bgColor indexed="64"/></patternFill></fill>' /* 16 situação vermelho */
++'<fill><patternFill patternType="solid"><fgColor rgb="FF9BE15D"/><bgColor indexed="64"/></patternFill></fill>' /* 17 situação verde claro */
++'<fill><patternFill patternType="solid"><fgColor rgb="FF00A83B"/><bgColor indexed="64"/></patternFill></fill>' /* 18 situação verde escuro */
++'<fill><patternFill patternType="solid"><fgColor rgb="FFC7A0FF"/><bgColor indexed="64"/></patternFill></fill>' /* 19 situação roxo claro */
++'<fill><patternFill patternType="solid"><fgColor rgb="FF8E44AD"/><bgColor indexed="64"/></patternFill></fill>' /* 20 situação roxo */
++'<fill><patternFill patternType="solid"><fgColor rgb="FF5B176F"/><bgColor indexed="64"/></patternFill></fill>' /* 21 situação roxo escuro */
++'<fill><patternFill patternType="solid"><fgColor rgb="FF4DA3FF"/><bgColor indexed="64"/></patternFill></fill>' /* 22 situação azul */
 +'</fills>'
 +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
 +'<border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>'
 +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-+'<cellXfs count="23">'
++'<cellXfs count="32">'
 +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'                                                                        /* 0 padrao */
 +'<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'                                                          /* 1 titulo */
 +'<xf numFmtId="0" fontId="1" fillId="7" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 2 faixa regional */
@@ -3355,12 +3365,21 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<xf numFmtId="0" fontId="2" fillId="13" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 20 risco ALTO */
 +'<xf numFmtId="0" fontId="2" fillId="12" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 21 risco MEDIO */
 +'<xf numFmtId="0" fontId="1" fillId="11" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 22 risco BAIXO */
++'<xf numFmtId="0" fontId="0" fillId="14" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 23 situação amarelo */
++'<xf numFmtId="0" fontId="0" fillId="15" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 24 situação laranja */
++'<xf numFmtId="0" fontId="2" fillId="16" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 25 situação vermelho */
++'<xf numFmtId="0" fontId="0" fillId="17" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 26 situação verde claro */
++'<xf numFmtId="0" fontId="2" fillId="18" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 27 situação verde escuro */
++'<xf numFmtId="0" fontId="0" fillId="19" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 28 situação roxo claro */
++'<xf numFmtId="0" fontId="2" fillId="20" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 29 situação roxo */
++'<xf numFmtId="0" fontId="2" fillId="21" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 30 situação roxo escuro */
++'<xf numFmtId="0" fontId="0" fillId="22" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 31 situação azul */
 +'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 function colName(i){ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
 function xmlEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
 function cTxt(col,row,v,st){ return '<c r="'+colName(col)+row+'" s="'+st+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(v)+'</t></is></c>'; }
 function cNum(col,row,v,st){ const n=parseBRNumber(v); return '<c r="'+colName(col)+row+'" s="'+st+'"><v>'+(Math.round(n*100)/100)+'</v></c>'; }
-function situationStyleId(value){ const v=String(value||''); if(!v)return 4; if(v==='Para solução de problema'||v==='Despachar'||v==='Em outra base')return 6; if(v==='Faltante'||v==='Parado')return 7; if(v==='Não encontrado no ato do carregamento'||v==='Perdido')return 8; if(v==='Em rota de entrega')return 5; if(v==='Entregue')return 5; return 4; }
+function situationStyleId(value){ const v=String(value||''); if(!v)return 4; if(v==='Para solução de problema'||v==='Despachar'||v==='Em outra base')return 23; if(v==='Faltante'||v==='Parado')return 24; if(v==='Não encontrado no ato do carregamento'||v==='Perdido')return 25; if(v==='Em rota de entrega')return 26; if(v==='Entregue')return 27; if(v==='Para devolver')return 28; if(v==='Devolução')return 29; if(v==='Devolução | Comprador recusou')return 30; if(v==='Outros')return 31; return 4; }
 function diasStyle(dias){ if(dias<=2) return 5; if(dias===3) return 6; if(dias===4) return 7; if(dias===5) return 8; if(dias===6) return 12; if(dias===7) return 13; return 14; }
 function buildSheetXml(grupos, contexto, opts){
   const lost=Boolean(opts&&opts.lost), COLS=lost?LOST_XLSX_COLS:XLSX_COLS, N=COLS.length, LASTC=colName(N-1), valCol=lost?8:7;
@@ -4192,3 +4211,22 @@ window.__spotRun(async function init(){
 </script>
 </body>
 </html>
+
+/* Situação: cores semânticas adaptáveis aos temas claro, escuro e rosa. */
+.situation-select{font-weight:800!important;border:1px solid rgba(0,0,0,.28);text-shadow:none}
+.situation-select.situation-empty{background:var(--bg-inset)!important;color:var(--text-primary)!important}
+.situation-select.situation-0,.situation-select.situation-1,.situation-select.situation-7{background:#f3d316!important;color:#1d1d1d!important}
+.situation-select.situation-2,.situation-select.situation-4{background:#ff8a00!important;color:#111!important}
+.situation-select.situation-3,.situation-select.situation-11{background:#ef3f56!important;color:#fff!important}
+.situation-select.situation-5{background:#9be15d!important;color:#163300!important}
+.situation-select.situation-6{background:#00a83b!important;color:#fff!important}
+.situation-select.situation-8{background:#c7a0ff!important;color:#24103f!important}
+.situation-select.situation-9{background:#8e44ad!important;color:#fff!important}
+.situation-select.situation-10{background:#5b176f!important;color:#fff!important}
+.situation-select.situation-12{background:#4da3ff!important;color:#07182d!important}
+.situation-select option{background:var(--bg-card)!important;color:var(--text-primary)!important}
+:root.theme-light .situation-select.situation-2,:root.theme-light .situation-select.situation-4{background:#d96f00!important;color:#fff!important}
+:root.theme-light .situation-select.situation-5{background:#72b52e!important;color:#102500!important}
+:root.theme-light .situation-select.situation-7{background:#d1ad00!important;color:#1d1d1d!important}
+:root.theme-light .situation-select.situation-12{background:#2d78c7!important;color:#fff!important}
+:root.theme-pink .situation-select.situation-5{background:#73b83f!important;color:#102500!important}
