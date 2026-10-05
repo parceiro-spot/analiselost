@@ -744,3 +744,12 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .info-logistic-active td{background:rgba(185,185,185,.13)!important;color:var(--text-primary)!important}
 
 .situation-select{min-width:190px;max-width:260px;border:1px solid rgba(0,0,0,.25);border-radius:6px;padding:6px 8px;font:700 11px inherit;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.15)}.situation-select:focus{outline:2px solid var(--spot-green);outline-offset:1px}.situation-select option{background:#fff;color:#111;font-weight:600}
+
+/* Histórico de pacotes: observação legível, sem texto minúsculo ou truncado. */
+.overlay-panel .observation-cell{min-width:340px;width:340px;vertical-align:top!important}
+.overlay-panel .observation-cell .just-cell{min-width:330px;max-width:360px;align-items:flex-start;gap:7px}
+.overlay-panel .observation-cell .just-cell>span{display:block;min-width:250px;max-width:330px;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4;font-size:13px;color:var(--text-primary)}
+.overlay-panel .observation-cell .just-edit,.overlay-panel .observation-cell .just-delete,.overlay-panel .observation-cell .just-photo,.overlay-panel .observation-cell .just-photo-btn{font-size:11px;padding:4px 7px}
+.return-history-card .observation-cell{min-width:300px}.return-history-card .observation-cell .just-cell>span{max-width:290px;white-space:normal;font-size:12px}
+.overlay-panel .table-scroll{max-height:calc(100vh - 245px)}
+@media(max-width:900px){.overlay-panel .observation-cell{min-width:280px;width:280px}.overlay-panel .observation-cell .just-cell{min-width:270px}.overlay-panel .observation-cell .just-cell>span{min-width:210px;max-width:270px}}
