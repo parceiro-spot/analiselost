@@ -14,6 +14,6 @@ Site estático pronto para publicação no GitHub Pages.
 2. Envie o conteúdo da pasta `vitoria-spot-site` para um repositório.
 3. Nas configurações do repositório, ative o GitHub Pages usando a branch principal e a pasta raiz.
 
-## Situação: dropdown e integração com o dashboard
+## Variante sem Situação nas planilhas exportadas
 
-A lista suspensa da planilha é gerada a partir das mesmas 13 opções coloridas do dashboard. O importador reconhece o cabeçalho `Situação` e também `Situação (lista clicável)`. Depois de editar a planilha no Excel/OneDrive, importe o arquivo no dashboard por **Anexar planilha de retorno** e confirme com **OK**; não há sincronização automática do OneDrive para o dashboard.
+Nesta versão, a coluna **Situação** não é incluída nos arquivos `.xlsx` exportados. O campo Situação e sua lista continuam disponíveis no dashboard.
