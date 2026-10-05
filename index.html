@@ -1900,10 +1900,13 @@ function normalizeReturnHeader(v){
    todo o bloco da base (observações perdidas). */
 const RETURN_PKG_KEY_RE=/^(ID|ID_?(DO_)?(PACOTE|SHIPMENT)|PACOTE(_ID)?|N_?(DO_)?PACOTE|NUMERO_(DO_)?PACOTE|COD(IGO)?_(DO_)?PACOTE|SHIPMENT(_ID)?|SHP_SHIPMENT_ID)$/;
 const RETURN_JUST_KEY_RE=/^(JUSTIFICATIVAS?(_.*)?|OBSERVACAO|OBSERVACOES|OBS|RAZAO|MOTIVO)$/;
-const RETURN_SITUATION_KEY_RE=/^(SITUACAO|SITUATION|STATUS)$/;
+const RETURN_SITUATION_KEY_RE=/^(?:SITUACAO|SITUATION|STATUS|FILA)(?:_|$)/;
 const SITUATION_OPTIONS=[{label:'Para solução de problema',color:'#f3d316',font:'#1d1d1d'},{label:'Despachar',color:'#f3d316',font:'#1d1d1d'},{label:'Faltante',color:'#ff8a00',font:'#111111'},{label:'Não encontrado no ato do carregamento',color:'#ef3f56',font:'#ffffff'},{label:'Parado',color:'#ff8a00',font:'#111111'},{label:'Em rota de entrega',color:'#9be15d',font:'#163300'},{label:'Entregue',color:'#00a83b',font:'#ffffff'},{label:'Em outra base',color:'#f3d316',font:'#1d1d1d'},{label:'Para devolver',color:'#c7a0ff',font:'#24103f'},{label:'Devolução',color:'#8e44ad',font:'#ffffff'},{label:'Devolução | Comprador recusou',color:'#5b176f',font:'#ffffff'},{label:'Perdido',color:'#ef3f56',font:'#ffffff'},{label:'Outros',color:'#4da3ff',font:'#07182d'}];
 const SITUATION_BY_LABEL=Object.fromEntries(SITUATION_OPTIONS.map(item=>[item.label,item]));
 function isReturnSituationKey(k){ return RETURN_SITUATION_KEY_RE.test(k); }
+const RETURN_SITUATION_PRIMARY_RE=/^(?:SITUACAO|SITUATION|STATUS)(?:_|$)/;
+const RETURN_QUEUE_RE=/^FILA(?:_|$)/;
+function returnSituationColumnKey(keys){ return keys.find(k=>RETURN_SITUATION_PRIMARY_RE.test(k))||keys.find(k=>RETURN_QUEUE_RE.test(k))||null; }
 
 function isReturnPackageKey(k){ return RETURN_PKG_KEY_RE.test(k); }
 function isReturnJustKey(k){ return RETURN_JUST_KEY_RE.test(k); }
@@ -1930,7 +1933,7 @@ function buildReturnRowsFromRawRows(rows,photosByRow){
     const colRota=idx['ROTA']!==undefined?idx['ROTA']:(idx['ID_DA_ROTA']!==undefined?idx['ID_DA_ROTA']:(idx['SHP_LG_ROUTE_ID']!==undefined?idx['SHP_LG_ROUTE_ID']:idx['ROUTE']));
     const colDriver=idx['MOTORISTA']!==undefined?idx['MOTORISTA']:(idx['ID_DO_MOTORISTA']!==undefined?idx['ID_DO_MOTORISTA']:(idx['SHP_LG_DRIVER_ID']!==undefined?idx['SHP_LG_DRIVER_ID']:idx['DRIVER']));
     const colJust=idx['OBSERVACAO']!==undefined?idx['OBSERVACAO']:(idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(Object.keys(idx).find(isReturnJustKey)!==undefined?idx[Object.keys(idx).find(isReturnJustKey)]:undefined));
-    const colSituation=Object.keys(idx).find(isReturnSituationKey)!==undefined?idx[Object.keys(idx).find(isReturnSituationKey)]:undefined;
+    const situationHeader=returnSituationColumnKey(Object.keys(idx)); const colSituation=situationHeader!==null?idx[situationHeader]:undefined;
     const colPhoto=Object.keys(idx).find(k=>k.includes('FOTO')||k.includes('IMAGEM')||k.includes('PHOTO'))!==undefined?idx[Object.keys(idx).find(k=>k.includes('FOTO')||k.includes('IMAGEM')||k.includes('PHOTO'))]:undefined;
     if(colPacote===undefined || (colJust===undefined && colSituation===undefined)) return;
     const end=headerIndex+1<headers.length?headers[headerIndex+1].rowIndex:rows.length;
@@ -3413,8 +3416,8 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
    Dias parado: até 2 verde · 3 amarelo · 4 laranja · 5+ vermelho */
-const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',18],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
-const LOST_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['RISCO',12],['VALOR (R$)',18],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
+const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',18],['Situação',32],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
+const LOST_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['RISCO',12],['VALOR (R$)',18],['Situação',32],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
 const ORIGIN_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['ORIGEM',14],['DESTINO',14],['PRODUTO',60]];
 function riscoStyle(dias){ const k=riscoDiasParado(dias).key; return k==='alto'?20:(k==='medio'?21:22); }
 function riscoTexto(dias){ return riscoDiasParado(dias).label.toUpperCase(); }
@@ -3511,7 +3514,7 @@ function situationStyleId(value){ const v=String(value||''); if(!v)return 4; if(
 function diasStyle(dias){ if(dias<=2) return 5; if(dias===3) return 6; if(dias===4) return 7; if(dias===5) return 8; if(dias===6) return 12; if(dias===7) return 13; return 14; }
 function buildSheetXml(grupos, contexto, opts){
   const lost=Boolean(opts&&opts.lost), COLS=lost?LOST_XLSX_COLS:XLSX_COLS, N=COLS.length, LASTC=colName(N-1), valCol=lost?8:7;
-  let rows='', merges=[], r=0;
+  let rows='', merges=[], situationRefs=[], r=0;
   const linhaVazia=()=>{ r++; rows+='<row r="'+r+'" ht="15" customHeight="1"/>'; };
   r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+cTxt(0,r,'Planilha de retorno — Parceiro Spot · '+fmtDateFullBR(new Date())+(contexto?(typeof contexto==='string'?contexto:(contexto.selectedDays?.length?'Dias '+contexto.selectedDays.map(d=>d.split('-').reverse().join('/')).join(', '):'')):''),1)+'</row>';
   merges.push('A'+r+':'+LASTC+r);
@@ -3529,12 +3532,12 @@ function buildSheetXml(grupos, contexto, opts){
       const dias=diasParado(e);
       const dataRowNumber=r+1;
       const retorno=returnRecordForEntry(e), situacao=String(retorno?.situacao||''), justificativa=String(retorno?.justificativa||'').trim(), resolvido=(justificativa||situacao)?'Resolvido':'Pendente';
-      r++;
+      r++; situationRefs.push(colName(valCol+1)+r);
       const fotoOk=Boolean(retorno?.photo||retorno?.photoIndicator);
       const tut='Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Este dispositivo > depois de abrir a foto, clicar no ícone pequeno de paisagem com quadradinho que fica ao lado da foto que abriu.';
       const cells=[cTxt(0,r,base,4),cTxt(1,r,e.pacote||'',4),cTxt(2,r,e.rota||'',4),cTxt(3,r,resumo(e.produto,45),4),cTxt(4,r,e.motivo||'',16),cTxt(5,r,getDriverName(e.driverId),4),cNum(6,r,dias,diasStyle(dias))];
       if(lost) cells.push(cTxt(7,r,riscoTexto(dias),riscoStyle(dias)));
-      cells.push(cNum(valCol,r,e.valor,18),cTxt(valCol+1,r,justificativa,4),cTxt(valCol+2,r,fotoOk?'FOTO ANEXADA':'ANEXAR FOTO',fotoOk?19:17),cTxt(valCol+3,r,resolvido,4),cTxt(valCol+4,r,tut,15));
+      cells.push(cNum(valCol,r,e.valor,18),cTxt(valCol+1,r,situacao, situationStyleId(situacao)),cTxt(valCol+2,r,justificativa,4),cTxt(valCol+3,r,fotoOk?'FOTO ANEXADA':'ANEXAR FOTO',fotoOk?19:17),cTxt(valCol+4,r,resolvido,4),cTxt(valCol+5,r,tut,15));
       rows+='<row r="'+r+'" ht="15" customHeight="1">'+cells.join('')+'</row>';
     });
     r++;
@@ -3554,10 +3557,14 @@ function buildSheetXml(grupos, contexto, opts){
   }
   const cols='<cols>'+COLS.map((c,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+c[1]+'" customWidth="1"/>').join('')+'</cols>';
   const mc = merges.length ? '<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>' : '';
-  /* A situação permanece no dashboard; as planilhas exportadas não incluem essa coluna. */
+  const situationList=SITUATION_OPTIONS.map(item=>item.label).join(',');
+  /* Lista inline compatível com Excel Online; as 13 opções ocupam 199 caracteres (limite do Excel: 255). */
+  const dv=situationRefs.length?'<dataValidations count="1"><dataValidation type="list" allowBlank="1" showDropDown="0" showInputMessage="1" showErrorMessage="1" errorTitle="Situação" error="Escolha uma Situação da lista." sqref="'+compressRefs(situationRefs)+'"><formula1>'+xmlEsc('"'+situationList+'"')+'</formula1></dataValidation></dataValidations>':'';
+  const situationRange=situationRefs.length?situationRefs[0]+':'+situationRefs[situationRefs.length-1]:'';
+  const cf=situationRefs.length?'<conditionalFormatting sqref="'+situationRange+'">'+SITUATION_OPTIONS.map((item,i)=>'<cfRule type="cellIs" dxfId="'+i+'" priority="'+(i+1)+'" operator="equal"><formula>'+xmlEsc('\"'+item.label+'\"')+'</formula></cfRule>').join('')+'</conditionalFormatting>':'';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    +cols+'<sheetData>'+rows+'</sheetData>'+mc+'</worksheet>';
+    +cols+'<sheetData>'+rows+'</sheetData>'+mc+cf+dv+'</worksheet>';
 }
 function buildOriginSheetXml(list){
   let rows='', r=1; const N=ORIGIN_XLSX_COLS.length;
