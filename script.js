@@ -1647,7 +1647,18 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<xf numFmtId="0" fontId="2" fillId="20" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 29 situação roxo */
 +'<xf numFmtId="0" fontId="2" fillId="21" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 30 situação roxo escuro */
 +'<xf numFmtId="0" fontId="0" fillId="22" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 31 situação azul */
-+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
++'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
++'<dxfs count="9">'
++'<dxf><font><color rgb="FF1D1D1D"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFF3D316"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'<dxf><font><color rgb="FF111111"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFFF8A00"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'<dxf><font><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFEF3F56"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'<dxf><font><color rgb="FF163300"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF9BE15D"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'<dxf><font><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF00A83B"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'<dxf><font><color rgb="FF24103F"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFC7A0FF"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'<dxf><font><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF8E44AD"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'<dxf><font><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF5B176F"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'<dxf><font><color rgb="FF07182D"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF4DA3FF"/><bgColor indexed="64"/></patternFill></fill></dxf>'
++'</dxfs></styleSheet>';
 function colName(i){ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
 function xmlEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
 function cTxt(col,row,v,st){ return '<c r="'+colName(col)+row+'" s="'+st+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(v)+'</t></is></c>'; }
@@ -1701,9 +1712,11 @@ function buildSheetXml(grupos, contexto, opts){
   const mc = merges.length ? '<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>' : '';
   const situationList=SITUATION_OPTIONS.map(item=>item.label).join(',');
   const dv=situationRefs.length?'<dataValidations count="1"><dataValidation type="list" allowBlank="1" showErrorMessage="1" error="Escolha uma Situação da lista." sqref="'+situationRefs.join(' ')+'"><formula1>"'+xmlEsc(situationList)+'"</formula1></dataValidation></dataValidations>':'';
+  const situationAnchor=situationRefs[0]||'';
+  const cf=situationRefs.length?'<conditionalFormatting sqref="'+situationRefs.join(' ')+'">'+SITUATION_OPTIONS.map((item,i)=>'<cfRule type="expression" dxfId="'+i+'" priority="'+(i+1)+'"><formula>'+xmlEsc(situationAnchor+'="'+item.label+'"')+'</formula></cfRule>').join('')+'</conditionalFormatting>':'';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    +cols+'<sheetData>'+rows+'</sheetData>'+mc+dv+'</worksheet>';
+    +cols+'<sheetData>'+rows+'</sheetData>'+mc+cf+dv+'</worksheet>';
 }
 function buildOriginSheetXml(list){
   let rows='', r=1; const N=ORIGIN_XLSX_COLS.length;
