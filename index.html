@@ -2656,7 +2656,7 @@ function updateActivePlanilhaBadge(imp){
   el.innerHTML='<b>PLANILHA ATIVA</b> '+dateStr+' · '+escHtml(turno)+'<span class="active-planilha-file">'+escHtml(fileName)+'</span>';
   el.title='A Visão Geral está mostrando somente esta planilha: '+fileName;
 }
-function computeAgingCounts(list){ const out={ATE2:{cnt:0,val:0},'3A6':{cnt:0,val:0},'7A10':{cnt:0,val:0},MAIS11:{cnt:0,val:0}}; list.forEach(e=>{ const b=bucketOf(diasParado(e)); out[b].cnt++; out[b].val+=e.valor; }); return out; }
+function computeAgingCounts(list,daysFn){ const out={ATE2:{cnt:0,val:0},'3A6':{cnt:0,val:0},'7A10':{cnt:0,val:0},MAIS11:{cnt:0,val:0}}; list.forEach(e=>{ const b=bucketOf(daysFn?daysFn(e):diasParado(e)); out[b].cnt++; out[b].val+=e.valor; }); return out; }
 function renderAgingStrip(elId, list, onClick){
   const el=document.getElementById(elId); if(!el) return;
   const counts=computeAgingCounts(list);
@@ -2849,7 +2849,7 @@ function renderPackageTable(entries){
   const hasRoutePath=entries.some(e=>e.origem||e.destino);
   const showLostRisk=String(overlayCtx?.title||'').startsWith('Perdidos em rota');
   const rows=entries.map(e=>{
-    const dias=diasParado(e);
+    const dias=overlayDays(e);
     const risco=riscoDiasParado(dias);
     const desde=firstImportDateForPackage(e.pacote,e.date);
     const classif=classificaPlanilha(e.pacote,sets);
@@ -2861,7 +2861,9 @@ function renderPackageTable(entries){
 }
 /* Contexto do detalhe: guarda os pacotes da base/faixa aberta para permitir
    busca, filtro por turno e ordenação sem fechar a janela. */
-let overlayCtx={title:'',prefix:'',entries:[],bucket:'TODOS',search:'',period:'TODOS',sortMode:'VALOR'};
+let overlayCtx={title:'',prefix:'',entries:[],bucket:'TODOS',buckets:[],search:'',period:'TODOS',sortMode:'VALOR',dayMap:new Map()};
+function overlayEntryKey(e){ return normalizePackageKey(e?.pacote||'')+'|'+normalizeBaseCode(e?.base||''); }
+function overlayDays(e){ const key=overlayEntryKey(e); if(overlayCtx.dayMap?.has(key)) return overlayCtx.dayMap.get(key); const value=diasParado(e); if(overlayCtx.dayMap) overlayCtx.dayMap.set(key,value); return value; }
 function overlaySearchBase(){
   const q=overlayCtx.search.trim().toUpperCase();
   let list=overlayCtx.entries;
@@ -2880,7 +2882,7 @@ function overlaySearchBase(){
 }
 function overlayFiltered(){
   let list=overlaySearchBase();
-  if(overlayCtx.buckets?.length) list=list.filter(e=>overlayCtx.buckets.includes(bucketOf(diasParado(e))));
+  if(overlayCtx.buckets?.length) list=list.filter(e=>overlayCtx.buckets.includes(bucketOf(overlayDays(e))));
   return sortEntriesByMode(list, overlayCtx.sortMode);
 }
 function sortBtnLabel(mode){
@@ -2943,7 +2945,7 @@ function abrirModalOcultarDias(entries, contexto, onlyLostRoutes=false){
 function renderOverlayBody(){
   const driverDetail=document.getElementById('overlayDriverDetail'); if(driverDetail) driverDetail.remove();
   const list=overlayFiltered();
-  const counts=computeAgingCounts(overlaySearchBase());
+  const counts=computeAgingCounts(overlaySearchBase(),overlayDays);
   const chips=document.getElementById('overlayAging');
   chips.innerHTML=BUCKET_KEYS.map(b=>`<div class="aging-chip ${overlayCtx.bucket===b?'active':''} ${counts[b].cnt?'':'vazio'}" data-bucket="${b}"><div class="lbl">${BUCKET_LABELS[b]}</div><div class="cnt">${fmtInt(counts[b].cnt)}</div><div class="val">${fmtBRL(counts[b].val)}</div></div>`).join('');
   const tbl=document.getElementById('overlayTable');
@@ -2957,7 +2959,7 @@ function renderOverlayBody(){
     +(overlayCtx.period!=='TODOS'?' · '+(overlayCtx.period==='MANHA'?'Manhã':overlayCtx.period==='TARDE'?'Tarde':'Justificados'):'');
 }
 function openOverlayEntries(title, prefix, entries, bucket){
-  overlayCtx={title, prefix:prefix||'', entries:entries||[], bucket:bucket||'TODOS', buckets:bucket&&bucket!=='TODOS'?[bucket]:[], search:'', period:'TODOS', sortMode:'VALOR'};
+  overlayCtx={title, prefix:prefix||'', entries:entries||[], bucket:bucket||'TODOS', buckets:bucket&&bucket!=='TODOS'?[bucket]:[], search:'', period:'TODOS', sortMode:'VALOR', dayMap:new Map()};
   document.getElementById('overlayTitle').textContent=title;
   document.getElementById('overlayBody').innerHTML=
     '<div class="overlay-tools"><div class="search-box" style="width:100%;max-width:380px;">'
@@ -2974,9 +2976,12 @@ function openOverlayEntries(title, prefix, entries, bucket){
     +'<button type="button" class="btn-reset" id="overlayResetFiltros">Mostrar todos</button>'
     +'<button type="button" class="dl-btn" id="overlayDownload" style="margin-left:0;" title="Baixar planilha de retorno destes pacotes" aria-label="Baixar planilha de retorno destes pacotes"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button></div>'
     +'<div class="aging-strip" id="overlayAging"></div><div id="overlayTable"></div>';
-  renderOverlayBody();
+  const overlay=document.getElementById('baseOverlay');
+  overlay.classList.add('show');
+  const overlayTable=document.getElementById('overlayTable');
+  if(overlayTable) overlayTable.innerHTML='<div class="history-empty" style="padding:42px 0;">Carregando pacotes…</div>';
+  requestAnimationFrame(()=>{ if(overlay.classList.contains('show')) renderOverlayBody(); });
   document.getElementById('overlayLostRoutesBtn')?.addEventListener('click',()=>{const prev=overlayCtx;const base=normalizeBaseCode(overlayCtx.entries[0]?.base||'');const list=LOST_ROUTES.filter(x=>lostPrimaryBase(x)===base);openLostRoutesOverlay(base,list);const tools=document.querySelector('#overlayBody .overlay-tools');if(tools){const back=document.createElement('button');back.type='button';back.className='preset-btn';back.id='overlayBackToBase';back.textContent='← Voltar para a base';back.addEventListener('click',()=>openOverlayEntries(prev.title,prev.prefix,prev.entries,prev.bucket));tools.prepend(back);}});
-  document.getElementById('baseOverlay').classList.add('show');
   const inp=document.getElementById('overlaySearch');
   if(inp) setTimeout(()=>inp.focus(),50);
 }
@@ -3206,7 +3211,7 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
   const sortBtn=e.target.closest('#overlaySortBtn');
   if(sortBtn){ overlayCtx.sortMode = overlayCtx.sortMode==='VALOR'?'MT':(overlayCtx.sortMode==='MT'?'TM':'VALOR'); renderOverlayBody(); return; }
   const chip=e.target.closest('.aging-chip');
-  if(chip){ const b=chip.dataset.bucket; const multi=e.ctrlKey||e.metaKey; let selected=new Set(overlayCtx.buckets||[]); if(multi){ if(selected.has(b)) selected.delete(b); else selected.add(b); } else { selected=selected.size===1&&selected.has(b)?new Set():new Set([b]); } overlayCtx.buckets=Array.from(selected); overlayCtx.bucket=overlayCtx.buckets.length===1?overlayCtx.buckets[0]:'TODOS'; renderOverlayBody(); }
+  if(chip){ const b=chip.dataset.bucket; const multi=e.ctrlKey||e.metaKey; let selected=new Set(overlayCtx.buckets||[]); if(multi){ if(selected.has(b)) selected.delete(b); else selected.add(b); } else { selected=selected.size===1&&selected.has(b)?new Set():new Set([b]); } overlayCtx.buckets=Array.from(selected); overlayCtx.bucket=overlayCtx.buckets.length===1?overlayCtx.buckets[0]:'TODOS'; requestAnimationFrame(()=>{ if(document.getElementById('baseOverlay')?.classList.contains('show')) renderOverlayBody(); }); }
 });
 document.getElementById('overlayClose').addEventListener('click', ()=>document.getElementById('baseOverlay').classList.remove('show'));
 document.getElementById('baseOverlay').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('show'); });
@@ -3789,7 +3794,7 @@ function renderRegionalPage(){
     const isAllBases=r==='TODAS';
     const entriesForRegion=isAllBases?activeEntries:(activeData[r]?.entries||[]);
     if(!entriesForRegion.length){ regionalNav={level:'list',regional:null}; renderRegionalPage(); return; }
-    crumb.innerHTML=`<a data-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(isAllBases?'Todas as bases':(REGIONAL_LABELS[r]||r))}</strong><button type="button" class="mini-camera" id="btnCapturaBases" title="Capturar bases" aria-label="Capturar bases"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
+    crumb.innerHTML=`<a data-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(isAllBases?'Todas as bases':(REGIONAL_LABELS[r]||r))}</strong><button type="button" class="dl-btn" id="btnDownloadRegionalBases" title="Baixar planilha desta regional" aria-label="Baixar planilha desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaBases" title="Capturar bases" aria-label="Capturar bases"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
     const d={entries:entriesForRegion};
     const filteredEntries=bucketFilterEntries(d.entries, regionalBaseBucket);
     const baseMap={};
@@ -3807,6 +3812,7 @@ function renderRegionalPage(){
     }
     html+='</div>';
     content.innerHTML=html;
+    document.getElementById('btnDownloadRegionalBases')?.addEventListener('click',()=>abrirModalOcultarDias(entriesForRegion,'Regional '+(REGIONAL_LABELS[r]||'Todas as bases'),false));
     document.getElementById('btnCapturaBases').addEventListener('click',()=>captureDashboardElement('#regionalContent','regional-e-bases-'+String(r).toLowerCase().replace(/\s+/g,'-')));
     document.getElementById('regBaseAging').querySelectorAll('.aging-chip').forEach(chip=>chip.addEventListener('click', ()=>{
       const b=chip.dataset.bucket;
