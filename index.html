@@ -3117,7 +3117,7 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
     const contexto=overlayCtx.title+(overlayCtx.buckets?.length?' · '+overlayCtx.buckets.map(b=>BUCKET_LABELS[b]).join(' + '):'');
     if(overlayCtx.title==='Pacotes por dias parado') abrirModalOcultarDias(lista,contexto);
     else if(String(overlayCtx.title||'').startsWith('Perdidos em rota')) abrirModalOcultarDias(lista,'Pacotes em rota',true);
-    else openExportConfig(lista,false);
+    else abrirModalOcultarDias(lista, contexto, false);
     return;
   }
   const periodBtn=e.target.closest('.period-preset');
