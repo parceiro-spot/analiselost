@@ -1160,6 +1160,19 @@ html:not(.theme-light) #spotSplash .sp-strips i:nth-child(3),html:not(.theme-lig
 @media(max-width:700px){#baseOverlay .overlay-panel{padding:16px 12px 12px}#baseOverlay #overlayAging{max-height:170px}#baseOverlay #overlayTable>.table-scroll table{min-width:1320px}}
 
 </style>
+
+<style>
+/* INFO LOGISTIC: o destaque sai suavemente quando o usuário retorna ao dashboard. */
+#baseOverlay tbody tr[data-info-pacote] td{transition:background-color .6s ease,color .6s ease,box-shadow .6s ease}
+#baseOverlay .info-logistic-active td{transition:background-color .6s ease,color .6s ease,box-shadow .6s ease}
+#baseOverlay .info-logistic-fading td{background-color:rgba(185,185,185,.07)!important;color:var(--text-primary)!important;transition:background-color .6s ease,color .6s ease}
+/* Rolagem horizontal responsiva, inclusive com zoom/redução da janela. */
+#baseOverlay #overlayBody,#baseOverlay #overlayTable{width:100%;max-width:100%;min-width:0}
+#baseOverlay #overlayTable>.table-scroll{width:100%;max-width:100%;min-width:0;scrollbar-gutter:stable;overflow-x:auto;overflow-y:auto}
+#baseOverlay #overlayTable>.table-scroll table{width:max-content;min-width:max(100%,1500px);max-width:none}
+@media(max-width:1100px){#baseOverlay #overlayTable>.table-scroll table{min-width:1380px}}
+@media(max-width:700px){#baseOverlay #overlayTable>.table-scroll table{min-width:1250px}}
+</style>
 </head>
 <body>
 <div id="spotSplash" aria-hidden="true">
@@ -2804,6 +2817,17 @@ function infoLogisticUrl(pacote){
   return key?'https://envios.adminml.com/logistics/package-management/package/'+encodeURIComponent(key):'';
 }
 const INFO_LOGISTIC_FOCUS_KEY='spot_info_logistic_focus_v2';
+let infoLogisticWindowBlurred=false;
+function clearInfoLogisticFocus(){
+  document.querySelectorAll('.info-logistic-active').forEach(row=>{
+    row.classList.add('info-logistic-fading');
+    window.setTimeout(()=>{row.classList.remove('info-logistic-active','info-logistic-fading');},620);
+  });
+  try{sessionStorage.removeItem(INFO_LOGISTIC_FOCUS_KEY);}catch(_){ }
+}
+window.addEventListener('blur',()=>{infoLogisticWindowBlurred=true;});
+window.addEventListener('focus',()=>{if(infoLogisticWindowBlurred){infoLogisticWindowBlurred=false;window.setTimeout(clearInfoLogisticFocus,120);}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&infoLogisticWindowBlurred){infoLogisticWindowBlurred=false;window.setTimeout(clearInfoLogisticFocus,120);}});
 function infoLogisticFocusMatches(entry){
   try{
     const raw=sessionStorage.getItem(INFO_LOGISTIC_FOCUS_KEY); if(!raw)return false;
@@ -3155,7 +3179,7 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
   const infoLink=e.target.closest('[data-info-logistic]');
   if(infoLink){
     const row=infoLink.closest('tr');
-    document.querySelectorAll('.info-logistic-active').forEach(el=>el.classList.remove('info-logistic-active'));
+    document.querySelectorAll('.info-logistic-active').forEach(el=>el.classList.remove('info-logistic-active','info-logistic-fading'));
     if(row) row.classList.add('info-logistic-active');
     try{sessionStorage.setItem(INFO_LOGISTIC_FOCUS_KEY,JSON.stringify({pacote:row?.dataset.infoPacote||'',base:row?.dataset.infoBase||'',at:Date.now()}));}catch(_){}
     return;
@@ -3472,8 +3496,8 @@ function buildSheetXml(grupos, contexto, opts){
   const mc = merges.length ? '<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>' : '';
   const situationList=SITUATION_OPTIONS.map(item=>item.label).join(',');
   const dv=situationRefs.length?'<dataValidations count="1"><dataValidation type="list" allowBlank="1" showErrorMessage="1" error="Escolha uma Situação da lista." sqref="'+situationRefs.join(' ')+'"><formula1>"'+xmlEsc(situationList)+'"</formula1></dataValidation></dataValidations>':'';
-  const situationAnchor=situationRefs[0]||'';
-  const cf=situationRefs.length?'<conditionalFormatting sqref="'+situationRefs.join(' ')+'">'+SITUATION_OPTIONS.map((item,i)=>'<cfRule type="expression" dxfId="'+i+'" priority="'+(i+1)+'"><formula>'+xmlEsc(situationAnchor+'="'+item.label+'"')+'</formula></cfRule>').join('')+'</conditionalFormatting>':'';
+  const situationRange=situationRefs.length?situationRefs[0]+':'+situationRefs[situationRefs.length-1]:'';
+  const cf=situationRefs.length?'<conditionalFormatting sqref="'+situationRange+'">'+SITUATION_OPTIONS.map((item,i)=>'<cfRule type="cellIs" dxfId="'+i+'" priority="'+(i+1)+'" operator="equal"><formula>'+xmlEsc('\"'+item.label+'\"')+'</formula></cfRule>').join('')+'</conditionalFormatting>':'';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
     +cols+'<sheetData>'+rows+'</sheetData>'+mc+cf+dv+'</worksheet>';

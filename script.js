@@ -1712,8 +1712,8 @@ function buildSheetXml(grupos, contexto, opts){
   const mc = merges.length ? '<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>' : '';
   const situationList=SITUATION_OPTIONS.map(item=>item.label).join(',');
   const dv=situationRefs.length?'<dataValidations count="1"><dataValidation type="list" allowBlank="1" showErrorMessage="1" error="Escolha uma Situação da lista." sqref="'+situationRefs.join(' ')+'"><formula1>"'+xmlEsc(situationList)+'"</formula1></dataValidation></dataValidations>':'';
-  const situationAnchor=situationRefs[0]||'';
-  const cf=situationRefs.length?'<conditionalFormatting sqref="'+situationRefs.join(' ')+'">'+SITUATION_OPTIONS.map((item,i)=>'<cfRule type="expression" dxfId="'+i+'" priority="'+(i+1)+'"><formula>'+xmlEsc(situationAnchor+'="'+item.label+'"')+'</formula></cfRule>').join('')+'</conditionalFormatting>':'';
+  const situationRange=situationRefs.length?situationRefs[0]+':'+situationRefs[situationRefs.length-1]:'';
+  const cf=situationRefs.length?'<conditionalFormatting sqref="'+situationRange+'">'+SITUATION_OPTIONS.map((item,i)=>'<cfRule type="cellIs" dxfId="'+i+'" priority="'+(i+1)+'" operator="equal"><formula>'+xmlEsc('\"'+item.label+'\"')+'</formula></cfRule>').join('')+'</conditionalFormatting>':'';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
     +cols+'<sheetData>'+rows+'</sheetData>'+mc+cf+dv+'</worksheet>';
