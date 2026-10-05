@@ -3494,19 +3494,11 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +buildSituationDxfs()+'</styleSheet>';
 function colName(i){ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
 function xmlEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
-const SITUATION_LIST_SHEET='Listas';
-const SITUATION_LIST_NAME='ListaSituacoes';
-const SITUATION_LIST_RANGE="'"+SITUATION_LIST_SHEET+"'!$A$1:$A$"+SITUATION_OPTIONS.length;
-const SITUATION_LIST_REF=SITUATION_LIST_NAME;
 function compressRefs(refs){ /* ['J5','J6','J7','J10'] -> 'J5:J7 J10' */
   const out=[]; let start=null,prev=null,col=null;
   const flush=()=>{ if(start===null)return; out.push(start===prev?col+start:col+start+':'+col+prev); start=null; prev=null; };
   refs.forEach(ref=>{ const m=/^([A-Z]+)(\d+)$/.exec(ref); if(!m)return; const c=m[1], n=Number(m[2]); if(start!==null && c===col && n===prev+1){ prev=n; return; } flush(); col=c; start=n; prev=n; });
   flush(); return out.join(' ');
-}
-function buildListasSheetXml(){
-  const rows=SITUATION_OPTIONS.map((item,i)=>'<row r="'+(i+1)+'">'+cTxt(0,i+1,item.label,4)+'</row>').join('');
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="42" customWidth="1"/></cols><sheetData>'+rows+'</sheetData></worksheet>';
 }
 function cTxt(col,row,v,st){ return '<c r="'+colName(col)+row+'" s="'+st+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(v)+'</t></is></c>'; }
 function cNum(col,row,v,st){ const n=parseBRNumber(v); return '<c r="'+colName(col)+row+'" s="'+st+'"><v>'+(Math.round(n*100)/100)+'</v></c>'; }
@@ -3563,8 +3555,8 @@ function buildSheetXml(grupos, contexto, opts){
   const cols='<cols>'+COLS.map((c,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+c[1]+'" customWidth="1"/>').join('')+'</cols>';
   const mc = merges.length ? '<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>' : '';
   const situationList=SITUATION_OPTIONS.map(item=>item.label).join(',');
-  /* CORREÇÃO OneDrive/Excel Online: a lista vem de um intervalo na aba oculta 'Listas' (em vez de texto fixo dentro da célula) e as células são agrupadas em intervalos contínuos. */
-  const dv=situationRefs.length?'<dataValidations count="1"><dataValidation type="list" allowBlank="1" showDropDown="0" showInputMessage="1" showErrorMessage="1" errorTitle="Situação" error="Escolha uma Situação da lista." sqref="'+compressRefs(situationRefs)+'"><formula1>'+SITUATION_LIST_REF+'</formula1></dataValidation></dataValidations>':'';
+  /* Lista inline compatível com Excel Online; as 13 opções ocupam 199 caracteres (limite do Excel: 255). */
+  const dv=situationRefs.length?'<dataValidations count="1"><dataValidation type="list" allowBlank="1" showDropDown="0" showInputMessage="1" showErrorMessage="1" errorTitle="Situação" error="Escolha uma Situação da lista." sqref="'+compressRefs(situationRefs)+'"><formula1>'+xmlEsc('"'+situationList+'"')+'</formula1></dataValidation></dataValidations>':'';
   const situationRange=situationRefs.length?situationRefs[0]+':'+situationRefs[situationRefs.length-1]:'';
   const cf=situationRefs.length?'<conditionalFormatting sqref="'+situationRange+'">'+SITUATION_OPTIONS.map((item,i)=>'<cfRule type="cellIs" dxfId="'+i+'" priority="'+(i+1)+'" operator="equal"><formula>'+xmlEsc('\"'+item.label+'\"')+'</formula></cfRule>').join('')+'</conditionalFormatting>':'';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -3659,12 +3651,11 @@ function baixarRetornoFormatadoImpl(entries, contexto){
     ordem.forEach(reg=>{const porBase={};(porReg[reg]||[]).forEach(e=>(porBase[e.base]=porBase[e.base]||[]).push(e));const grupos=Object.keys(porBase).sort().map(base=>({regional:base,linhas:porBase[base].slice().sort((a,b)=>{const da=(contexto?.dateOrder||[]).indexOf(a._exportDate),db=(contexto?.dateOrder||[]).indexOf(b._exportDate);return (da<0?999:da)-(db<0?999:db)||((b.valor||0)-(a.valor||0));}).map(e=>({base:e.base,e}))}));sheets.push({reg,groupKey:group.key,groupLabel:group.label,xml:buildSheetXml(grupos,contexto)});});
   });
   if(lostSheetWanted){ sheets.push(...buildLostSheets(LOST_ROUTES)); }
-  sheets.push({reg:SITUATION_LIST_SHEET,hidden:true,xml:buildListasSheetXml()}); /* aba oculta com as opções da lista Situação */
   const zip=new JSZip(); const sheetOverrides=sheets.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('');
   zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheetOverrides+'</Types>');
   zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
   const short={'ESPÍRITO SANTO':'ES','MINAS GERAIS':'MG','BAHIA':'BA','SÃO PAULO':'SP','RIO DE JANEIRO':'RJ'}; const xl=zip.folder('xl'), usados=new Set(), names=sheets.map((s,i)=>{const base=(short[s.reg]||s.reg||('Regional '+(i+1))).replace(/[\/*?:\[\]]/g,' ').trim().slice(0,31);let label=base,n=2;while(usados.has(label)){const sufixo=' '+n++;label=base.slice(0,31-sufixo.length)+sufixo;}usados.add(label);return {label,i};});
-  xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'"'+(sheets[n.i].hidden?' state="hidden"':'')+' sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets><definedNames><definedName name="'+SITUATION_LIST_NAME+'">'+xmlEsc(SITUATION_LIST_RANGE)+'</definedName></definedNames></workbook>');
+  xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'"'+(sheets[n.i].hidden?' state="hidden"':'')+' sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets></workbook>');
   xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   xl.file('styles.xml',STYLES_XML); const wsFolder=xl.folder('worksheets'); sheets.forEach((s,i)=>wsFolder.file('sheet'+(i+1)+'.xml',s.xml));
   zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE',compressionOptions:{level:1}}).then(blob=>{hideExportBusy();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=exportFileName(entries,contexto);document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);hideExportBusy();alert('Não foi possível gerar o arquivo neste navegador.');});
