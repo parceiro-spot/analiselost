@@ -784,3 +784,36 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 #baseOverlay #overlayTable>.table-scroll{height:100%;max-height:none;overflow:auto;overscroll-behavior:contain}
 #baseOverlay #overlayTable>.table-scroll table{min-width:1500px}
 @media(max-width:700px){#baseOverlay .overlay-panel{padding:16px 12px 12px}#baseOverlay #overlayAging{max-height:170px}#baseOverlay #overlayTable>.table-scroll table{min-width:1320px}}
+
+/* ===== Layout fluido: sem rolagem lateral na página ao diminuir a janela =====
+   O conteúdo encolhe junto com a janela; só as tabelas largas rolam dentro do próprio quadro. */
+html{overflow-x:hidden;overflow-x:clip;max-width:100%}
+body{max-width:100%;overflow-x:hidden;overflow-x:clip}
+main{padding:clamp(12px,2.4vw,28px)}
+.header-inner{padding:clamp(10px,1.6vw,16px) clamp(12px,2.4vw,28px)}
+.nav-inner,.subtabs-inner{padding-left:clamp(12px,2.4vw,28px);padding-right:clamp(12px,2.4vw,28px)}
+.kpi-grid,.registro-grid,.import-grid,.regional-grid,.base-grid,.analise-kpis,.rev-kpis,.aging-strip,.mini-calendar{min-width:0}
+.kpi-grid>*,.registro-grid>*,.import-grid>*,.regional-grid>*,.base-grid>*,.analise-kpis>*,.rev-kpis>*,.aging-strip>*,.mini-calendar>*{min-width:0;max-width:100%}
+.kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.registro-grid{grid-template-columns:minmax(240px,340px) minmax(0,1fr)}
+.import-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.regional-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.base-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rev-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.mini-calendar{grid-template-columns:repeat(7,minmax(0,1fr))}
+.page,.page>*,.card,.panel{min-width:0;max-width:100%}
+.table-scroll,.rev-table-wrap{max-width:100%;overflow-x:auto}
+img,svg,canvas,video{max-width:100%}
+.header-inner>*{min-width:0}
+@media (max-width:1100px){
+  .kpi-grid,.analise-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .registro-grid,.import-grid,.base-grid{grid-template-columns:minmax(0,1fr)}
+  .regional-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rev-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:700px){
+  .rev-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .kpi-grid,.analise-kpis,.regional-grid,.rev-kpis{grid-template-columns:minmax(0,1fr)}
+}

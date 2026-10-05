@@ -1648,21 +1648,16 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<xf numFmtId="0" fontId="2" fillId="21" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 30 situação roxo escuro */
 +'<xf numFmtId="0" fontId="0" fillId="22" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 31 situação azul */
 +'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
-+'<dxfs count="9">'
-+'<dxf><font><color rgb="FF1D1D1D"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFF3D316"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'<dxf><font><color rgb="FF111111"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFFF8A00"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'<dxf><font><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFEF3F56"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'<dxf><font><color rgb="FF163300"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF9BE15D"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'<dxf><font><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF00A83B"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'<dxf><font><color rgb="FF24103F"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFC7A0FF"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'<dxf><font><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF8E44AD"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'<dxf><font><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF5B176F"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'<dxf><font><color rgb="FF07182D"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF4DA3FF"/><bgColor indexed="64"/></patternFill></fill></dxf>'
-+'</dxfs></styleSheet>';
++buildSituationDxfs()+'</styleSheet>';
 function colName(i){ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
 function xmlEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
 function cTxt(col,row,v,st){ return '<c r="'+colName(col)+row+'" s="'+st+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(v)+'</t></is></c>'; }
 function cNum(col,row,v,st){ const n=parseBRNumber(v); return '<c r="'+colName(col)+row+'" s="'+st+'"><v>'+(Math.round(n*100)/100)+'</v></c>'; }
+function buildSituationDxfs(){
+  const argb=h=>'FF'+String(h||'#000000').replace('#','').toUpperCase();
+  /* No dxf (formatação condicional) o preenchimento sólido usa bgColor; só com fgColor o Excel pinta de preto. Uma entrada por opção, na mesma ordem de SITUATION_OPTIONS (dxfId = índice). */
+  return '<dxfs count="'+SITUATION_OPTIONS.length+'">'+SITUATION_OPTIONS.map(item=>'<dxf><font><b/><color rgb="'+argb(item.font)+'"/></font><fill><patternFill patternType="solid"><fgColor rgb="'+argb(item.color)+'"/><bgColor rgb="'+argb(item.color)+'"/></patternFill></fill></dxf>').join('')+'</dxfs>';
+}
 function situationStyleId(value){ const v=String(value||''); if(!v)return 4; if(v==='Para solução de problema'||v==='Despachar'||v==='Em outra base')return 23; if(v==='Faltante'||v==='Parado')return 24; if(v==='Não encontrado no ato do carregamento'||v==='Perdido')return 25; if(v==='Em rota de entrega')return 26; if(v==='Entregue')return 27; if(v==='Para devolver')return 28; if(v==='Devolução')return 29; if(v==='Devolução | Comprador recusou')return 30; if(v==='Outros')return 31; return 4; }
 function diasStyle(dias){ if(dias<=2) return 5; if(dias===3) return 6; if(dias===4) return 7; if(dias===5) return 8; if(dias===6) return 12; if(dias===7) return 13; return 14; }
 function buildSheetXml(grupos, contexto, opts){
