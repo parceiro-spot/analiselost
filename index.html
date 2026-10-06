@@ -1116,99 +1116,7 @@ html:not(.theme-light) #spotSplash .sp-strips i:nth-child(3),html:not(.theme-lig
 .rev-base-history-table th{font-size:10px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-secondary)}
 .rev-base-history-table td strong{color:var(--text-primary)}
 @media(max-width:700px){.rev-base-history-kpis{grid-template-columns:1fr}.rev-base-history-table{font-size:11px}}
-</style><style>.motorista-faixa-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.motorista-faixa-filtros .preset-btn{font-size:10px;padding:5px 8px}</style><style>
-.situation-select{min-width:190px;max-width:260px;border:1px solid rgba(0,0,0,.25);border-radius:6px;padding:6px 8px;font:700 11px inherit;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.15)}.situation-select:focus{outline:2px solid var(--spot-green);outline-offset:1px}.situation-select option{background:#fff;color:#111;font-weight:600}
-</style><style>
-/* Histórico de pacotes: observação legível, sem texto minúsculo ou truncado. */
-.overlay-panel .observation-cell{min-width:340px;width:340px;vertical-align:top!important}
-.overlay-panel .observation-cell .just-cell{min-width:330px;max-width:360px;align-items:flex-start;gap:7px}
-.overlay-panel .observation-cell .just-cell>span{display:block;min-width:250px;max-width:330px;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4;font-size:13px;color:var(--text-primary)}
-.overlay-panel .observation-cell .just-edit,.overlay-panel .observation-cell .just-delete,.overlay-panel .observation-cell .just-photo,.overlay-panel .observation-cell .just-photo-btn{font-size:11px;padding:4px 7px}
-.return-history-card .observation-cell{min-width:300px}.return-history-card .observation-cell .just-cell>span{max-width:290px;white-space:normal;font-size:12px}
-.overlay-panel .table-scroll{max-height:calc(100vh - 245px)}
-@media(max-width:900px){.overlay-panel .observation-cell{min-width:280px;width:280px}.overlay-panel .observation-cell .just-cell{min-width:270px}.overlay-panel .observation-cell .just-cell>span{min-width:210px;max-width:270px}}
-</style><style>
-/* Situação: cores semânticas adaptáveis aos temas claro, escuro e rosa. */
-.situation-select{font-weight:800!important;border:1px solid rgba(0,0,0,.28);text-shadow:none}
-.situation-select.situation-empty{background:var(--bg-inset)!important;color:var(--text-primary)!important}
-.situation-select.situation-0,.situation-select.situation-1,.situation-select.situation-7{background:#f3d316!important;color:#1d1d1d!important}
-.situation-select.situation-2,.situation-select.situation-4{background:#ff8a00!important;color:#111!important}
-.situation-select.situation-3,.situation-select.situation-11{background:#ef3f56!important;color:#fff!important}
-.situation-select.situation-5{background:#9be15d!important;color:#163300!important}
-.situation-select.situation-6{background:#00a83b!important;color:#fff!important}
-.situation-select.situation-8{background:#c7a0ff!important;color:#24103f!important}
-.situation-select.situation-9{background:#8e44ad!important;color:#fff!important}
-.situation-select.situation-10{background:#5b176f!important;color:#fff!important}
-.situation-select.situation-12{background:#4da3ff!important;color:#07182d!important}
-.situation-select option{background:var(--bg-card)!important;color:var(--text-primary)!important}
-:root.theme-light .situation-select.situation-2,:root.theme-light .situation-select.situation-4{background:#d96f00!important;color:#fff!important}
-:root.theme-light .situation-select.situation-5{background:#72b52e!important;color:#102500!important}
-:root.theme-light .situation-select.situation-7{background:#d1ad00!important;color:#1d1d1d!important}
-:root.theme-light .situation-select.situation-12{background:#2d78c7!important;color:#fff!important}
-:root.theme-pink .situation-select.situation-5{background:#73b83f!important;color:#102500!important}
-
-/* Histórico de pacotes em tela cheia: aproveita o viewport e mantém a rolagem na tabela. */
-#baseOverlay.overlay{padding:0;align-items:stretch;justify-content:stretch;overflow:hidden}
-#baseOverlay .overlay-panel{width:100vw;max-width:none;height:100vh;min-height:100vh;margin:0;padding:24px 26px 18px;border:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden}
-#baseOverlay .overlay-head{flex:0 0 auto}
-#baseOverlay #overlayBody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-#baseOverlay #overlayBody>.overlay-tools{flex:0 0 auto}
-#baseOverlay #overlayAging{flex:0 0 auto;max-height:112px;overflow-x:auto;overflow-y:hidden}
-#baseOverlay #overlayTable{flex:1 1 auto;min-height:0;overflow:hidden}
-#baseOverlay #overlayTable>.table-scroll{height:100%;max-height:none;overflow:auto;overscroll-behavior:contain}
-#baseOverlay #overlayTable>.table-scroll table{min-width:1500px}
-@media(max-width:700px){#baseOverlay .overlay-panel{padding:16px 12px 12px}#baseOverlay #overlayAging{max-height:170px}#baseOverlay #overlayTable>.table-scroll table{min-width:1320px}}
-
-</style>
-
-<style>
-/* INFO LOGISTIC: o destaque sai suavemente quando o usuário retorna ao dashboard. */
-#baseOverlay tbody tr[data-info-pacote] td{transition:background-color .6s ease,color .6s ease,box-shadow .6s ease}
-#baseOverlay .info-logistic-active td{transition:background-color .6s ease,color .6s ease,box-shadow .6s ease}
-#baseOverlay .info-logistic-fading td{background-color:rgba(185,185,185,.07)!important;color:var(--text-primary)!important;transition:background-color .6s ease,color .6s ease}
-/* Rolagem horizontal responsiva, inclusive com zoom/redução da janela. */
-#baseOverlay #overlayBody,#baseOverlay #overlayTable{width:100%;max-width:100%;min-width:0}
-#baseOverlay #overlayTable>.table-scroll{width:100%;max-width:100%;min-width:0;scrollbar-gutter:stable;overflow-x:auto;overflow-y:auto}
-#baseOverlay #overlayTable>.table-scroll table{width:max-content;min-width:max(100%,1500px);max-width:none}
-@media(max-width:1100px){#baseOverlay #overlayTable>.table-scroll table{min-width:1380px}}
-@media(max-width:700px){#baseOverlay #overlayTable>.table-scroll table{min-width:1250px}}
-</style>
-<style id="fluid-layout">
-/* ===== Layout fluido: sem rolagem lateral na página ao diminuir a janela =====
-   O conteúdo encolhe junto com a janela; só as tabelas largas rolam dentro do próprio quadro. */
-html{overflow-x:hidden;overflow-x:clip;max-width:100%}
-body{max-width:100%;overflow-x:hidden;overflow-x:clip}
-main{padding:clamp(12px,2.4vw,28px)}
-.header-inner{padding:clamp(10px,1.6vw,16px) clamp(12px,2.4vw,28px)}
-.nav-inner,.subtabs-inner{padding-left:clamp(12px,2.4vw,28px);padding-right:clamp(12px,2.4vw,28px)}
-.kpi-grid,.registro-grid,.import-grid,.regional-grid,.base-grid,.analise-kpis,.rev-kpis,.aging-strip,.mini-calendar{min-width:0}
-.kpi-grid>*,.registro-grid>*,.import-grid>*,.regional-grid>*,.base-grid>*,.analise-kpis>*,.rev-kpis>*,.aging-strip>*,.mini-calendar>*{min-width:0;max-width:100%}
-.kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-.registro-grid{grid-template-columns:minmax(240px,340px) minmax(0,1fr)}
-.import-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-.regional-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-.base-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-.rev-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
-.mini-calendar{grid-template-columns:repeat(7,minmax(0,1fr))}
-.page,.page>*,.card,.panel{min-width:0;max-width:100%}
-.table-scroll,.rev-table-wrap{max-width:100%;overflow-x:auto}
-img,svg,canvas,video{max-width:100%}
-.header-inner>*{min-width:0}
-@media (max-width:1100px){
-  .kpi-grid,.analise-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .registro-grid,.import-grid,.base-grid{grid-template-columns:minmax(0,1fr)}
-  .regional-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .rev-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-@media (max-width:700px){
-  .rev-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media (max-width:640px){
-  .kpi-grid,.analise-kpis,.regional-grid,.rev-kpis{grid-template-columns:minmax(0,1fr)}
-}
-
-</style>
-</head>
+</style><style>.motorista-faixa-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.motorista-faixa-filtros .preset-btn{font-size:10px;padding:5px 8px}</style></head>
 <body>
 <div id="spotSplash" aria-hidden="true">
   <div class="sp-strips"><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -1555,7 +1463,7 @@ img,svg,canvas,video{max-width:100%}
       </div>
       <div class="import-card">
         <h3>4) Planilha de retorno</h3>
-        <div class="hint"><strong>Observações dos pacotes.</strong> Anexe uma planilha completa, uma única base ou até uma lista enviada para uma pessoa. O sistema lê várias abas, regionais e blocos separados por base, desde que existam PACOTE e OBSERVAÇÃO (ou JUSTIFICATIVA em arquivos antigos). O pacote é a chave principal; rota, base e motorista reforçam a conferência. Ela ficará vinculada ao dia selecionado — inclusive quando tiver somente uma base — e poderá ser editada no detalhe da base. Se o mesmo arquivo ou uma planilha parecida, com pacotes compartilhados, for enviado novamente no mesmo dia, a nova versão substitui a anterior com as observações atualizadas.</div>
+        <div class="hint"><strong>Justificativas dos pacotes.</strong> Anexe uma planilha completa, uma única base ou até uma lista enviada para uma pessoa. O sistema lê várias abas, regionais e blocos separados por base, desde que existam PACOTE e JUSTIFICATIVA. O pacote é a chave principal; rota, base e motorista reforçam a conferência. Ela ficará vinculada ao dia selecionado — inclusive quando tiver somente uma base — e poderá ser editada no detalhe da base. Se o mesmo arquivo ou uma planilha parecida, com pacotes compartilhados, for enviado novamente no mesmo dia, a nova versão substitui a anterior com as justificativas atualizadas.</div>
         <div class="import-lastbox" id="lastImportReturn" style="display:none;">
           <div class="lbl">Última planilha de retorno</div><div class="dt" id="lastImportReturnDt">—</div><div class="meta" id="lastImportReturnMeta">—</div>
         </div>
@@ -1579,9 +1487,9 @@ img,svg,canvas,video{max-width:100%}
       <button type="button" class="btn-reset" id="btnToggleReturnHist" style="margin:36px 0 16px;" title="Minimizar/expandir planilhas de retorno"><svg class="ico" id="returnHistCaret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg></button>
     </div>
     <div class="card return-history-card" id="returnHistoryCard">
-      <p class="return-history-help">Aqui ficam todos os arquivos de retorno. Cada linha informa o dia, as abas reconhecidas, as observações e as planilhas de pacotes às quais o retorno está vinculado.</p>
+      <p class="return-history-help">Aqui ficam todos os arquivos de retorno. Cada linha informa o dia, as abas reconhecidas, as justificativas e as planilhas de pacotes às quais o retorno está vinculado.</p>
       <div class="history-month-toolbar"><svg class="ico history-calendar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></svg><label for="returnHistMonth">Selecionar mês e ano</label><input type="month" id="returnHistMonth" title="Selecionar mês e ano"><button type="button" class="btn-reset" id="btnClearReturnMonth">Todos os meses</button><div class="history-sheets-folder"><button type="button" class="history-sheets-folder-title" id="btnToggleReturnFolder" aria-expanded="false" title="Abrir pasta Retornos"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/></svg> Retornos <span class="folder-caret">▸</span></button><div class="history-month-chips folder-closed" id="returnMonthChips"></div></div></div>
-      <div class="table-scroll"><table><thead><tr><th>Dia</th><th>Arquivo de retorno</th><th>Abas</th><th>Observações</th><th>Vinculada às planilhas de pacotes</th><th>Importado em</th><th></th></tr></thead><tbody id="returnHistoryBody"></tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th>Dia</th><th>Arquivo de retorno</th><th>Abas</th><th>Justificativas</th><th>Vinculada às planilhas de pacotes</th><th>Importado em</th><th></th></tr></thead><tbody id="returnHistoryBody"></tbody></table></div>
       <div class="history-empty" id="returnHistoryEmpty">Nenhuma planilha de retorno importada.</div>
     </div>
 
@@ -1630,8 +1538,8 @@ img,svg,canvas,video{max-width:100%}
 
 <div class="photo-viewer" id="justPhotoViewer" aria-hidden="true">
   <div class="photo-viewer-panel" role="dialog" aria-modal="true" aria-labelledby="justPhotoViewerTitle">
-    <div class="photo-viewer-head"><div><h2 id="justPhotoViewerTitle">Foto da observação</h2><div class="osub">Visualização em alta resolução · use os controles para ampliar</div></div><div class="photo-viewer-tools"><button type="button" class="photo-zoom-btn" id="justPhotoZoomOut" title="Diminuir zoom">−</button><span id="justPhotoZoomLabel">100%</span><button type="button" class="photo-zoom-btn" id="justPhotoZoomIn" title="Aumentar zoom">+</button><button type="button" class="photo-zoom-btn photo-fit-btn" id="justPhotoZoomFit">Ajustar</button><button type="button" class="overlay-close" id="justPhotoViewerClose"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg> Fechar</button></div>
-    <div class="photo-viewer-body"><div class="photo-viewer-stage" id="justPhotoViewerStage"><img id="justPhotoViewerImage" alt="Foto da observação"></div></div>
+    <div class="photo-viewer-head"><div><h2 id="justPhotoViewerTitle">Foto da justificativa</h2><div class="osub">Visualização em alta resolução · use os controles para ampliar</div></div><div class="photo-viewer-tools"><button type="button" class="photo-zoom-btn" id="justPhotoZoomOut" title="Diminuir zoom">−</button><span id="justPhotoZoomLabel">100%</span><button type="button" class="photo-zoom-btn" id="justPhotoZoomIn" title="Aumentar zoom">+</button><button type="button" class="photo-zoom-btn photo-fit-btn" id="justPhotoZoomFit">Ajustar</button><button type="button" class="overlay-close" id="justPhotoViewerClose"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg> Fechar</button></div>
+    <div class="photo-viewer-body"><div class="photo-viewer-stage" id="justPhotoViewerStage"><img id="justPhotoViewerImage" alt="Foto da justificativa"></div></div>
   </div>
 </div>
 
@@ -1771,16 +1679,12 @@ function bucketOf(dias){ if(dias<=2) return 'ATE2'; if(dias<=6) return '3A6'; if
 function diasClass(dias){ if(dias<=2) return 'dias-ok'; if(dias===3) return 'dias-3'; if(dias===4) return 'dias-4'; return 'dias-5'; }
 function diasFillExcel(dias){ if(dias<=2) return '#BDD7EE'; if(dias<=3) return '#F4B183'; if(dias===4) return '#F4CCCC'; return '#C00000'; }
 function resumo(txt,max){ const s=String(txt||'').trim(); if(!s) return '—'; return s.length>max ? s.slice(0,max-1)+'…' : s; }
-let FIRST_IMPORT_DATE_INDEX=null;
 function firstImportDateForPackage(pacote, fallbackDate){
   const key=String(pacote||'').trim();
   if(!key || !IMPORTS.length) return fallbackDate ? new Date(fallbackDate) : new Date();
-  if(!FIRST_IMPORT_DATE_INDEX){
-    const ordered=IMPORTS.slice().sort((a,b)=>((a.importDate||'9999-99-99')+'|'+(a.savedAt||'')).localeCompare((b.importDate||'9999-99-99')+'|'+(b.savedAt||'')));
-    FIRST_IMPORT_DATE_INDEX=new Map();
-    ordered.forEach(imp=>(imp.entries||[]).forEach(e=>{ const packageKey=String(e.pacote||'').trim(); if(packageKey&&!FIRST_IMPORT_DATE_INDEX.has(packageKey)) FIRST_IMPORT_DATE_INDEX.set(packageKey,imp.importDate); }));
-  }
-  const first=FIRST_IMPORT_DATE_INDEX.get(key);
+  let first=null;
+  const ordered=IMPORTS.slice().sort((a,b)=>((a.importDate||'9999-99-99')+'|'+(a.savedAt||'')).localeCompare((b.importDate||'9999-99-99')+'|'+(b.savedAt||'')));
+  for(const imp of ordered){ if((imp.entries||[]).some(e=>String(e.pacote||'').trim()===key)){ first=imp.importDate; break; } }
   return first ? new Date(first+'T00:00:00') : (fallbackDate ? new Date(fallbackDate) : new Date());
 }
 function regionalFromBasePrefix(base){
@@ -1897,17 +1801,9 @@ function normalizeReturnHeader(v){
 }
 /* Cabeçalho só é reconhecido por nome EXATO da coluna. Antes usava includes(): uma linha de dados com
    'Pacote faltando' no MOTIVO e 'motivo/observação...' na justificativa virava "cabeçalho" e desalinhava
-   todo o bloco da base (observações perdidas). */
+   todo o bloco da base (justificativas perdidas). */
 const RETURN_PKG_KEY_RE=/^(ID|ID_?(DO_)?(PACOTE|SHIPMENT)|PACOTE(_ID)?|N_?(DO_)?PACOTE|NUMERO_(DO_)?PACOTE|COD(IGO)?_(DO_)?PACOTE|SHIPMENT(_ID)?|SHP_SHIPMENT_ID)$/;
 const RETURN_JUST_KEY_RE=/^(JUSTIFICATIVAS?(_.*)?|OBSERVACAO|OBSERVACOES|OBS|RAZAO|MOTIVO)$/;
-const RETURN_SITUATION_KEY_RE=/^(?:SITUACAO|SITUATION|STATUS|FILA)(?:_|$)/;
-const SITUATION_OPTIONS=[{label:'Para solução de problema',color:'#f3d316',font:'#1d1d1d'},{label:'Despachar',color:'#f3d316',font:'#1d1d1d'},{label:'Faltante',color:'#ff8a00',font:'#111111'},{label:'Não encontrado no ato do carregamento',color:'#ef3f56',font:'#ffffff'},{label:'Parado',color:'#ff8a00',font:'#111111'},{label:'Em rota de entrega',color:'#9be15d',font:'#163300'},{label:'Entregue',color:'#00a83b',font:'#ffffff'},{label:'Em outra base',color:'#f3d316',font:'#1d1d1d'},{label:'Para devolver',color:'#c7a0ff',font:'#24103f'},{label:'Devolução',color:'#8e44ad',font:'#ffffff'},{label:'Devolução | Comprador recusou',color:'#5b176f',font:'#ffffff'},{label:'Perdido',color:'#ef3f56',font:'#ffffff'},{label:'Outros',color:'#4da3ff',font:'#07182d'}];
-const SITUATION_BY_LABEL=Object.fromEntries(SITUATION_OPTIONS.map(item=>[item.label,item]));
-function isReturnSituationKey(k){ return RETURN_SITUATION_KEY_RE.test(k); }
-const RETURN_SITUATION_PRIMARY_RE=/^(?:SITUACAO|SITUATION|STATUS)(?:_|$)/;
-const RETURN_QUEUE_RE=/^FILA(?:_|$)/;
-function returnSituationColumnKey(keys){ return keys.find(k=>RETURN_SITUATION_PRIMARY_RE.test(k))||keys.find(k=>RETURN_QUEUE_RE.test(k))||null; }
-
 function isReturnPackageKey(k){ return RETURN_PKG_KEY_RE.test(k); }
 function isReturnJustKey(k){ return RETURN_JUST_KEY_RE.test(k); }
 function findReturnHeader(rows){
@@ -1923,7 +1819,7 @@ function findReturnHeader(rows){
 function buildReturnRowsFromRawRows(rows,photosByRow){
   if(!rows||!rows.length) return null;
   const headers=[];
-  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(isReturnPackageKey); const hasJust=keys.some(isReturnJustKey); const hasSituation=keys.some(isReturnSituationKey); if(hasPackage&&(hasJust||hasSituation)&&!keys.some(k=>/^\d{8,}$/.test(k))) headers.push({rowIndex,keys}); }
+  for(let rowIndex=0;rowIndex<rows.length;rowIndex++){ const raw=rows[rowIndex]||[], keys=raw.map(normalizeReturnHeader); const hasPackage=keys.some(isReturnPackageKey); const hasJust=keys.some(isReturnJustKey); if(hasPackage&&hasJust&&!keys.some(k=>/^\d{8,}$/.test(k))) headers.push({rowIndex,keys}); }
   if(!headers.length) return null;
   const out=[];
   headers.forEach((header,headerIndex)=>{
@@ -1932,21 +1828,19 @@ function buildReturnRowsFromRawRows(rows,photosByRow){
     const colBase=idx['BASE']!==undefined?idx['BASE']:(idx['SHP_LG_FACILITY_ID']!==undefined?idx['SHP_LG_FACILITY_ID']:undefined);
     const colRota=idx['ROTA']!==undefined?idx['ROTA']:(idx['ID_DA_ROTA']!==undefined?idx['ID_DA_ROTA']:(idx['SHP_LG_ROUTE_ID']!==undefined?idx['SHP_LG_ROUTE_ID']:idx['ROUTE']));
     const colDriver=idx['MOTORISTA']!==undefined?idx['MOTORISTA']:(idx['ID_DO_MOTORISTA']!==undefined?idx['ID_DO_MOTORISTA']:(idx['SHP_LG_DRIVER_ID']!==undefined?idx['SHP_LG_DRIVER_ID']:idx['DRIVER']));
-    const colJust=idx['OBSERVACAO']!==undefined?idx['OBSERVACAO']:(idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(Object.keys(idx).find(isReturnJustKey)!==undefined?idx[Object.keys(idx).find(isReturnJustKey)]:undefined));
-    const situationHeader=returnSituationColumnKey(Object.keys(idx)); const colSituation=situationHeader!==null?idx[situationHeader]:undefined;
+    const colJust=idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(Object.keys(idx).find(isReturnJustKey)!==undefined?idx[Object.keys(idx).find(isReturnJustKey)]:undefined);
     const colPhoto=Object.keys(idx).find(k=>k.includes('FOTO')||k.includes('IMAGEM')||k.includes('PHOTO'))!==undefined?idx[Object.keys(idx).find(k=>k.includes('FOTO')||k.includes('IMAGEM')||k.includes('PHOTO'))]:undefined;
-    if(colPacote===undefined || (colJust===undefined && colSituation===undefined)) return;
+    if(colPacote===undefined || colJust===undefined) return;
     const end=headerIndex+1<headers.length?headers[headerIndex+1].rowIndex:rows.length;
     for(let r=header.rowIndex+1;r<end;r++){
       const row=rows[r]||[], pacote=normalizePackageKey(row[colPacote]);
       if(!pacote || pacote==='PACOTE') continue;
-      const justificativa=colJust!==undefined?String(row[colJust]??'').trim():'';
-      const situacao=colSituation!==undefined&&SITUATION_BY_LABEL[String(row[colSituation]??'').trim()]?String(row[colSituation]??'').trim():'';
+      const justificativa=String(row[colJust]??'').trim();
       const photoCell=colPhoto!==undefined?String(row[colPhoto]??'').trim():'';
       const photo=photosByRow?.[r]||null;
       const photoIndicator=photoCell==='FOTO ANEXADA'||photoCell==='PHOTO ATTACHED'||Boolean(photo);
-      if(!justificativa && !situacao && !photoIndicator) continue;
-      out.push({pacote,rota:colRota!==undefined?normalizePackageKey(row[colRota]):'',base:normalizeBaseCode(row[colBase]??''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):'',justificativa,situacao,photo,photoIndicator,updatedAt:new Date().toISOString()});
+      if(!justificativa && !photoIndicator) continue;
+      out.push({pacote,rota:colRota!==undefined?normalizePackageKey(row[colRota]):'',base:normalizeBaseCode(row[colBase]??''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):'',justificativa,photo,photoIndicator,updatedAt:new Date().toISOString()});
     }
   });
   return out.length?out:null;
@@ -2136,7 +2030,6 @@ function buildDriverMapFromRawRows(rows){
 
 /* ===== ESTADO ===== */
 function rebuildStateData(){
-  FIRST_IMPORT_DATE_INDEX=null;
   const byPacote=new Map();
   const selected=getSelectedImport();
   const sourceImports=ROUTE_ONLY_MODE&&selected?IMPORTS.filter(imp=>imp.importDate===selected.importDate):IMPORTS;
@@ -2181,7 +2074,7 @@ async function persistReturnSheets(){
   JUSTIFICATION_INDEX=null;
   const payload=serializeReturnSheets();
   try{ const db=await openImportsDB(); await new Promise((resolve,reject)=>{const tx=db.transaction('app','readwrite');tx.objectStore('app').put({key:'returnSheets',payload});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);}); }
-  catch(err){ try{ localStorage.setItem('spot_dashboard_return_sheets_v1',JSON.stringify(payload)); }catch(e){ console.warn('Observações mantidas nesta sessão; armazenamento cheio.',e); } }
+  catch(err){ try{ localStorage.setItem('spot_dashboard_return_sheets_v1',JSON.stringify(payload)); }catch(e){ console.warn('Justificativas mantidas nesta sessão; armazenamento cheio.',e); } }
 }
 async function loadPersistedReturnSheets(){
   try{ const db=await openImportsDB(); const record=await new Promise((resolve,reject)=>{const tx=db.transaction('app','readonly'),req=tx.objectStore('app').get('returnSheets');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);}); if(record&&Array.isArray(record.payload)) return record.payload; }
@@ -2190,7 +2083,7 @@ async function loadPersistedReturnSheets(){
 }
 function returnSheetForDate(day){ return RETURN_SHEETS.slice().filter(s=>s.importDate===day).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))[0]||null; }
 function latestReturnSheet(){ return RETURN_SHEETS.slice().sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))[0]||null; }
-function returnRowHasContent(row){ return Boolean(row&&(String(row.justificativa||'').trim()||String(row.situacao||'').trim()||row.photo||row.photoIndicator)); }
+function returnRowHasContent(row){ return Boolean(row&&(String(row.justificativa||'').trim()||row.photo||row.photoIndicator)); }
 function chooseReturnRow(rows,entry){
   if(!rows||!rows.length) return null;
   const baseKey=normalizeBaseCode(entry?.base), routeKey=normalizePackageKey(entry?.rota), driverKey=normalizePackageKey(entry?.driverId);
@@ -2215,7 +2108,7 @@ function returnRecordForEntry(entry){
   const selected=returnSheetForDate(selectedDay);
   const sheets=[...(selected?[selected]:[]),...RETURN_SHEETS.filter(sheet=>!selected||sheet.id!==selected.id).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))];
   /* Pacote é a chave principal. Rota, base e motorista só desempateiam
-     duplicidades; mudança de rota não quebra o vínculo da observação. */
+     duplicidades; mudança de rota não quebra o vínculo da justificativa. */
   let emptyPackageMatch=null;
   for(const sheet of sheets){
     const packageMatches=(sheet.rows||[]).filter(row=>key&&normalizePackageKey(row.pacote)===key);
@@ -2290,7 +2183,7 @@ function importDisplayTime(imp){ return extractFileTime(imp.fileName) || new Dat
 function updateImportUI(){
   renderDashboardImportSelector();
   const returnBox=document.getElementById('lastImportReturn'); const returnSheet=latestReturnSheet()||returnSheetForDate(document.getElementById('impDia')?.value||getSelectedImport()?.importDate||'');
-  if(returnBox){ returnBox.style.display=returnSheet?'block':'none'; if(returnSheet){ document.getElementById('lastImportReturnDt').textContent=new Date(returnSheet.savedAt).toLocaleString('pt-BR'); document.getElementById('lastImportReturnMeta').innerHTML=fmtInt((returnSheet.rows||[]).length)+' observação(ões)<br>'+escHtml(returnSheet.fileName)+'<br>Vinculada ao dia '+String(returnSheet.importDate).split('-').reverse().join('/'); } }
+  if(returnBox){ returnBox.style.display=returnSheet?'block':'none'; if(returnSheet){ document.getElementById('lastImportReturnDt').textContent=new Date(returnSheet.savedAt).toLocaleString('pt-BR'); document.getElementById('lastImportReturnMeta').innerHTML=fmtInt((returnSheet.rows||[]).length)+' justificativa(s)<br>'+escHtml(returnSheet.fileName)+'<br>Vinculada ao dia '+String(returnSheet.importDate).split('-').reverse().join('/'); } }
   const lostBox=document.getElementById('lastImportLost');
   if(lostBox){ if(LOST_ROUTES.length){ lostBox.style.display='block'; const lastLost=LOST_ROUTES[LOST_ROUTES.length-1]; document.getElementById('lastImportLostDt').textContent=new Date().toLocaleString('pt-BR'); document.getElementById('lastImportLostMeta').innerHTML=fmtInt(LOST_ROUTES.length)+' pacote(s)<br>'+escHtml(lastLost.fileName||'Arquivo importado')+'<br>'+escHtml(String(lastLost.importDate||todayStr()).split('-').reverse().join('/'))+' · '+escHtml(lastLost.turno||'Manhã')+(ROUTE_ONLY_MODE?'':lostSetsSummary()); } else lostBox.style.display='none'; }
   const box=document.getElementById('lastImportRisco');
@@ -2440,7 +2333,7 @@ document.getElementById('returnHistMonth').addEventListener('change',e=>{returnH
 document.getElementById('btnClearReturnMonth').addEventListener('click',()=>{returnHistMonth='';renderReturnHistory();});
 document.getElementById('btnToggleReturnFolder').addEventListener('click',function(){const open=this.getAttribute('aria-expanded')==='true';this.setAttribute('aria-expanded',String(!open));document.getElementById('returnMonthChips').classList.toggle('folder-closed',open);});
 document.getElementById('returnMonthChips').addEventListener('click',e=>{const monthBtn=e.target.closest('[data-return-month]');if(monthBtn){returnHistMonth=monthBtn.dataset.returnMonth;renderReturnHistory();return;}const del=e.target.closest('[data-delete-return-month]');if(!del)return;const month=del.dataset.deleteReturnMonth;if(!confirm('Excluir todas as planilhas de retorno deste mês? Esta ação não pode ser desfeita.'))return;RETURN_SHEETS=RETURN_SHEETS.filter(s=>String(s.importDate||'').slice(0,7)!==month);if(returnHistMonth===month)returnHistMonth='';persistReturnSheets();updateImportUI();});
-document.getElementById('returnHistoryBody').addEventListener('click',e=>{const del=e.target.closest('[data-del-return]');if(!del)return;e.stopPropagation();if(!confirm('Excluir esta planilha de retorno e suas observações? Esta ação não pode ser desfeita.'))return;RETURN_SHEETS=RETURN_SHEETS.filter(s=>s.id!==del.dataset.delReturn);persistReturnSheets();updateImportUI();if(Object.keys(STATE_DATA).length)renderAll();});
+document.getElementById('returnHistoryBody').addEventListener('click',e=>{const del=e.target.closest('[data-del-return]');if(!del)return;e.stopPropagation();if(!confirm('Excluir esta planilha de retorno e suas justificativas? Esta ação não pode ser desfeita.'))return;RETURN_SHEETS=RETURN_SHEETS.filter(s=>s.id!==del.dataset.delReturn);persistReturnSheets();updateImportUI();if(Object.keys(STATE_DATA).length)renderAll();});
 document.getElementById('btnToggleReturnHist').addEventListener('click',function(){returnHistCollapsed=!returnHistCollapsed;document.getElementById('returnHistoryCard').style.display=returnHistCollapsed?'none':'block';document.getElementById('returnHistCaret').style.transform=returnHistCollapsed?'rotate(-90deg)':'rotate(0)';});
 document.getElementById('importsHistMonth').addEventListener('change',function(e){ importsHistMonth=e.target.value||''; renderImportsHistory(); });
 document.getElementById('btnClearImportsMonth').addEventListener('click',function(){ importsHistMonth=''; renderImportsHistory(); });
@@ -2524,7 +2417,7 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   const file=pendingReturnFile; if(!file)return; this.disabled=true; this.textContent='Lendo...';
   const importDate=todayStr(); const reader=new FileReader();
   const finish=(rows,parseError)=>{
-    const normalizedRows=(Array.isArray(rows)?rows:[]).filter(row=>normalizePackageKey(row.pacote)&&(String(row.justificativa||'').trim()||String(row.situacao||'').trim()||row.photo||row.photoIndicator)).map(row=>({...row,pacote:normalizePackageKey(row.pacote),base:normalizeBaseCode(row.base),rota:normalizePackageKey(row.rota),driverId:normalizePackageKey(row.driverId),justificativa:String(row.justificativa||'').trim(),situacao:SITUATION_BY_LABEL[String(row.situacao||'').trim()]?String(row.situacao||'').trim():'',photoIndicator:Boolean(row.photoIndicator||row.photo),updatedAt:new Date().toISOString()}));
+    const normalizedRows=(Array.isArray(rows)?rows:[]).filter(row=>normalizePackageKey(row.pacote)&&(String(row.justificativa||'').trim()||row.photo||row.photoIndicator)).map(row=>({...row,pacote:normalizePackageKey(row.pacote),base:normalizeBaseCode(row.base),rota:normalizePackageKey(row.rota),driverId:normalizePackageKey(row.driverId),justificativa:String(row.justificativa||'').trim(),photoIndicator:Boolean(row.photoIndicator||row.photo),updatedAt:new Date().toISOString()}));
     const linkedImports=IMPORTS.filter(imp=>imp.importDate===importDate).map(imp=>({id:imp.id,fileName:imp.fileName,turno:imp.turno,entries:(imp.entries||[]).length}));
     const sheetNames=Array.from(new Set(normalizedRows.map(row=>row._sheetName).filter(Boolean)));
     const incomingIds=new Set(normalizedRows.map(row=>normalizePackageKey(row.pacote)).filter(Boolean));
@@ -2541,7 +2434,7 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
       });
     }
     const previous=replacementIndex>=0?RETURN_SHEETS[replacementIndex]:null;
-    /* Mescla em vez de substituir: preserva observação/foto já salvas (ex.: adicionadas direto no dash)
+    /* Mescla em vez de substituir: preserva justificativa/foto já salvas (ex.: adicionadas direto no dash)
        quando a planilha reimportada não traz um valor novo para aquele pacote. Assim, anexar a planilha de
        novo não apaga o que já foi anexado/escrito no dash — só atualiza o que a planilha realmente trouxer. */
     const mergedRowsMap=new Map();
@@ -2558,7 +2451,6 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
         photo: row.photo || old.photo || null,
         photoIndicator: Boolean(row.photoIndicator || row.photo || old.photoIndicator || old.photo),
         justificativa: (old.manualEditedAt && String(old.justificativa||'').trim()) ? old.justificativa : (String(row.justificativa||'').trim() || old.justificativa || ''),
-        situacao: row.situacao || old.situacao || '',
         manualEditedAt: old.manualEditedAt || row.manualEditedAt || null
       });
     });
@@ -2568,8 +2460,8 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
     persistReturnSheets(); updateImportUI(); if(Object.keys(STATE_DATA).length) renderAll();
     if(parseError) alert('O arquivo foi salvo no histórico de hoje, mas algumas colunas não foram reconhecidas: '+parseError);
   };
-  if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const delim=detectDelimiter(text);const rows=buildReturnRowsFromRawRows(parseDelimitedText(text,delim));finish(rows,rows?'':'Não encontrei uma linha com pacote e observação');}catch(err){console.error(err);finish([],err.message||'erro de leitura do CSV');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
-  else { reader.onload=async e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=await buildReturnRowsFromWorkbook(wb,e.target.result);finish(rows,rows?'':'Não encontrei uma aba com pacote e observação');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
+  if(/\.csv$/i.test(file.name)){ reader.onload=e=>{ try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const delim=detectDelimiter(text);const rows=buildReturnRowsFromRawRows(parseDelimitedText(text,delim));finish(rows,rows?'':'Não encontrei uma linha com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do CSV');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsText(file,'UTF-8'); }
+  else { reader.onload=async e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=await buildReturnRowsFromWorkbook(wb,e.target.result);finish(rows,rows?'':'Não encontrei uma aba com pacote e justificativa');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
 });
 ['input','change'].forEach(evt=>document.getElementById('lostDia').addEventListener(evt,()=>{lostDateManuallySet=true;}));
 document.getElementById('fileInputLost').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;const dateFromName=extractFileDate(file.name);if(dateFromName&&!lostDateManuallySet)document.getElementById('lostDia').value=dateFromName;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='OK';e.target.value='';});
@@ -2699,7 +2591,7 @@ function updateActivePlanilhaBadge(imp){
   el.innerHTML='<b>PLANILHA ATIVA</b> '+dateStr+' · '+escHtml(turno)+'<span class="active-planilha-file">'+escHtml(fileName)+'</span>';
   el.title='A Visão Geral está mostrando somente esta planilha: '+fileName;
 }
-function computeAgingCounts(list,daysFn){ const out={ATE2:{cnt:0,val:0},'3A6':{cnt:0,val:0},'7A10':{cnt:0,val:0},MAIS11:{cnt:0,val:0}}; list.forEach(e=>{ const b=bucketOf(daysFn?daysFn(e):diasParado(e)); out[b].cnt++; out[b].val+=e.valor; }); return out; }
+function computeAgingCounts(list){ const out={ATE2:{cnt:0,val:0},'3A6':{cnt:0,val:0},'7A10':{cnt:0,val:0},MAIS11:{cnt:0,val:0}}; list.forEach(e=>{ const b=bucketOf(diasParado(e)); out[b].cnt++; out[b].val+=e.valor; }); return out; }
 function renderAgingStrip(elId, list, onClick){
   const el=document.getElementById(elId); if(!el) return;
   const counts=computeAgingCounts(list);
@@ -2860,17 +2752,6 @@ function infoLogisticUrl(pacote){
   return key?'https://envios.adminml.com/logistics/package-management/package/'+encodeURIComponent(key):'';
 }
 const INFO_LOGISTIC_FOCUS_KEY='spot_info_logistic_focus_v2';
-let infoLogisticWindowBlurred=false;
-function clearInfoLogisticFocus(){
-  document.querySelectorAll('.info-logistic-active').forEach(row=>{
-    row.classList.add('info-logistic-fading');
-    window.setTimeout(()=>{row.classList.remove('info-logistic-active','info-logistic-fading');},620);
-  });
-  try{sessionStorage.removeItem(INFO_LOGISTIC_FOCUS_KEY);}catch(_){ }
-}
-window.addEventListener('blur',()=>{infoLogisticWindowBlurred=true;});
-window.addEventListener('focus',()=>{if(infoLogisticWindowBlurred){infoLogisticWindowBlurred=false;window.setTimeout(clearInfoLogisticFocus,120);}});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&infoLogisticWindowBlurred){infoLogisticWindowBlurred=false;window.setTimeout(clearInfoLogisticFocus,120);}});
 function infoLogisticFocusMatches(entry){
   try{
     const raw=sessionStorage.getItem(INFO_LOGISTIC_FOCUS_KEY); if(!raw)return false;
@@ -2879,36 +2760,29 @@ function infoLogisticFocusMatches(entry){
     return normalizePackageKey(focus.pacote)===normalizePackageKey(entry?.pacote) && normalizeBaseCode(focus.base)===normalizeBaseCode(entry?.base);
   }catch(_){return false;}
 }
-function situationClass(value){ const i=SITUATION_OPTIONS.findIndex(item=>item.label===String(value||'')); return i>=0?'situation-'+i:'situation-empty'; }
-function situationSelectHtml(entry,row){ const value=String(row?.situacao||''); const options='<option value="">Selecionar</option>'+SITUATION_OPTIONS.map(item=>'<option value="'+escHtml(item.label)+'" '+(item.label===value?'selected':'')+'>'+escHtml(item.label)+'</option>').join(''); return '<select class="situation-select '+situationClass(value)+'" data-situation-pacote="'+escHtml(entry.pacote||'')+'" data-situation-base="'+escHtml(entry.base||'')+'" aria-label="Situação (lista clicável)">'+options+'</select>'; }
-function situationStyle(value){ return situationClass(value); }
-const OVERLAY_PAGE_SIZE=100;
-function renderPackageTable(entries, limit=entries.length, rowsOnly=false, tableFlags={}){
+function renderPackageTable(entries){
   if(!entries.length) return '<div class="history-empty">Nenhum pacote encontrado.</div>';
   /* "Planilha" mostra se o pacote está na importação de Manhã ou de Tarde do dia
      atualmente selecionado — nunca busca em dias anteriores. "Na planilha desde"
      continua sendo a data mais antiga em que o pacote apareceu, essa sim olhando
      todo o histórico. */
   const sets=planilhaSetsDoDia();
-  const hasRoutePath=tableFlags.hasRoutePath??entries.some(e=>e.origem||e.destino);
-  const showLostRisk=tableFlags.showLostRisk??String(overlayCtx?.title||'').startsWith('Perdidos em rota');
-  const rows=entries.slice(0,limit).map(e=>{
-    const dias=overlayDays(e);
+  const hasRoutePath=entries.some(e=>e.origem||e.destino);
+  const showLostRisk=String(overlayCtx?.title||'').startsWith('Perdidos em rota');
+  const rows=entries.map(e=>{
+    const dias=diasParado(e);
     const risco=riscoDiasParado(dias);
     const desde=firstImportDateForPackage(e.pacote,e.date);
     const classif=classificaPlanilha(e.pacote,sets);
     const classifExibida=typeof overlayCtx!=='undefined'&&(['MANHA','TARDE'].includes(overlayCtx.period)) ? overlayCtx.period : classif;
     const planilhaHtml = classifExibida==='AMBAS' ? '<span class="tag ambas">Manhã + Tarde</span>' : classifExibida==='TARDE' ? '<span class="tag tarde">Tarde</span>' : classifExibida==='MANHA' ? '<span class="tag manha">Manhã</span>' : '—';
-    const infoFocus=infoLogisticFocusMatches(e); const just=returnRecordForEntry(e); const situationHtml=situationSelectHtml(e,just); const origin=escHtml(e.origem||'—'); const destination=e.destino?escHtml(e.destino):'<span class="missing-destination" title="Destino não informado">✕</span>'; const routePath=hasRoutePath?'<td>'+origin+' → '+destination+'</td>':''; const displayReason=e.motivo; const justText=just?.justificativa||'—'; const photo=just?.photo?`<button class="just-photo" type="button" data-just-photo-view="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Ver foto</button><button class="just-photo-delete" type="button" data-just-photo-delete="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Excluir foto</button>`:''; return `<tr class="${infoFocus?'info-logistic-active':''}" data-info-pacote="${escHtml(e.pacote||'')}" data-info-base="${escHtml(e.base||'')}"><td><span class="tag ${e.tipo.toLowerCase()}">${e.tipo}</span></td><td><strong>${e.base?baseInfoLabel(e.base):'—'}</strong></td><td>${escHtml(e.pacote)||'—'}</td><td>${escHtml(e.rota)||'—'}</td>${routePath}<td class="ellipsis" title="${escHtml(e.produto)}">${escHtml(resumo(e.produto,60))}</td><td>${escHtml(displayReason)}</td><td><button type="button" class="driver-link" data-driver="${escHtml(e.driverId||'')}">${escHtml(getDriverName(e.driverId))}</button></td><td><span class="tag ${diasClass(dias)}">${dias}d</span></td>${showLostRisk?`<td><span class="lost-risk-badge ${risco.key}" title="${risco.title}"><i></i>${risco.label}</span></td>`:''}<td><strong>${fmtBRL(e.valor)}</strong></td><td>${situationHtml}</td><td class="observation-cell"><div class="just-cell"><span title="${escHtml(justText)}">${escHtml(resumo(justText,38))}</span>${photo}<button class="just-edit" type="button" data-just-pacote="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">${just?'Editar':'Adicionar'}</button>${infoLogisticUrl(e.pacote)?`<a class="just-info" href="${infoLogisticUrl(e.pacote)}" target="_blank" rel="noopener noreferrer" title="Abrir Info Logistic do pacote ${escHtml(e.pacote||'')}" data-info-logistic="1">INFO LOGISTIC</a>`:''}${just?`<button class="just-delete" type="button" data-just-delete="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Excluir</button>`:''}<label class="just-photo-btn">Foto<input type="file" accept="image/*" data-just-photo="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}"></label></div></td><td>${planilhaHtml}</td><td>${escHtml('Desde '+fmtDateFullBR(desde))}</td></tr>`;
+    const infoFocus=infoLogisticFocusMatches(e); const just=returnRecordForEntry(e); const origin=escHtml(e.origem||'—'); const destination=e.destino?escHtml(e.destino):'<span class="missing-destination" title="Destino não informado">✕</span>'; const routePath=hasRoutePath?'<td>'+origin+' → '+destination+'</td>':''; const displayReason=e.motivo; const justText=just?.justificativa||'—'; const photo=just?.photo?`<button class="just-photo" type="button" data-just-photo-view="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Ver foto</button><button class="just-photo-delete" type="button" data-just-photo-delete="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Excluir foto</button>`:''; return `<tr class="${infoFocus?'info-logistic-active':''}" data-info-pacote="${escHtml(e.pacote||'')}" data-info-base="${escHtml(e.base||'')}"><td><span class="tag ${e.tipo.toLowerCase()}">${e.tipo}</span></td><td><strong>${e.base?baseInfoLabel(e.base):'—'}</strong></td><td>${escHtml(e.pacote)||'—'}</td><td>${escHtml(e.rota)||'—'}</td>${routePath}<td class="ellipsis" title="${escHtml(e.produto)}">${escHtml(resumo(e.produto,60))}</td><td>${escHtml(displayReason)}</td><td><button type="button" class="driver-link" data-driver="${escHtml(e.driverId||'')}">${escHtml(getDriverName(e.driverId))}</button></td><td><span class="tag ${diasClass(dias)}">${dias}d</span></td>${showLostRisk?`<td><span class="lost-risk-badge ${risco.key}" title="${risco.title}"><i></i>${risco.label}</span></td>`:''}<td><strong>${fmtBRL(e.valor)}</strong></td><td><div class="just-cell"><span title="${escHtml(justText)}">${escHtml(resumo(justText,38))}</span>${photo}<button class="just-edit" type="button" data-just-pacote="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">${just?'Editar':'Adicionar'}</button>${infoLogisticUrl(e.pacote)?`<a class="just-info" href="${infoLogisticUrl(e.pacote)}" target="_blank" rel="noopener noreferrer" title="Abrir Info Logistic do pacote ${escHtml(e.pacote||'')}" data-info-logistic="1">INFO LOGISTIC</a>`:''}${just?`<button class="just-delete" type="button" data-just-delete="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}">Excluir</button>`:''}<label class="just-photo-btn">Foto<input type="file" accept="image/*" data-just-photo="${escHtml(e.pacote||'')}" data-just-base="${escHtml(e.base||'')}"></label></div></td><td>${planilhaHtml}</td><td>${escHtml('Desde '+fmtDateFullBR(desde))}</td></tr>`;
   }).join('');
-  if(rowsOnly) return rows;
-  return `<div class="table-scroll" style="max-height:460px;"><table><thead><tr><th>Tipo</th><th>Base</th><th>Pacote</th><th>Rota</th>${hasRoutePath?'<th>Origem → Destino</th>':''}<th>Produto</th><th>Motivo</th><th>Motorista</th><th>Dias Parado</th>${showLostRisk?'<th>Risco</th>':''}<th>Valor</th><th>Situação</th><th>Observação</th><th>Planilha</th><th>Na planilha desde</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="table-scroll" style="max-height:460px;"><table><thead><tr><th>Tipo</th><th>Base</th><th>Pacote</th><th>Rota</th>${hasRoutePath?'<th>Origem → Destino</th>':''}<th>Produto</th><th>Motivo</th><th>Motorista</th><th>Dias Parado</th>${showLostRisk?'<th>Risco</th>':''}<th>Valor</th><th>Justificativa</th><th>Planilha</th><th>Na planilha desde</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 /* Contexto do detalhe: guarda os pacotes da base/faixa aberta para permitir
    busca, filtro por turno e ordenação sem fechar a janela. */
-let overlayCtx={title:'',prefix:'',entries:[],bucket:'TODOS',buckets:[],search:'',period:'TODOS',sortMode:'VALOR',dayMap:new Map()};
-function overlayEntryKey(e){ return normalizePackageKey(e?.pacote||'')+'|'+normalizeBaseCode(e?.base||''); }
-function overlayDays(e){ const key=overlayEntryKey(e); if(overlayCtx.dayMap?.has(key)) return overlayCtx.dayMap.get(key); const value=diasParado(e); if(overlayCtx.dayMap) overlayCtx.dayMap.set(key,value); return value; }
+let overlayCtx={title:'',prefix:'',entries:[],bucket:'TODOS',search:'',period:'TODOS',sortMode:'VALOR'};
 function overlaySearchBase(){
   const q=overlayCtx.search.trim().toUpperCase();
   let list=overlayCtx.entries;
@@ -2918,7 +2792,7 @@ function overlaySearchBase(){
     || String(e.produto||'').toUpperCase().includes(q)
     || String(e.base||'').toUpperCase().includes(q));
   if(overlayCtx.period==='JUSTIFICADOS'){
-    list=list.filter(e=>{ const row=returnRecordForEntry(e); return Boolean(row && (String(row.justificativa||'').trim() || String(row.situacao||'').trim() || row.photo)); });
+    list=list.filter(e=>{ const row=returnRecordForEntry(e); return Boolean(row && (String(row.justificativa||'').trim() || row.photo)); });
   } else if(overlayCtx.period!=='TODOS'){
     const sets=planilhaSetsDoDia();
     list=list.filter(e=>entradaPertenceAoPeriodo(e,overlayCtx.period,sets));
@@ -2927,7 +2801,7 @@ function overlaySearchBase(){
 }
 function overlayFiltered(){
   let list=overlaySearchBase();
-  if(overlayCtx.buckets?.length) list=list.filter(e=>overlayCtx.buckets.includes(bucketOf(overlayDays(e))));
+  if(overlayCtx.buckets?.length) list=list.filter(e=>overlayCtx.buckets.includes(bucketOf(diasParado(e))));
   return sortEntriesByMode(list, overlayCtx.sortMode);
 }
 function sortBtnLabel(mode){
@@ -2990,24 +2864,12 @@ function abrirModalOcultarDias(entries, contexto, onlyLostRoutes=false){
 function renderOverlayBody(){
   const driverDetail=document.getElementById('overlayDriverDetail'); if(driverDetail) driverDetail.remove();
   const list=overlayFiltered();
-  const counts=computeAgingCounts(overlaySearchBase(),overlayDays);
+  const counts=computeAgingCounts(overlaySearchBase());
   const chips=document.getElementById('overlayAging');
   chips.innerHTML=BUCKET_KEYS.map(b=>`<div class="aging-chip ${overlayCtx.bucket===b?'active':''} ${counts[b].cnt?'':'vazio'}" data-bucket="${b}"><div class="lbl">${BUCKET_LABELS[b]}</div><div class="cnt">${fmtInt(counts[b].cnt)}</div><div class="val">${fmtBRL(counts[b].val)}</div></div>`).join('');
   const tbl=document.getElementById('overlayTable');
-  overlayCtx.renderedList=list;
-  overlayCtx.renderedCount=Math.min(OVERLAY_PAGE_SIZE,list.length);
-  const tableFlags={hasRoutePath:(overlayCtx.entries||[]).some(e=>e.origem||e.destino),showLostRisk:String(overlayCtx.title||'').startsWith('Perdidos em rota')};
-  tbl.innerHTML = list.length ? renderPackageTable(list,OVERLAY_PAGE_SIZE)
+  tbl.innerHTML = list.length ? renderPackageTable(list)
     : '<div class="history-empty">Nenhum pacote para este filtro. Clique de novo na faixa marcada ou limpe a busca para ver todos.</div>';
-  const scroll=tbl.querySelector('.table-scroll');
-  if(scroll&&overlayCtx.renderedCount<list.length) scroll.addEventListener('scroll',()=>{
-    if(scroll.scrollHeight-scroll.scrollTop-scroll.clientHeight>160) return;
-    const start=overlayCtx.renderedCount, end=Math.min(start+OVERLAY_PAGE_SIZE,overlayCtx.renderedList.length);
-    if(end<=start) return;
-    const tbody=scroll.querySelector('tbody');
-    if(tbody) tbody.insertAdjacentHTML('beforeend',renderPackageTable(overlayCtx.renderedList.slice(start,end),end-start,true,tableFlags));
-    overlayCtx.renderedCount=end;
-  });
   document.querySelectorAll('#overlayPeriodBar .period-preset').forEach(b=>b.classList.toggle('active', b.dataset.period===overlayCtx.period));
   const sortBtn=document.getElementById('overlaySortBtn'); if(sortBtn) sortBtn.innerHTML=sortBtnLabel(overlayCtx.sortMode);
   document.getElementById('overlaySub').textContent=
@@ -3016,7 +2878,7 @@ function renderOverlayBody(){
     +(overlayCtx.period!=='TODOS'?' · '+(overlayCtx.period==='MANHA'?'Manhã':overlayCtx.period==='TARDE'?'Tarde':'Justificados'):'');
 }
 function openOverlayEntries(title, prefix, entries, bucket){
-  overlayCtx={title, prefix:prefix||'', entries:entries||[], bucket:bucket||'TODOS', buckets:bucket&&bucket!=='TODOS'?[bucket]:[], search:'', period:'TODOS', sortMode:'VALOR', dayMap:new Map()};
+  overlayCtx={title, prefix:prefix||'', entries:entries||[], bucket:bucket||'TODOS', buckets:bucket&&bucket!=='TODOS'?[bucket]:[], search:'', period:'TODOS', sortMode:'VALOR'};
   document.getElementById('overlayTitle').textContent=title;
   document.getElementById('overlayBody').innerHTML=
     '<div class="overlay-tools"><div class="search-box" style="width:100%;max-width:380px;">'
@@ -3033,12 +2895,9 @@ function openOverlayEntries(title, prefix, entries, bucket){
     +'<button type="button" class="btn-reset" id="overlayResetFiltros">Mostrar todos</button>'
     +'<button type="button" class="dl-btn" id="overlayDownload" style="margin-left:0;" title="Baixar planilha de retorno destes pacotes" aria-label="Baixar planilha de retorno destes pacotes"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button></div>'
     +'<div class="aging-strip" id="overlayAging"></div><div id="overlayTable"></div>';
-  const overlay=document.getElementById('baseOverlay');
-  overlay.classList.add('show');
-  const overlayTable=document.getElementById('overlayTable');
-  if(overlayTable) overlayTable.innerHTML='<div class="history-empty" style="padding:42px 0;">Carregando pacotes…</div>';
-  requestAnimationFrame(()=>{ if(overlay.classList.contains('show')) renderOverlayBody(); });
+  renderOverlayBody();
   document.getElementById('overlayLostRoutesBtn')?.addEventListener('click',()=>{const prev=overlayCtx;const base=normalizeBaseCode(overlayCtx.entries[0]?.base||'');const list=LOST_ROUTES.filter(x=>lostPrimaryBase(x)===base);openLostRoutesOverlay(base,list);const tools=document.querySelector('#overlayBody .overlay-tools');if(tools){const back=document.createElement('button');back.type='button';back.className='preset-btn';back.id='overlayBackToBase';back.textContent='← Voltar para a base';back.addEventListener('click',()=>openOverlayEntries(prev.title,prev.prefix,prev.entries,prev.bucket));tools.prepend(back);}});
+  document.getElementById('baseOverlay').classList.add('show');
   const inp=document.getElementById('overlaySearch');
   if(inp) setTimeout(()=>inp.focus(),50);
 }
@@ -3108,9 +2967,7 @@ function renderOverlayDriverDetail(driverId, faixa){
     +'<div class="driver-history-note">Comparação: seta para baixo = valor menor ou pacote que saiu da planilha; seta para cima vermelha = valor maior. Um pacote presente de manhã e à tarde aparece como <strong>Manhã - Tarde</strong>.</div>';
   document.getElementById('overlayBody').appendChild(panel); document.getElementById('overlayDriverClose').addEventListener('click',()=>panel.remove()); setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),20);
 }
-document.getElementById('overlayBody').addEventListener('change', function(e){ if(e.target?.dataset?.justPhoto){ attachJustificationPhoto(e.target); return; } if(e.target?.dataset?.situationPacote) updateSituation(e.target); });
-async function updateSituation(select){ const scroll=captureOverlayScroll(); const pacote=select.dataset.situationPacote||'',base=select.dataset.situationBase||'',value=SITUATION_BY_LABEL[select.value]?select.value:''; select.className='situation-select '+situationClass(value); const sheet=ensureReturnSheetForActiveDate(); let row=findReturnRow(pacote,base); if(!row){row={pacote:normalizePackageKey(pacote),base:normalizeBaseCode(base||''),justificativa:'',situacao:'',photo:null};sheet.rows.push(row);} row.situacao=value; row.manualEditedAt=new Date().toISOString(); row.updatedAt=new Date().toISOString(); await persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI(); }
-
+document.getElementById('overlayBody').addEventListener('change', function(e){ if(e.target?.dataset?.justPhoto) attachJustificationPhoto(e.target); });
 document.getElementById('overlayBody').addEventListener('input', function(e){
   if(e.target && e.target.id==='overlaySearch'){ overlayCtx.search=e.target.value; renderOverlayBody(); }
 });
@@ -3121,7 +2978,7 @@ function askJustificationText(current){
   return new Promise(resolve=>{
     const ov=document.createElement('div');
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
-    ov.innerHTML='<div style="background:#fff;color:#111;border-radius:12px;padding:18px;width:min(560px,100%);box-shadow:0 10px 40px rgba(0,0,0,.4);font-family:sans-serif"><div style="font-weight:700;margin-bottom:8px">Observação do pacote</div><textarea id="justTextArea" rows="6" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #bbb;border-radius:8px;font:14px sans-serif;resize:vertical" placeholder="Cole ou digite a observação aqui"></textarea><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="justCancel" style="padding:8px 14px;border:1px solid #bbb;background:#f4f4f4;border-radius:8px;cursor:pointer">Cancelar</button><button type="button" id="justSave" style="padding:8px 14px;border:0;background:#8dc63f;color:#0b1226;border-radius:8px;cursor:pointer;font-weight:700">Salvar</button></div></div>';
+    ov.innerHTML='<div style="background:#fff;color:#111;border-radius:12px;padding:18px;width:min(560px,100%);box-shadow:0 10px 40px rgba(0,0,0,.4);font-family:sans-serif"><div style="font-weight:700;margin-bottom:8px">Justificativa do pacote</div><textarea id="justTextArea" rows="6" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #bbb;border-radius:8px;font:14px sans-serif;resize:vertical" placeholder="Cole ou digite a justificativa aqui"></textarea><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="justCancel" style="padding:8px 14px;border:1px solid #bbb;background:#f4f4f4;border-radius:8px;cursor:pointer">Cancelar</button><button type="button" id="justSave" style="padding:8px 14px;border:0;background:#8dc63f;color:#0b1226;border-radius:8px;cursor:pointer;font-weight:700">Salvar</button></div></div>';
     document.body.appendChild(ov);
     const ta=ov.querySelector('#justTextArea'); ta.value=current||''; ta.focus(); ta.select();
     const done=v=>{ ov.remove(); resolve(v); };
@@ -3135,15 +2992,15 @@ async function editJustification(pacote,base){
   const row=findReturnRow(pacote,base); const current=row?.justificativa||'';
   const raw=await askJustificationText(current); if(raw===null)return;
   const value=String(raw).replace(/\u00a0/g,' ').replace(/[\r\n\t]+/g,' ').replace(/\s{2,}/g,' ').trim();
-  if(!value && current && !confirm('O campo está vazio. Isso vai apagar a observação atual. Continuar?')) return;
+  if(!value && current && !confirm('O campo está vazio. Isso vai apagar a justificativa atual. Continuar?')) return;
   const scroll=captureOverlayScroll(); const sheet=ensureReturnSheetForActiveDate(); let target=findReturnRow(pacote,base);
   if(!target){ target={pacote:normalizePackageKey(pacote),base:normalizeBaseCode(base||''),justificativa:'',photo:null}; sheet.rows.push(target); }
   target.justificativa=value; target.manualEditedAt=new Date().toISOString(); target.updatedAt=new Date().toISOString();
   await persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI();
 }
-function deleteJustification(pacote,base){ if(!confirm('Excluir a observação deste pacote?'))return; const scroll=captureOverlayScroll(); const sheet=returnSheetForDate(getSelectedImport()?.importDate||''); if(!sheet)return; const key=normalizePackageKey(pacote); sheet.rows=(sheet.rows||[]).filter(row=>!(normalizePackageKey(row.pacote)===key&&(!base||!row.base||normalizeBaseCode(row.base)===normalizeBaseCode(base))));persistReturnSheets();renderOverlayBody();restoreOverlayScroll(scroll);updateImportUI(); }
+function deleteJustification(pacote,base){ if(!confirm('Excluir a justificativa deste pacote?'))return; const scroll=captureOverlayScroll(); const sheet=returnSheetForDate(getSelectedImport()?.importDate||''); if(!sheet)return; const key=normalizePackageKey(pacote); sheet.rows=(sheet.rows||[]).filter(row=>!(normalizePackageKey(row.pacote)===key&&(!base||!row.base||normalizeBaseCode(row.base)===normalizeBaseCode(base))));persistReturnSheets();renderOverlayBody();restoreOverlayScroll(scroll);updateImportUI(); }
 function deleteJustificationPhoto(pacote,base){
-  if(!confirm('Excluir a foto desta observação?')) return;
+  if(!confirm('Excluir a foto desta justificativa?')) return;
   const sheet=returnSheetForDate(getSelectedImport()?.importDate||''); if(!sheet) return;
   const row=(sheet.rows||[]).find(item=>String(item.pacote||'')===String(pacote||'')&&(!base||!item.base||item.base===base));
   if(!row) return;
@@ -3223,7 +3080,7 @@ function openJustificationPhoto(pacote,base){
   photoViewerReturnFocus=document.activeElement;
   photoPanX=0; photoPanY=0; photoViewerZoom=1; photoViewerNat=null; const token=++photoViewerToken;
   if(photoViewerBlobUrl){ URL.revokeObjectURL(photoViewerBlobUrl); photoViewerBlobUrl=null; }
-  image.alt='Foto da observação do pacote '+String(pacote||''); image.style.imageRendering='auto'; image.dataset.enh='0';
+  image.alt='Foto da justificativa do pacote '+String(pacote||''); image.style.imageRendering='auto'; image.dataset.enh='0';
   const onLoaded=()=>{ if(image.dataset.enh==='1'){applyPhotoZoom();return;} if(!image.naturalWidth||photoViewerNat) return; photoViewerNat={w:image.naturalWidth,h:image.naturalHeight}; fitPhotoViewer(); applyPhotoZoom(); enhancePhotoViewer(token); };
   image.onload=onLoaded; image.src=row.photo; applyPhotoZoom();
   viewer.classList.add('show'); viewer.setAttribute('aria-hidden','false'); if(image.complete&&image.naturalWidth&&image.dataset.enh!=='1') onLoaded();
@@ -3241,7 +3098,7 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
   const infoLink=e.target.closest('[data-info-logistic]');
   if(infoLink){
     const row=infoLink.closest('tr');
-    document.querySelectorAll('.info-logistic-active').forEach(el=>el.classList.remove('info-logistic-active','info-logistic-fading'));
+    document.querySelectorAll('.info-logistic-active').forEach(el=>el.classList.remove('info-logistic-active'));
     if(row) row.classList.add('info-logistic-active');
     try{sessionStorage.setItem(INFO_LOGISTIC_FOCUS_KEY,JSON.stringify({pacote:row?.dataset.infoPacote||'',base:row?.dataset.infoBase||'',at:Date.now()}));}catch(_){}
     return;
@@ -3260,7 +3117,7 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
     const contexto=overlayCtx.title+(overlayCtx.buckets?.length?' · '+overlayCtx.buckets.map(b=>BUCKET_LABELS[b]).join(' + '):'');
     if(overlayCtx.title==='Pacotes por dias parado') abrirModalOcultarDias(lista,contexto);
     else if(String(overlayCtx.title||'').startsWith('Perdidos em rota')) abrirModalOcultarDias(lista,'Pacotes em rota',true);
-    else abrirModalOcultarDias(lista, contexto, false);
+    else openExportConfig(lista,false);
     return;
   }
   const periodBtn=e.target.closest('.period-preset');
@@ -3268,7 +3125,7 @@ document.getElementById('overlayBody').addEventListener('click', function(e){
   const sortBtn=e.target.closest('#overlaySortBtn');
   if(sortBtn){ overlayCtx.sortMode = overlayCtx.sortMode==='VALOR'?'MT':(overlayCtx.sortMode==='MT'?'TM':'VALOR'); renderOverlayBody(); return; }
   const chip=e.target.closest('.aging-chip');
-  if(chip){ const b=chip.dataset.bucket; const multi=e.ctrlKey||e.metaKey; let selected=new Set(overlayCtx.buckets||[]); if(multi){ if(selected.has(b)) selected.delete(b); else selected.add(b); } else { selected=selected.size===1&&selected.has(b)?new Set():new Set([b]); } overlayCtx.buckets=Array.from(selected); overlayCtx.bucket=overlayCtx.buckets.length===1?overlayCtx.buckets[0]:'TODOS'; requestAnimationFrame(()=>{ if(document.getElementById('baseOverlay')?.classList.contains('show')) renderOverlayBody(); }); }
+  if(chip){ const b=chip.dataset.bucket; const multi=e.ctrlKey||e.metaKey; let selected=new Set(overlayCtx.buckets||[]); if(multi){ if(selected.has(b)) selected.delete(b); else selected.add(b); } else { selected=selected.size===1&&selected.has(b)?new Set():new Set([b]); } overlayCtx.buckets=Array.from(selected); overlayCtx.bucket=overlayCtx.buckets.length===1?overlayCtx.buckets[0]:'TODOS'; renderOverlayBody(); }
 });
 document.getElementById('overlayClose').addEventListener('click', ()=>document.getElementById('baseOverlay').classList.remove('show'));
 document.getElementById('baseOverlay').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('show'); });
@@ -3416,8 +3273,8 @@ document.getElementById('offendersList').addEventListener('click', function(e){
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
    Dias parado: até 2 verde · 3 amarelo · 4 laranja · 5+ vermelho */
-const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',18],['Situação',32],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
-const LOST_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['RISCO',12],['VALOR (R$)',18],['Situação',32],['OBSERVAÇÃO',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
+const XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['VALOR (R$)',18],['JUSTIFICATIVA',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
+const LOST_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['PRODUTO',46],['MOTIVO',22],['MOTORISTA',28],['DIAS PARADO',13],['RISCO',12],['VALOR (R$)',18],['JUSTIFICATIVA',34],['FOTO JUSTIFICATIVA',22],['RESOLVIDO',12],['TUTORIAL DE COMO ANEXAR FOTO',16]];
 const ORIGIN_XLSX_COLS=[['BASE',12],['PACOTE',16],['ROTA',14],['ORIGEM',14],['DESTINO',14],['PRODUTO',60]];
 function riscoStyle(dias){ const k=riscoDiasParado(dias).key; return k==='alto'?20:(k==='medio'?21:22); }
 function riscoTexto(dias){ return riscoDiasParado(dias).label.toUpperCase(); }
@@ -3432,7 +3289,7 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<font><sz val="9"/><color rgb="FF000000"/><name val="Calibri"/></font>'
 +'<font><b/><sz val="9"/><color rgb="FFFF0000"/><name val="Calibri"/></font>'
 +'</fonts>'
-+'<fills count="23">'
++'<fills count="14">'
 +'<fill><patternFill patternType="none"/></fill>'
 +'<fill><patternFill patternType="gray125"/></fill>'
 +'<fill><patternFill patternType="solid"><fgColor rgb="FF1F1F1F"/><bgColor indexed="64"/></patternFill></fill>'
@@ -3447,20 +3304,11 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<fill><patternFill patternType="solid"><fgColor rgb="FFF3D316"/><bgColor indexed="64"/></patternFill></fill>'
 +'<fill><patternFill patternType="solid"><fgColor rgb="FFFF8A00"/><bgColor indexed="64"/></patternFill></fill>'
 +'<fill><patternFill patternType="solid"><fgColor rgb="FFEF3F56"/><bgColor indexed="64"/></patternFill></fill>'
-+'<fill><patternFill patternType="solid"><fgColor rgb="FFF3D316"/><bgColor indexed="64"/></patternFill></fill>' /* 14 situação amarelo */
-+'<fill><patternFill patternType="solid"><fgColor rgb="FFFF8A00"/><bgColor indexed="64"/></patternFill></fill>' /* 15 situação laranja */
-+'<fill><patternFill patternType="solid"><fgColor rgb="FFEF3F56"/><bgColor indexed="64"/></patternFill></fill>' /* 16 situação vermelho */
-+'<fill><patternFill patternType="solid"><fgColor rgb="FF9BE15D"/><bgColor indexed="64"/></patternFill></fill>' /* 17 situação verde claro */
-+'<fill><patternFill patternType="solid"><fgColor rgb="FF00A83B"/><bgColor indexed="64"/></patternFill></fill>' /* 18 situação verde escuro */
-+'<fill><patternFill patternType="solid"><fgColor rgb="FFC7A0FF"/><bgColor indexed="64"/></patternFill></fill>' /* 19 situação roxo claro */
-+'<fill><patternFill patternType="solid"><fgColor rgb="FF8E44AD"/><bgColor indexed="64"/></patternFill></fill>' /* 20 situação roxo */
-+'<fill><patternFill patternType="solid"><fgColor rgb="FF5B176F"/><bgColor indexed="64"/></patternFill></fill>' /* 21 situação roxo escuro */
-+'<fill><patternFill patternType="solid"><fgColor rgb="FF4DA3FF"/><bgColor indexed="64"/></patternFill></fill>' /* 22 situação azul */
 +'</fills>'
 +'<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
 +'<border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>'
 +'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-+'<cellXfs count="32">'
++'<cellXfs count="23">'
 +'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'                                                                        /* 0 padrao */
 +'<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'                                                          /* 1 titulo */
 +'<xf numFmtId="0" fontId="1" fillId="7" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 2 faixa regional */
@@ -3484,37 +3332,15 @@ const STYLES_XML='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 +'<xf numFmtId="0" fontId="2" fillId="13" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 20 risco ALTO */
 +'<xf numFmtId="0" fontId="2" fillId="12" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 21 risco MEDIO */
 +'<xf numFmtId="0" fontId="1" fillId="11" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 22 risco BAIXO */
-+'<xf numFmtId="0" fontId="0" fillId="14" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 23 situação amarelo */
-+'<xf numFmtId="0" fontId="0" fillId="15" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 24 situação laranja */
-+'<xf numFmtId="0" fontId="2" fillId="16" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 25 situação vermelho */
-+'<xf numFmtId="0" fontId="0" fillId="17" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 26 situação verde claro */
-+'<xf numFmtId="0" fontId="2" fillId="18" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 27 situação verde escuro */
-+'<xf numFmtId="0" fontId="0" fillId="19" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 28 situação roxo claro */
-+'<xf numFmtId="0" fontId="2" fillId="20" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 29 situação roxo */
-+'<xf numFmtId="0" fontId="2" fillId="21" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 30 situação roxo escuro */
-+'<xf numFmtId="0" fontId="0" fillId="22" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' /* 31 situação azul */
-+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
-+buildSituationDxfs()+'</styleSheet>';
++'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 function colName(i){ let s='',n=i+1; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
 function xmlEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,''); }
-function compressRefs(refs){ /* ['J5','J6','J7','J10'] -> 'J5:J7 J10' */
-  const out=[]; let start=null,prev=null,col=null;
-  const flush=()=>{ if(start===null)return; out.push(start===prev?col+start:col+start+':'+col+prev); start=null; prev=null; };
-  refs.forEach(ref=>{ const m=/^([A-Z]+)(\d+)$/.exec(ref); if(!m)return; const c=m[1], n=Number(m[2]); if(start!==null && c===col && n===prev+1){ prev=n; return; } flush(); col=c; start=n; prev=n; });
-  flush(); return out.join(' ');
-}
 function cTxt(col,row,v,st){ return '<c r="'+colName(col)+row+'" s="'+st+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(v)+'</t></is></c>'; }
 function cNum(col,row,v,st){ const n=parseBRNumber(v); return '<c r="'+colName(col)+row+'" s="'+st+'"><v>'+(Math.round(n*100)/100)+'</v></c>'; }
-function buildSituationDxfs(){
-  const argb=h=>'FF'+String(h||'#000000').replace('#','').toUpperCase();
-  /* No dxf (formatação condicional) o preenchimento sólido usa bgColor; só com fgColor o Excel pinta de preto. Uma entrada por opção, na mesma ordem de SITUATION_OPTIONS (dxfId = índice). */
-  return '<dxfs count="'+SITUATION_OPTIONS.length+'">'+SITUATION_OPTIONS.map(item=>'<dxf><font><b/><color rgb="'+argb(item.font)+'"/></font><fill><patternFill patternType="solid"><fgColor rgb="'+argb(item.color)+'"/><bgColor rgb="'+argb(item.color)+'"/></patternFill></fill></dxf>').join('')+'</dxfs>';
-}
-function situationStyleId(value){ const v=String(value||''); if(!v)return 4; if(v==='Para solução de problema'||v==='Despachar'||v==='Em outra base')return 23; if(v==='Faltante'||v==='Parado')return 24; if(v==='Não encontrado no ato do carregamento'||v==='Perdido')return 25; if(v==='Em rota de entrega')return 26; if(v==='Entregue')return 27; if(v==='Para devolver')return 28; if(v==='Devolução')return 29; if(v==='Devolução | Comprador recusou')return 30; if(v==='Outros')return 31; return 4; }
 function diasStyle(dias){ if(dias<=2) return 5; if(dias===3) return 6; if(dias===4) return 7; if(dias===5) return 8; if(dias===6) return 12; if(dias===7) return 13; return 14; }
 function buildSheetXml(grupos, contexto, opts){
   const lost=Boolean(opts&&opts.lost), COLS=lost?LOST_XLSX_COLS:XLSX_COLS, N=COLS.length, LASTC=colName(N-1), valCol=lost?8:7;
-  let rows='', merges=[], situationRefs=[], r=0;
+  let rows='', merges=[], r=0;
   const linhaVazia=()=>{ r++; rows+='<row r="'+r+'" ht="15" customHeight="1"/>'; };
   r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+cTxt(0,r,'Planilha de retorno — Parceiro Spot · '+fmtDateFullBR(new Date())+(contexto?(typeof contexto==='string'?contexto:(contexto.selectedDays?.length?'Dias '+contexto.selectedDays.map(d=>d.split('-').reverse().join('/')).join(', '):'')):''),1)+'</row>';
   merges.push('A'+r+':'+LASTC+r);
@@ -3530,14 +3356,13 @@ function buildSheetXml(grupos, contexto, opts){
     r++; rows+='<row r="'+r+'" ht="15" customHeight="1">'+COLS.map((cc,i)=>cTxt(i,r,cc[0],3)).join('')+'</row>';
     linhas.forEach(({base,e})=>{
       const dias=diasParado(e);
-      const dataRowNumber=r+1;
-      const retorno=returnRecordForEntry(e), situacao=String(retorno?.situacao||''), justificativa=String(retorno?.justificativa||'').trim(), resolvido=(justificativa||situacao)?'Resolvido':'Pendente';
-      r++; situationRefs.push(colName(valCol+1)+r);
+      const retorno=returnRecordForEntry(e), justificativa=String(retorno?.justificativa||'').trim(), resolvido=justificativa?'Resolvido':'Pendente';
+      r++;
       const fotoOk=Boolean(retorno?.photo||retorno?.photoIndicator);
       const tut='Clicar em ANEXAR FOTO > botão Inserir (no topo) > Imagem > Este dispositivo > depois de abrir a foto, clicar no ícone pequeno de paisagem com quadradinho que fica ao lado da foto que abriu.';
       const cells=[cTxt(0,r,base,4),cTxt(1,r,e.pacote||'',4),cTxt(2,r,e.rota||'',4),cTxt(3,r,resumo(e.produto,45),4),cTxt(4,r,e.motivo||'',16),cTxt(5,r,getDriverName(e.driverId),4),cNum(6,r,dias,diasStyle(dias))];
       if(lost) cells.push(cTxt(7,r,riscoTexto(dias),riscoStyle(dias)));
-      cells.push(cNum(valCol,r,e.valor,18),cTxt(valCol+1,r,situacao, situationStyleId(situacao)),cTxt(valCol+2,r,justificativa,4),cTxt(valCol+3,r,fotoOk?'FOTO ANEXADA':'ANEXAR FOTO',fotoOk?19:17),cTxt(valCol+4,r,resolvido,4),cTxt(valCol+5,r,tut,15));
+      cells.push(cNum(valCol,r,e.valor,18),cTxt(valCol+1,r,justificativa,4),cTxt(valCol+2,r,fotoOk?'FOTO ANEXADA':'ANEXAR FOTO',fotoOk?19:17),cTxt(valCol+3,r,resolvido,4),cTxt(valCol+4,r,tut,15));
       rows+='<row r="'+r+'" ht="15" customHeight="1">'+cells.join('')+'</row>';
     });
     r++;
@@ -3557,14 +3382,9 @@ function buildSheetXml(grupos, contexto, opts){
   }
   const cols='<cols>'+COLS.map((c,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+c[1]+'" customWidth="1"/>').join('')+'</cols>';
   const mc = merges.length ? '<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>' : '';
-  const situationList=SITUATION_OPTIONS.map(item=>item.label).join(',');
-  /* Lista inline compatível com Excel Online; as 13 opções ocupam 199 caracteres (limite do Excel: 255). */
-  const dv=situationRefs.length?'<dataValidations count="1"><dataValidation type="list" allowBlank="1" showDropDown="0" showInputMessage="1" showErrorMessage="1" errorTitle="Situação" error="Escolha uma Situação da lista." sqref="'+compressRefs(situationRefs)+'"><formula1>'+xmlEsc('"'+situationList+'"')+'</formula1></dataValidation></dataValidations>':'';
-  const situationRange=situationRefs.length?situationRefs[0]+':'+situationRefs[situationRefs.length-1]:'';
-  const cf=situationRefs.length?'<conditionalFormatting sqref="'+situationRange+'">'+SITUATION_OPTIONS.map((item,i)=>'<cfRule type="cellIs" dxfId="'+i+'" priority="'+(i+1)+'" operator="equal"><formula>'+xmlEsc('\"'+item.label+'\"')+'</formula></cfRule>').join('')+'</conditionalFormatting>':'';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    +cols+'<sheetData>'+rows+'</sheetData>'+mc+cf+dv+'</worksheet>';
+    +cols+'<sheetData>'+rows+'</sheetData>'+mc+'</worksheet>';
 }
 function buildOriginSheetXml(list){
   let rows='', r=1; const N=ORIGIN_XLSX_COLS.length;
@@ -3613,7 +3433,7 @@ function exportDateKey(value, fallback=''){
   return String(fallback||'').slice(0,10);
 }
 function lostExportDateKey(entry){ return exportDateKey(entry?.date,entry?.importDate); }
-/* Exportação formatada: uma aba por regional, blocos separados por base e observações atuais. */
+/* Exportação formatada: uma aba por regional, blocos separados por base e justificativas atuais. */
 const REGIONAL_FILE_NAMES={'ESPÍRITO SANTO':'Espírito Santo','MINAS GERAIS':'Minas Gerais','BAHIA':'Bahia','SÃO PAULO':'São Paulo','RIO DE JANEIRO':'Rio de Janeiro','OUTROS':'Outras Bases'};
 const PAGE_FILE_NAMES={geral:'Visão Geral',ofensores:'Ofensores',regional:'Regional e Base',lostroutes:'Pacotes em Rota',diaria:'Visão Diária',analise:'Análise',revertido:'Pacote Revertido',importados:'Importados'};
 function dateFileBR(d){ return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear(); }
@@ -3658,7 +3478,7 @@ function baixarRetornoFormatadoImpl(entries, contexto){
   zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheetOverrides+'</Types>');
   zip.folder('_rels').file('.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
   const short={'ESPÍRITO SANTO':'ES','MINAS GERAIS':'MG','BAHIA':'BA','SÃO PAULO':'SP','RIO DE JANEIRO':'RJ'}; const xl=zip.folder('xl'), usados=new Set(), names=sheets.map((s,i)=>{const base=(short[s.reg]||s.reg||('Regional '+(i+1))).replace(/[\/*?:\[\]]/g,' ').trim().slice(0,31);let label=base,n=2;while(usados.has(label)){const sufixo=' '+n++;label=base.slice(0,31-sufixo.length)+sufixo;}usados.add(label);return {label,i};});
-  xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'"'+(sheets[n.i].hidden?' state="hidden"':'')+' sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets></workbook>');
+  xl.file('workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map(n=>'<sheet name="'+xmlEsc(n.label)+'" sheetId="'+(n.i+1)+'" r:id="rId'+(n.i+1)+'"/>').join('')+'</sheets></workbook>');
   xl.folder('_rels').file('workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   xl.file('styles.xml',STYLES_XML); const wsFolder=xl.folder('worksheets'); sheets.forEach((s,i)=>wsFolder.file('sheet'+(i+1)+'.xml',s.xml));
   zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE',compressionOptions:{level:1}}).then(blob=>{hideExportBusy();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=exportFileName(entries,contexto);document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1500);}).catch(err=>{console.error(err);hideExportBusy();alert('Não foi possível gerar o arquivo neste navegador.');});
@@ -3853,7 +3673,7 @@ function renderRegionalPage(){
     const isAllBases=r==='TODAS';
     const entriesForRegion=isAllBases?activeEntries:(activeData[r]?.entries||[]);
     if(!entriesForRegion.length){ regionalNav={level:'list',regional:null}; renderRegionalPage(); return; }
-    crumb.innerHTML=`<a data-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(isAllBases?'Todas as bases':(REGIONAL_LABELS[r]||r))}</strong><button type="button" class="dl-btn" id="btnDownloadRegionalBases" title="Baixar planilha desta regional" aria-label="Baixar planilha desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaBases" title="Capturar bases" aria-label="Capturar bases"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
+    crumb.innerHTML=`<a data-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(isAllBases?'Todas as bases':(REGIONAL_LABELS[r]||r))}</strong><button type="button" class="mini-camera" id="btnCapturaBases" title="Capturar bases" aria-label="Capturar bases"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
     const d={entries:entriesForRegion};
     const filteredEntries=bucketFilterEntries(d.entries, regionalBaseBucket);
     const baseMap={};
@@ -3871,7 +3691,6 @@ function renderRegionalPage(){
     }
     html+='</div>';
     content.innerHTML=html;
-    document.getElementById('btnDownloadRegionalBases')?.addEventListener('click',()=>abrirModalOcultarDias(entriesForRegion,'Regional '+(REGIONAL_LABELS[r]||'Todas as bases'),false));
     document.getElementById('btnCapturaBases').addEventListener('click',()=>captureDashboardElement('#regionalContent','regional-e-bases-'+String(r).toLowerCase().replace(/\s+/g,'-')));
     document.getElementById('regBaseAging').querySelectorAll('.aging-chip').forEach(chip=>chip.addEventListener('click', ()=>{
       const b=chip.dataset.bucket;
