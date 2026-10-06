@@ -742,3 +742,78 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .diaria-total-row td{background:var(--bg-card-hover)!important;color:var(--text-primary)!important;font-weight:800}
 .info-logistic-active{background:rgba(185,185,185,.13)!important;box-shadow:inset 3px 0 0 rgba(165,165,165,.65)!important}
 .info-logistic-active td{background:rgba(185,185,185,.13)!important;color:var(--text-primary)!important}
+
+.situation-select{min-width:190px;max-width:260px;border:1px solid rgba(0,0,0,.25);border-radius:6px;padding:6px 8px;font:700 11px inherit;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.15)}.situation-select:focus{outline:2px solid var(--spot-green);outline-offset:1px}.situation-select option{background:#fff;color:#111;font-weight:600}
+
+/* Histórico de pacotes: observação legível, sem texto minúsculo ou truncado. */
+.overlay-panel .observation-cell{min-width:340px;width:340px;vertical-align:top!important}
+.overlay-panel .observation-cell .just-cell{min-width:330px;max-width:360px;align-items:flex-start;gap:7px}
+.overlay-panel .observation-cell .just-cell>span{display:block;min-width:250px;max-width:330px;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4;font-size:13px;color:var(--text-primary)}
+.overlay-panel .observation-cell .just-edit,.overlay-panel .observation-cell .just-delete,.overlay-panel .observation-cell .just-photo,.overlay-panel .observation-cell .just-photo-btn{font-size:11px;padding:4px 7px}
+.return-history-card .observation-cell{min-width:300px}.return-history-card .observation-cell .just-cell>span{max-width:290px;white-space:normal;font-size:12px}
+.overlay-panel .table-scroll{max-height:calc(100vh - 245px)}
+@media(max-width:900px){.overlay-panel .observation-cell{min-width:280px;width:280px}.overlay-panel .observation-cell .just-cell{min-width:270px}.overlay-panel .observation-cell .just-cell>span{min-width:210px;max-width:270px}}
+
+/* Situação: cores semânticas adaptáveis aos temas claro, escuro e rosa. */
+.situation-select{font-weight:800!important;border:1px solid rgba(0,0,0,.28);text-shadow:none}
+.situation-select.situation-empty{background:var(--bg-inset)!important;color:var(--text-primary)!important}
+.situation-select.situation-0,.situation-select.situation-1,.situation-select.situation-7{background:#f3d316!important;color:#1d1d1d!important}
+.situation-select.situation-2,.situation-select.situation-4{background:#ff8a00!important;color:#111!important}
+.situation-select.situation-3,.situation-select.situation-11{background:#ef3f56!important;color:#fff!important}
+.situation-select.situation-5{background:#9be15d!important;color:#163300!important}
+.situation-select.situation-6{background:#00a83b!important;color:#fff!important}
+.situation-select.situation-8{background:#c7a0ff!important;color:#24103f!important}
+.situation-select.situation-9{background:#8e44ad!important;color:#fff!important}
+.situation-select.situation-10{background:#5b176f!important;color:#fff!important}
+.situation-select.situation-12{background:#4da3ff!important;color:#07182d!important}
+.situation-select option{background:var(--bg-card)!important;color:var(--text-primary)!important}
+:root.theme-light .situation-select.situation-2,:root.theme-light .situation-select.situation-4{background:#d96f00!important;color:#fff!important}
+:root.theme-light .situation-select.situation-5{background:#72b52e!important;color:#102500!important}
+:root.theme-light .situation-select.situation-7{background:#d1ad00!important;color:#1d1d1d!important}
+:root.theme-light .situation-select.situation-12{background:#2d78c7!important;color:#fff!important}
+:root.theme-pink .situation-select.situation-5{background:#73b83f!important;color:#102500!important}
+
+/* Histórico de pacotes em tela cheia: aproveita o viewport e mantém a rolagem na tabela. */
+#baseOverlay.overlay{padding:0;align-items:stretch;justify-content:stretch;overflow:hidden}
+#baseOverlay .overlay-panel{width:100vw;max-width:none;height:100vh;min-height:100vh;margin:0;padding:24px 26px 18px;border:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden}
+#baseOverlay .overlay-head{flex:0 0 auto}
+#baseOverlay #overlayBody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#baseOverlay #overlayBody>.overlay-tools{flex:0 0 auto}
+#baseOverlay #overlayAging{flex:0 0 auto;max-height:112px;overflow-x:auto;overflow-y:hidden}
+#baseOverlay #overlayTable{flex:1 1 auto;min-height:0;overflow:hidden}
+#baseOverlay #overlayTable>.table-scroll{height:100%;max-height:none;overflow:auto;overscroll-behavior:contain}
+#baseOverlay #overlayTable>.table-scroll table{min-width:1500px}
+@media(max-width:700px){#baseOverlay .overlay-panel{padding:16px 12px 12px}#baseOverlay #overlayAging{max-height:170px}#baseOverlay #overlayTable>.table-scroll table{min-width:1320px}}
+
+/* ===== Layout fluido: sem rolagem lateral na página ao diminuir a janela =====
+   O conteúdo encolhe junto com a janela; só as tabelas largas rolam dentro do próprio quadro. */
+html{overflow-x:hidden;overflow-x:clip;max-width:100%}
+body{max-width:100%;overflow-x:hidden;overflow-x:clip}
+main{padding:clamp(12px,2.4vw,28px)}
+.header-inner{padding:clamp(10px,1.6vw,16px) clamp(12px,2.4vw,28px)}
+.nav-inner,.subtabs-inner{padding-left:clamp(12px,2.4vw,28px);padding-right:clamp(12px,2.4vw,28px)}
+.kpi-grid,.registro-grid,.import-grid,.regional-grid,.base-grid,.analise-kpis,.rev-kpis,.aging-strip,.mini-calendar{min-width:0}
+.kpi-grid>*,.registro-grid>*,.import-grid>*,.regional-grid>*,.base-grid>*,.analise-kpis>*,.rev-kpis>*,.aging-strip>*,.mini-calendar>*{min-width:0;max-width:100%}
+.kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.registro-grid{grid-template-columns:minmax(240px,340px) minmax(0,1fr)}
+.import-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.regional-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.base-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rev-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.mini-calendar{grid-template-columns:repeat(7,minmax(0,1fr))}
+.page,.page>*,.card,.panel{min-width:0;max-width:100%}
+.table-scroll,.rev-table-wrap{max-width:100%;overflow-x:auto}
+img,svg,canvas,video{max-width:100%}
+.header-inner>*{min-width:0}
+@media (max-width:1100px){
+  .kpi-grid,.analise-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .registro-grid,.import-grid,.base-grid{grid-template-columns:minmax(0,1fr)}
+  .regional-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rev-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:700px){
+  .rev-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .kpi-grid,.analise-kpis,.regional-grid,.rev-kpis{grid-template-columns:minmax(0,1fr)}
+}
