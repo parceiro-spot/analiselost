@@ -2145,9 +2145,9 @@ function analysisDeltaHtml(current,previous,format,unit){
 function renderAnalysisComparisons(de,ate,reg,tipo,current){
   if(!de||!ate) return;
   const startObj=new Date(de+'T00:00:00'), endObj=new Date(ate+'T00:00:00'), days=Math.round((endObj-startObj)/86400000)+1;
-  const prevStart=isoShift(de,-days), prevEnd=isoShift(de,-1);
+  const prevStart=isoShift(de,-7), prevEnd=isoShift(ate,-7);
   const previous=analysisMetricsBetween(prevStart,prevEnd,reg,tipo);
-  const periodLabel=days===1?'dia anterior':days===7?'semana anterior':(days>=28?'mês anterior':'período anterior ('+days+' dias)');
+  const periodLabel=days===1?'mesmo dia da semana anterior':'mesmos dias da semana anterior ('+days+' dias)';
   const fmtN=n=>fmtInt(n), fmtV=n=>fmtBRL(n);
   document.getElementById('anPacotesDelta').innerHTML=analysisDeltaHtml(current.pacotes,previous?.pacotes,fmtN,'pacotes vs '+periodLabel);
   document.getElementById('anValorDelta').innerHTML=analysisDeltaHtml(current.valor,previous?.valor,fmtV,'valor vs '+periodLabel);
