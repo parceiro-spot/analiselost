@@ -2145,12 +2145,16 @@ function analysisDeltaHtml(current,previous,format,unit){
 function renderAnalysisComparisons(de,ate,reg,tipo,current){
   if(!de||!ate) return;
   const startObj=new Date(de+'T00:00:00'), endObj=new Date(ate+'T00:00:00'), days=Math.round((endObj-startObj)/86400000)+1;
-  const prevStart=isoShift(de,-7), prevEnd=isoShift(ate,-7);
-  const previous=analysisMetricsBetween(prevStart,prevEnd,reg,tipo);
-  const periodLabel=days===1?'mesmo dia da semana anterior':'mesmos dias da semana anterior ('+days+' dias)';
+  const prevStart=isoShift(de,-7), prevEnd=isoShift(ate,-7), nextStart=isoShift(de,7), nextEnd=isoShift(ate,7);
+  const previous=analysisMetricsBetween(prevStart,prevEnd,reg,tipo), next=analysisMetricsBetween(nextStart,nextEnd,reg,tipo);
+  const rangeLabel=(start,end)=>fmtDateShort(new Date(start+'T00:00:00'))+' a '+fmtDateShort(new Date(end+'T00:00:00'));
+  const today=todayStr(), weekday=(new Date(today+'T00:00:00').getDay()+6)%7, currentWeekStart=isoShift(today,-weekday), currentWeekEnd=isoShift(currentWeekStart,6);
+  const nextWeekName=nextStart>=currentWeekStart&&nextStart<=currentWeekEnd?'semana atual':nextStart>currentWeekEnd?'semana seguinte':'semana seguinte ao período';
+  const previousLabel=(days===1?'vs semana anterior (':'vs semana anterior ('+days+' dias · ')+rangeLabel(prevStart,prevEnd)+')';
+  const nextLabel=(days===1?'vs '+nextWeekName+' (':'vs '+nextWeekName+' ('+days+' dias · ')+rangeLabel(nextStart,nextEnd)+')';
   const fmtN=n=>fmtInt(n), fmtV=n=>fmtBRL(n);
-  document.getElementById('anPacotesDelta').innerHTML=analysisDeltaHtml(current.pacotes,previous?.pacotes,fmtN,'pacotes vs '+periodLabel);
-  document.getElementById('anValorDelta').innerHTML=analysisDeltaHtml(current.valor,previous?.valor,fmtV,'valor vs '+periodLabel);
+  document.getElementById('anPacotesDelta').innerHTML=analysisDeltaHtml(current.pacotes,previous?.pacotes,fmtN,'pacotes '+previousLabel)+'<br>'+analysisDeltaHtml(current.pacotes,next?.pacotes,fmtN,'pacotes '+nextLabel);
+  document.getElementById('anValorDelta').innerHTML=analysisDeltaHtml(current.valor,previous?.valor,fmtV,'valor '+previousLabel)+'<br>'+analysisDeltaHtml(current.valor,next?.valor,fmtV,'valor '+nextLabel);
 }
 function renderAnalise(){
   const dates=availableImportDates();
