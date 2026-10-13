@@ -599,6 +599,18 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--text-muted);font-siz
 .regional-search-box .ico{width:14px;height:14px;flex:none}
 .regional-search-box input{width:100%;border:0;outline:0;background:transparent;color:var(--text-primary);font:inherit;font-size:11px}
 .regional-search-box input::placeholder{color:var(--text-muted)}
+.regional-history-panel{margin-top:18px;padding:16px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-card)}
+.regional-history-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.regional-history-head h3{margin:0;font-size:13px;color:var(--text-primary)}
+.regional-history-head p{margin:4px 0 0;font-size:11px;color:var(--text-secondary)}
+.regional-history-count{font-size:11px;color:var(--text-muted);font-weight:700}
+.regional-history-scroll{max-height:410px;overflow:auto}
+.regional-history-table{width:100%;min-width:850px;border-collapse:collapse;font-size:11px}
+.regional-history-table th,.regional-history-table td{padding:8px 9px;text-align:left;border-bottom:1px solid var(--border-color);white-space:nowrap}
+.regional-history-table th{position:sticky;top:0;background:var(--bg-card);color:var(--text-secondary);font-size:10px;text-transform:uppercase;z-index:1}
+.regional-history-table tr.regional-history-completed{opacity:.56}
+.regional-history-status{display:inline-block;padding:4px 7px;border:1px solid var(--text-muted);border-radius:20px;color:var(--text-secondary);font-size:9px;font-weight:900;letter-spacing:.25px}
+.regional-history-empty{padding:14px;color:var(--text-muted);font-size:12px}
 @media(max-width:700px){.regional-search-box{order:3;width:100%;min-width:0;margin:10px 0 0}.breadcrumb{flex-wrap:wrap}}
 .regional-card{position:relative}.regional-justified-btn{margin-top:12px;padding:7px 10px;border:1px solid var(--spot-green);border-radius:6px;background:rgba(0,200,83,.10);color:var(--spot-green);font:inherit;font-size:10px;font-weight:800;letter-spacing:.35px;cursor:pointer}.regional-justified-btn:hover{background:var(--spot-green);color:#06100a}.regional-justified-btn span{margin-left:4px;padding-left:5px;border-left:1px solid currentColor}
 .justified-summary{display:inline-flex;align-items:center;margin:0 0 14px;padding:10px 14px;border:1px solid var(--spot-green);border-radius:8px;background:rgba(0,200,83,.08);color:var(--spot-green);font-size:13px;font-weight:900;letter-spacing:.3px}.base-justified{margin-top:10px;color:var(--spot-green);font-size:11px;font-weight:700}
@@ -1523,6 +1535,7 @@ img,svg,canvas,video{max-width:100%}
       <div class="import-card">
         <h3>Lost &middot; 1) Pacotes perdidos</h3>
         <div class="hint"><strong>Planilha dos pacotes e valores.</strong> SHP_SHIPMENT_ID, DATA_INSUCESSO, DIAS_PARADO (ou AGING/DAYS), SHP_ITEM_DESC, SHP_LG_DRIVER_ID, SHP_LG_FACILITY_ID (SVC), SHP_LG_INSUCCESS_REASON, SHP_LG_ROUTE_ID e GMV_BRL. Quando a coluna de dias existir, ela será usada diretamente.</div>
+        <div class="hint" style="margin-top:-8px;"><strong>Importação em lote:</strong> selecione vários arquivos. A data e hora serão lidas do nome (por exemplo, <code>2026-10-04_1543</code> = 04/10 às 15:43, turno Tarde) e a lista será ordenada automaticamente. Um arquivo do mesmo dia e turno substitui a versão anterior; Manhã e Tarde ficam separadas.</div>
         <div class="import-lastbox" id="lastImportRisco" style="display:none;">
           <div class="lbl">Última importação</div>
           <div class="dt" id="lastImportRiscoDt">—</div>
@@ -1532,7 +1545,8 @@ img,svg,canvas,video{max-width:100%}
           <div class="form-row" style="margin-bottom:0;"><label>Dia do arquivo</label><input type="date" id="impDia"></div>
           <div class="form-row" style="margin-bottom:0;"><label>Turno</label><select id="impTurno"><option value="Manhã">Manhã</option><option value="Tarde">Tarde</option></select></div>
         </div>
-        <div class="import-confirm-line"><label class="upload-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg> Anexar planilha de pacotes<input type="file" id="fileInput" accept=".xlsx,.xls,.csv"></label><button type="button" class="import-ok-btn" id="btnConfirmImport" disabled>OK</button></div>
+        <div class="import-confirm-line"><label class="upload-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg> Anexar planilhas de pacotes<input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple></label><button type="button" class="import-ok-btn" id="btnConfirmImport" disabled>OK</button></div>
+        <div id="mainImportBatchSummary" style="display:none;margin-top:12px;padding:10px 12px;background:var(--bg-inset);border:1px solid var(--border-color);border-radius:9px;color:var(--text-secondary);font-size:12px;line-height:1.55;"></div>
       </div>
       <div class="import-card">
         <h3>Lost &middot; 2) Nomes de motoristas (DS)</h3>
@@ -1571,7 +1585,7 @@ img,svg,canvas,video{max-width:100%}
     <div class="card" style="margin-bottom:20px;" id="importsHistCard">
       <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:12px;">Clique numa linha para exibir essa planilha na Visão Geral. O ícone de lixeira exclui a importação.</p>
       <div class="history-month-toolbar"><svg class="ico history-calendar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01"/></svg><label for="importsHistMonth">Selecionar mês e ano</label><input type="month" id="importsHistMonth" title="Selecionar mês e ano"><button type="button" class="btn-reset" id="btnClearImportsMonth">Todos os meses</button><div class="history-sheets-folder"><button type="button" class="history-sheets-folder-title" id="btnToggleSheetsFolder" aria-expanded="false" title="Abrir pasta Planilhas"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/></svg> Planilhas <span class="folder-caret">▸</span></button><div class="history-month-chips folder-closed" id="importsMonthChips"></div></div></div>
-      <div class="table-scroll"><table><thead><tr><th>Dia</th><th>Turno</th><th>Arquivo</th><th>Linhas</th><th>Retorno vinculado</th><th>Importado em</th><th></th></tr></thead><tbody id="importsHistBody"></tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th>Dia</th><th>Turno / horário do arquivo</th><th>Arquivo</th><th>Linhas</th><th>Retorno vinculado</th><th>Importado em</th><th></th></tr></thead><tbody id="importsHistBody"></tbody></table></div>
       <div class="history-empty" id="importsHistEmpty">Nenhuma importação ainda.</div>
     </div>
 
@@ -1702,7 +1716,7 @@ let returnHistCollapsed=false;
 let routeHistMonth='';
 let routeHistCollapsed=false;
 let importsHistMonth='';
-let pendingImportFile=null;
+let pendingImportFiles=[];
 let importDateManuallySet=false, lostDateManuallySet=false;
 let pendingReturnFile=null;
 let pendingDriverFile=null;
@@ -2260,7 +2274,7 @@ function loadSelectedImport(){ try{ return localStorage.getItem(SELECTED_IMPORT_
 /* Tenta ler o horário de corte embutido no nome do arquivo (ex.: ..._1005.csv -> 10:05).
    Se não achar um padrão de 4 dígitos válido como HHMM, cai para o horário em que foi importado. */
 function extractFileTime(fileName){
-  const m=String(fileName||'').match(/\d{4}-\d{2}-\d{2}_(\d{4})(?=\.[A-Za-z0-9]+$)/);
+  const m=String(fileName||'').match(/\d{4}-\d{2}-\d{2}_(\d{4})(?:\s*\(\d+\))?(?=\.[A-Za-z0-9]+$)/);
   if(!m) return null;
   const hh=m[1].slice(0,2), mm=m[1].slice(2,4);
   if(Number(hh)>23||Number(mm)>59) return null;
@@ -2286,6 +2300,8 @@ function extractFileDate(fileName){
   return null;
 }
 function importDisplayTime(imp){ return extractFileTime(imp.fileName) || new Date(imp.savedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+function mainImportClockMinutes(imp){const raw=imp?.fileTime||extractFileTime(imp?.fileName);if(raw){const m=String(raw).match(/^(\d{1,2}):(\d{2})$/);if(m)return Number(m[1])*60+Number(m[2]);}const d=new Date(imp?.savedAt||'');return isNaN(d)?(imp?.turno==='Tarde'?15*60:9*60):d.getHours()*60+d.getMinutes();}
+function compareMainImports(a,b){return String(a?.importDate||'').localeCompare(String(b?.importDate||''))||mainImportClockMinutes(a)-mainImportClockMinutes(b)||({'Manhã':0,'Tarde':1}[a?.turno]??9)-({'Manhã':0,'Tarde':1}[b?.turno]??9)||String(a?.savedAt||'').localeCompare(String(b?.savedAt||''));}
 
 /* ===== IMPORTAÇÃO ===== */
 function updateImportUI(){
@@ -2310,7 +2326,7 @@ function updateImportUI(){
 }
 function renderDashboardImportSelector(){
   const select=document.getElementById('dashboardImportSelect'); if(!select)return;
-  const ordered=IMPORTS.slice().sort((a,b)=>String(b.importDate||'').localeCompare(String(a.importDate||''))||({'Manhã':0,'Tarde':1}[a.turno]??9)-({'Manhã':0,'Tarde':1}[b.turno]??9)||String(b.savedAt||'').localeCompare(String(a.savedAt||'')));
+  const ordered=IMPORTS.slice().sort((a,b)=>compareMainImports(b,a));
   select.innerHTML=ordered.length?ordered.map(imp=>'<option value="'+escHtml(imp.id)+'">'+escHtml(String(imp.importDate||'').split('-').reverse().join('/')+' · '+(imp.turno||'Turno')+' · '+(imp.fileName||'Arquivo'))+'</option>').join(''):'<option value="">Nenhuma planilha importada</option>';
   select.value=selectedImportId&&ordered.some(imp=>imp.id===selectedImportId)?selectedImportId:(ordered[0]?.id||'');
   if(select.value && select.value!==selectedImportId){ selectedImportId=select.value; saveSelectedImport(); }
@@ -2325,8 +2341,7 @@ function returnLinksForImport(imp){
 function renderImportsHistory(){
   const tbody=document.getElementById('importsHistBody'); const empty=document.getElementById('importsHistEmpty'); const monthInput=document.getElementById('importsHistMonth');
   renderImportsMonthChips();
-  const turnoOrdem={'Manhã':0,'Tarde':1};
-  const list=IMPORTS.slice().filter(imp=>!importsHistMonth||String(imp.importDate||'').slice(0,7)===importsHistMonth).sort((a,b)=>b.importDate.localeCompare(a.importDate)||(turnoOrdem[a.turno]??9)-(turnoOrdem[b.turno]??9)||b.savedAt.localeCompare(a.savedAt));
+  const list=IMPORTS.slice().filter(imp=>!importsHistMonth||String(imp.importDate||'').slice(0,7)===importsHistMonth).sort((a,b)=>compareMainImports(b,a));
   if(monthInput) monthInput.value=importsHistMonth;
   if(!list.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
@@ -2334,10 +2349,10 @@ function renderImportsHistory(){
   tbody.innerHTML=list.map(imp=>{
     const isActive=imp.id===selectedImportId;
     const month=String(imp.importDate||'').slice(0,7); const [yy,mm]=month.split('-'); const monthLabel=month?new Date(Number(yy),Number(mm)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Mês não informado'; const separator=month!==lastMonth?`<tr class="history-month-row"><td colspan="7">${escHtml(monthLabel)}</td></tr>`:''; lastMonth=month;
-    const linked=returnLinksForImport(imp); const linkedHtml=linked.length?linked.map(item=>'<span class="return-link-chip">'+escHtml(item.sheet.fileName||'Retorno')+' <b>'+fmtInt(item.count)+' pacotes</b></span>').join(''):'<span class="return-no-link">Nenhum retorno no dia</span>';
+    const linked=returnLinksForImport(imp); const linkedHtml=linked.length?linked.map(item=>'<span class="return-link-chip">'+escHtml(item.sheet.fileName||'Retorno')+' <b>'+fmtInt(item.count)+' pacotes</b></span>').join(''):'<span class="return-no-link">Nenhum retorno no dia</span>'; const fileClock=imp.fileTime||extractFileTime(imp.fileName);
     return separator+`<tr class="${isActive?'active-import-row':''}" data-import-id="${escHtml(imp.id)}" title="Clique para exibir esta planilha na Visão Geral">`
       +`<td>${imp.importDate.split('-').reverse().join('/')}${isActive?' <span class="tag dias-ok">ATUAL</span>':''}</td>`
-      +`<td>${escHtml(imp.turno)}</td>`
+      +`<td>${escHtml(imp.turno)}${fileClock?' · '+escHtml(fileClock):''}</td>`
       +`<td>${escHtml(imp.fileName)}</td>`
       +`<td>${fmtInt(imp.entries.length)}</td>`
       +`<td><div class="return-linked-list">${linkedHtml}</div></td>`
@@ -2483,39 +2498,66 @@ document.getElementById('btnToggleImportsHist').addEventListener('click', functi
   document.getElementById('importsHistCard').style.display=importsHistCollapsed?'none':'block';
   document.getElementById('importsHistCaret').style.transform=importsHistCollapsed?'rotate(-90deg)':'rotate(0)';
 });
-function finishImportMain(entries, fileName, importDate, turno){
-  if(!entries || !entries.length){ alert('Não encontrei registros de nenhum dos 5 regionais reconhecidos nesta planilha.'); return; }
-  importDateManuallySet=false;
-  const novoId=Date.now()+'';
-  IMPORTS.push({ id:novoId, importDate, turno, fileName, savedAt:new Date().toISOString(), entries });
-  persistImports();
-  rebuildStateData();
-  selectedImportId=novoId; saveSelectedImport(); /* a planilha recém-importada passa a ser a exibida */
-  document.getElementById('emptyState').style.display='none';
-  currentTab='TODOS'; currentBaseFilter='TODAS'; topBasesMode='TODOS';
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.state==='TODOS'));
-  updateImportUI();
-  renderAll();
+function describeMainImportBatch(files){
+  const inputDate=document.getElementById('impDia').value, selectedTurno=document.getElementById('impTurno').value;
+  return files.map((file,index)=>{
+    const namedDate=extractFileDate(file.name), manualSingleDate=files.length===1&&importDateManuallySet&&inputDate;
+    const importDate=manualSingleDate||namedDate||inputDate||todayStr();
+    const fileTime=extractFileTime(file.name), turno=extractFileTurno(file.name)||selectedTurno||'Manhã';
+    return {file,index,importDate,fileTime,turno};
+  }).sort((a,b)=>a.importDate.localeCompare(b.importDate)||(mainImportClockMinutes({fileTime:a.fileTime,turno:a.turno,savedAt:''})-mainImportClockMinutes({fileTime:b.fileTime,turno:b.turno,savedAt:''}))||a.index-b.index);
+}
+function renderMainImportBatchSummary(files){
+  const box=document.getElementById('mainImportBatchSummary'); if(!box)return;
+  if(!files.length){box.style.display='none';box.innerHTML='';return;}
+  const items=describeMainImportBatch(files),shown=items.slice(0,20);
+  box.style.display='block';
+  box.innerHTML='<strong>'+fmtInt(items.length)+' arquivo(s) selecionado(s)</strong><ol style="margin:6px 0 0;padding-left:20px;">'+shown.map(item=>'<li><b>'+item.importDate.split('-').reverse().join('/')+' · '+escHtml(item.fileTime||'horário não identificado')+' · '+escHtml(item.turno)+'</b> — '+escHtml(item.file.name)+'</li>').join('')+(items.length>20?'<li>… mais '+fmtInt(items.length-20)+' arquivo(s)</li>':'')+'</ol><div style="margin-top:7px;">Ao confirmar, cada arquivo substitui a versão importada do mesmo dia e turno. Manhã e Tarde são mantidas separadamente.</div>';
+}
+function finishImportMain(entries,fileName,importDate,turno,fileTime){
+  if(!entries||!entries.length)throw new Error('Não encontrei registros dos regionais reconhecidos nesta planilha.');
+  const matches=IMPORTS.filter(imp=>imp.importDate===importDate&&imp.turno===turno);
+  const previous=matches.slice().sort((a,b)=>compareMainImports(b,a))[0]||null;
+  IMPORTS=IMPORTS.filter(imp=>!(imp.importDate===importDate&&imp.turno===turno));
+  const novoId=previous?.id||('imp-'+Date.now()+'-'+Math.random().toString(36).slice(2,8));
+  IMPORTS.push({id:novoId,importDate,turno,fileName,fileTime:fileTime||extractFileTime(fileName)||null,savedAt:new Date().toISOString(),entries});
+  return {replaced:matches.length>0};
+}
+function readMainImportFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('Falha ao ler o arquivo.'));
+    reader.onload=evt=>{try{
+      let entries;
+      if(/\.csv$/i.test(file.name)){const text=String(evt.target.result||'').replace(/^\uFEFF/,'');entries=buildEntriesFromRawRows(parseDelimitedText(text,detectDelimiter(text)));}
+      else{const wb=XLSX.read(new Uint8Array(evt.target.result),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];if(!ws)throw new Error('A planilha não contém abas.');entries=buildEntriesFromRawRows(XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true}));}
+      if(!entries||!entries.length)throw new Error('Não reconheci registros/colunas de pacotes nesta planilha.');
+      resolve(entries);
+    }catch(err){reject(err);}};
+    if(/\.csv$/i.test(file.name))reader.readAsText(file,'UTF-8');else reader.readAsArrayBuffer(file);
+  });
 }
 ['input','change'].forEach(evt=>document.getElementById('impDia').addEventListener(evt,()=>{importDateManuallySet=true;}));
 document.getElementById('fileInput').addEventListener('change', function(e){
-  const file=e.target.files[0]; if(!file)return; pendingImportFile=file; document.getElementById('btnConfirmImport').disabled=false; document.getElementById('btnConfirmImport').textContent='OK';
-  const dateFromName=extractFileDate(file.name); if(dateFromName&&!importDateManuallySet) document.getElementById('impDia').value=dateFromName;
-  const turnoFromName=extractFileTurno(file.name); if(turnoFromName) document.getElementById('impTurno').value=turnoFromName;
+  const files=Array.from(e.target.files||[]);if(!files.length)return;pendingImportFiles=files;
+  if(files.length===1){const file=files[0],dateFromName=extractFileDate(file.name),turnoFromName=extractFileTurno(file.name);if(dateFromName&&!importDateManuallySet)document.getElementById('impDia').value=dateFromName;if(turnoFromName)document.getElementById('impTurno').value=turnoFromName;}
+  const button=document.getElementById('btnConfirmImport');button.disabled=false;button.textContent=files.length>1?'Importar '+files.length:'OK';renderMainImportBatchSummary(files);
   e.target.value='';
 });
-document.getElementById('btnConfirmImport').addEventListener('click',function(){
-  const file=pendingImportFile; if(!file)return; this.disabled=true; this.textContent='Lendo...';
-  const importDate = document.getElementById('impDia').value || new Date().toISOString().slice(0,10);
-  const turno = document.getElementById('impTurno').value;
-  const reader=new FileReader();
-  if(/\.csv$/i.test(file.name)){
-    reader.onload=function(evt){ try{ let text=String(evt.target.result||'').replace(/^\uFEFF/,''); const delim=detectDelimiter(text); const entries=buildEntriesFromRawRows(parseDelimitedText(text,delim)); if(!entries){ alert('Não reconheci as colunas esperadas neste CSV.'); return; } finishImportMain(entries,file.name,importDate,turno); }catch(err){ console.error(err); alert('Erro ao carregar o CSV.'); } finally{pendingImportFile=null;document.getElementById('btnConfirmImport').textContent='OK';} };
-    reader.readAsText(file,'UTF-8');
-  } else {
-    reader.onload=function(evt){ try{ const wb=XLSX.read(new Uint8Array(evt.target.result),{type:'array',cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]]; const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true}); const entries=buildEntriesFromRawRows(rows); if(!entries){ alert('Não reconheci as colunas esperadas nesta planilha.'); return; } finishImportMain(entries,file.name,importDate,turno); }catch(err){ console.error(err); alert('Erro ao carregar o Excel.'); } finally{pendingImportFile=null;document.getElementById('btnConfirmImport').textContent='OK';} };
-    reader.readAsArrayBuffer(file);
+document.getElementById('btnConfirmImport').addEventListener('click',async function(){
+  if(!pendingImportFiles.length)return;const files=pendingImportFiles.slice(),items=describeMainImportBatch(files);this.disabled=true;let imported=0,replaced=0;const errors=[];
+  try{
+    for(let i=0;i<items.length;i++){
+      const item=items[i];this.textContent='Lendo '+(i+1)+'/'+items.length+'…';
+      try{const entries=await readMainImportFile(item.file);const result=finishImportMain(entries,item.file.name,item.importDate,item.turno,item.fileTime);imported++;if(result.replaced)replaced++;}
+      catch(err){console.error('Erro ao importar '+item.file.name,err);errors.push(item.file.name+': '+(err.message||'erro de leitura'));}
+    }
+    if(imported){const latest=IMPORTS.slice().sort((a,b)=>compareMainImports(b,a))[0];selectedImportId=latest?.id||null;saveSelectedImport();persistImports();rebuildStateData();document.getElementById('emptyState').style.display='none';currentTab='TODOS';currentBaseFilter='TODAS';topBasesMode='TODOS';document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));updateImportUI();renderAll();}
+  }finally{
+    importDateManuallySet=false;pendingImportFiles=[];renderMainImportBatchSummary([]);this.disabled=true;this.textContent='OK';
   }
+  const resultText=imported+' arquivo(s) importado(s)'+(replaced?' · '+replaced+' importação(ões) anterior(es) substituída(s)':'')+'.';
+  alert(resultText+(errors.length?'\n\nNão foi possível importar:\n'+errors.join('\n'):'') );
 });
 document.getElementById('fileInputReturn').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingReturnFile=file; document.getElementById('btnConfirmReturn').disabled=false; document.getElementById('btnConfirmReturn').textContent='OK';
@@ -2666,7 +2708,7 @@ function unionEntriesSemDuplicar(listaBase, listaMaisRecente){
 function findTurnoImport(date, turno){
   const candidatos=IMPORTS.filter(i=>i.importDate===date && i.turno===turno);
   if(!candidatos.length) return null;
-  return candidatos.slice().sort((a,b)=>b.savedAt.localeCompare(a.savedAt))[0];
+  return candidatos.slice().sort((a,b)=>compareMainImports(b,a))[0];
 }
 function getTurnoImportForDay(date, turno){
   const ativa=getSelectedImport();
@@ -2716,17 +2758,38 @@ function populateBaseSelect(){
   const bases=new Set(activeRegionalEntries.map(e=>e.base));
   Array.from(bases).sort().forEach(b=>{ const o=document.createElement('option'); o.value=b; o.textContent=b; if(b===currentBaseFilter) o.selected=true; sel.appendChild(o); });
 }
+function safeCaptureScale(width,height,isHome,dpr){
+  const w=Math.max(1,Number(width)||1), h=Math.max(1,Number(height)||1), requested=Math.min(isHome?1.5:2,Number(dpr)||1);
+  const maxDimension=15000, maxPixels=64*1024*1024;
+  return Math.max(.1,Math.min(requested,maxDimension/w,maxDimension/h,Math.sqrt(maxPixels/(w*h))));
+}
 async function captureDashboardElement(selector,filename){
-  const alvo=document.querySelector(selector); if(!alvo||typeof html2canvas!=='function') return;
+  const alvo=document.querySelector(selector); if(!alvo)return;
+  if(typeof html2canvas!=='function'){alert('A biblioteca de captura não carregou. Atualize a página e tente novamente.');return;}
   const previous={overflow:alvo.style.overflow,height:alvo.style.height,maxHeight:alvo.style.maxHeight,display:alvo.style.display};
-  const scrollWidth=Math.max(alvo.scrollWidth,alvo.offsetWidth,document.documentElement.clientWidth);
-  const scrollHeight=Math.max(alvo.scrollHeight,alvo.offsetHeight);
+  const isHome=selector==='#page-geral';
   try{
     alvo.style.overflow='visible'; alvo.style.height='auto'; alvo.style.maxHeight='none'; alvo.style.display='block';
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale:Math.min(2,window.devicePixelRatio||2),useCORS:true,logging:false,allowTaint:false,width:scrollWidth,height:scrollHeight,windowWidth:scrollWidth,windowHeight:scrollHeight,scrollX:0,scrollY:0});
-    const a=document.createElement('a'); a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=canvas.toDataURL('image/png'); a.click();
-  }finally{ alvo.style.overflow=previous.overflow; alvo.style.height=previous.height; alvo.style.maxHeight=previous.maxHeight; alvo.style.display=previous.display; }
+    if(document.fonts?.ready)await document.fonts.ready;
+    const scrollWidth=Math.ceil(Math.max(alvo.scrollWidth,alvo.offsetWidth,alvo.getBoundingClientRect().width));
+    const scrollHeight=Math.ceil(Math.max(alvo.scrollHeight,alvo.offsetHeight,alvo.getBoundingClientRect().height));
+    if(!scrollWidth||!scrollHeight)throw new Error('A área da tela não tem dimensões para captura.');
+    const baseScale=safeCaptureScale(scrollWidth,scrollHeight,isHome,window.devicePixelRatio), scales=Array.from(new Set([baseScale,Math.min(baseScale,1),Math.min(baseScale,.7)]));
+    let blob=null,lastError=null;
+    for(const scale of scales){
+      try{
+        const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale,useCORS:true,logging:false,allowTaint:false,width:scrollWidth,height:scrollHeight,windowWidth:Math.max(scrollWidth,document.documentElement.clientWidth),windowHeight:Math.max(scrollHeight,window.innerHeight),scrollX:0,scrollY:0});
+        blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(!blob)throw new Error('O navegador não conseguiu gerar a imagem PNG.');
+        break;
+      }catch(err){lastError=err;}
+    }
+    if(!blob)throw lastError||new Error('Não foi possível gerar a captura.');
+    const a=document.createElement('a'), url=URL.createObjectURL(blob);
+    a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=url; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),10000);
+  }catch(err){console.error('Erro ao capturar '+filename+':',err);alert('Não foi possível capturar a tela. Tente novamente; a captura agora ajusta a resolução automaticamente.');}
+  finally{alvo.style.overflow=previous.overflow;alvo.style.height=previous.height;alvo.style.maxHeight=previous.maxHeight;alvo.style.display=previous.display;}
 }
 function renderAll(){
   populateBaseSelect();
@@ -3826,25 +3889,53 @@ function openLostRoutesOverlay(base,rows,parent){
 }
 
 /* ===== REGIONAL E BASE ===== */
+function regionalSearchFold(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();}
+function regionalHistoricalMatches(query,activeEntries){
+  const q=regionalSearchFold(query).trim(); if(!q)return [];
+  const activeKeys=new Set((activeEntries||[]).map(e=>normalizePackageKey(e.pacote)).filter(Boolean)), found=new Map();
+  IMPORTS.forEach(imp=>{
+    const date=String(imp.importDate||'').slice(0,10), turno=imp.turno==='Tarde'?'Tarde':'Manhã';
+    const order=date+'|'+(turno==='Tarde'?'1':'0')+'|'+String(imp.savedAt||'');
+    (imp.entries||[]).forEach(e=>{
+      const key=normalizePackageKey(e.pacote); if(!key||activeKeys.has(key))return;
+      const driver=getDriverName(e.driverId);
+      const haystack=[e.pacote,e.driverId,driver,e.rota,e.base,e.produto,e.motivo].map(regionalSearchFold).join(' ');
+      if(!haystack.includes(q))return;
+      const previous=found.get(key);
+      if(!previous||order>=previous._historyOrder)found.set(key,{...e,_historyDate:date,_historyTurno:turno,_historyOrder:order});
+    });
+  });
+  return Array.from(found.values()).sort((a,b)=>b._historyOrder.localeCompare(a._historyOrder)||String(a.pacote).localeCompare(String(b.pacote)));
+}
+function renderRegionalHistoricalMatches(query,activeEntries){
+  if(!String(query||'').trim())return '';
+  const matches=regionalHistoricalMatches(query,activeEntries), limit=100, shown=matches.slice(0,limit);
+  const rows=shown.map(e=>{
+    const detail=[e.produto,e.motivo].filter(Boolean).map(v=>String(v).trim()).filter(Boolean).join(' · ')||'—';
+    const date=e._historyDate?fmtDateFullBR(new Date(e._historyDate+'T00:00:00')):'—';
+    return '<tr class="regional-history-completed"><td><strong>'+escHtml(e.pacote||'—')+'</strong></td><td>'+escHtml(getDriverName(e.driverId))+'</td><td>'+escHtml(e.rota||'—')+'</td><td>'+escHtml(e.base||'—')+'</td><td class="ellipsis" title="'+escHtml(detail)+'">'+escHtml(resumo(detail,72))+'</td><td>'+date+' · '+escHtml(e._historyTurno||'')+'</td><td><span class="regional-history-status">JÁ FINALIZADO</span></td></tr>';
+  }).join('');
+  return '<section class="regional-history-panel"><div class="regional-history-head"><div><h3>Histórico · fora da planilha ativa</h3><p>Resultados antigos da busca, separados dos totais atuais. A opacidade indica que o pacote não está na planilha selecionada.</p></div><span class="regional-history-count">'+fmtInt(matches.length)+' registro(s)'+(matches.length>limit?' · mostrando '+limit:'')+'</span></div>'+(rows?'<div class="regional-history-scroll"><table class="regional-history-table"><thead><tr><th>ID do pacote</th><th>Motorista</th><th>Rota</th><th>Base</th><th>Produto / motivo</th><th>Encontrado em</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="regional-history-empty">Nenhum registro anterior correspondente a “'+escHtml(query)+'”.</div>')+'</section>';
+}
 function renderRegionalPage(){
   const crumb=document.getElementById('regionalBreadcrumb'); const content=document.getElementById('regionalContent');
   const activeImp=getSelectedImport();
   const activeEntries=getActiveEntries();
   if(!activeEntries.length){ crumb.innerHTML=''; content.innerHTML='<div class="history-empty" style="padding:40px 0;">Importe uma planilha para ver as regionais.</div>'; return; }
-  const query=regionalSearch.trim().toUpperCase();
-  const visibleEntries=query?activeEntries.filter(e=>String(e.pacote||'').toUpperCase().includes(query)||String(e.rota||'').toUpperCase().includes(query)||getDriverName(e.driverId).toUpperCase().includes(query)):activeEntries;
+  const query=regionalSearch.trim().toUpperCase(), foldedQuery=regionalSearchFold(query);
+  const visibleEntries=query?activeEntries.filter(e=>[e.pacote,e.driverId,e.rota,getDriverName(e.driverId)].some(value=>regionalSearchFold(value).includes(foldedQuery))):activeEntries;
   const regionalEntries=visibleEntries.filter(e=>regionalAgeMatches(e,regionalAgeFilter));
   const activeData={};
   regionalEntries.forEach(e=>{const regional=regionalFromBasePrefix(e.base)||'OUTROS';if(!activeData[regional])activeData[regional]={entries:[]};activeData[regional].entries.push(e);});
   if(regionalNav.level==='list'){
     const turnosDoDia=activeImp?labelTurnosDoDia(activeImp.importDate):'';
-    crumb.innerHTML='<strong>Todas as regionais</strong><label class="regional-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="regionalSearch" type="search" value="'+escHtml(regionalSearch)+'" placeholder="Buscar ID do pacote, rota ou motorista..." autocomplete="off"></label>'+(activeImp?'<span class="active-planilha-badge" style="margin-left:auto;"><b>'+(turnosDoDia==='Manhã - Tarde'?'PLANILHAS':'PLANILHA')+'</b> '+activeImp.importDate.split('-').reverse().join('/')+' · '+turnosDoDia+'</span>':'');
+    crumb.innerHTML='<strong>Todas as regionais</strong><label class="regional-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="regionalSearch" type="search" value="'+escHtml(regionalSearch)+'" placeholder="Buscar pacote, rota ou motorista (inclui histórico)..." autocomplete="off"></label>'+(activeImp?'<span class="active-planilha-badge" style="margin-left:auto;"><b>'+(turnosDoDia==='Manhã - Tarde'?'PLANILHAS':'PLANILHA')+'</b> '+activeImp.importDate.split('-').reverse().join('/')+' · '+turnosDoDia+'</span>':'');
     const totalVal=regionalEntries.reduce((a,e)=>a+Number(e.valor||0),0);
     let html='<div class="regional-grid">';
     const allJust=justifiedCount(regionalEntries); html+=`<div class="regional-card" data-r="TODAS"><div class="rname">Todas as bases</div><div class="rsub">${fmtInt(regionalEntries.length)} pacote(s)${query?' encontrados':''} · Soma somente da planilha ativa</div><div class="rval">${fmtBRL(totalVal)}</div><button type="button" class="regional-justified-btn" data-reg-just="TODAS">JUSTIFICADOS <span>${fmtInt(allJust)} / ${fmtInt(regionalEntries.length)} (${percentLabel(allJust,regionalEntries.length)})</span></button></div>`;
     REGIONAL_ORDER.forEach(r=>{ if(!activeData[r]) return; const d=activeData[r]; const val=d.entries.reduce((a,e)=>a+Number(e.valor||0),0); const justCount=justifiedCount(d.entries); html+=`<div class="regional-card" data-r="${escHtml(r)}"><div class="rname">${escHtml(REGIONAL_LABELS[r]||r)}</div><div class="rsub">${fmtInt(d.entries.length)} pacote(s) · somente esta planilha</div><div class="rval">${fmtBRL(val)}</div><button type="button" class="regional-justified-btn" data-reg-just="${escHtml(r)}">JUSTIFICADOS <span>${fmtInt(justCount)} / ${fmtInt(d.entries.length)} (${percentLabel(justCount,d.entries.length)})</span></button></div>`; });
     html+='</div>';
-    content.innerHTML=html;
+    content.innerHTML=html+renderRegionalHistoricalMatches(query,activeEntries);
     content.querySelectorAll('[data-regional-age]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();regionalAgeFilter=btn.dataset.regionalAge;renderRegionalPage();}));
     const searchInput=document.getElementById('regionalSearch'); if(searchInput){searchInput.addEventListener('input',()=>{regionalSearch=searchInput.value;const pos=regionalSearch.length;renderRegionalPage();restoreSearchFocus('regionalSearch',pos);});}
     content.querySelectorAll('.regional-justified-btn').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();const r=btn.dataset.regJust;const entries=r==='TODAS'?visibleEntries:(activeData[r]?.entries||[]);const label=r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||r);openOverlayEntries('Justificados · '+label,'',entries,'TODOS');overlayCtx.period='JUSTIFICADOS';renderOverlayBody();}));
