@@ -1518,9 +1518,9 @@ img,svg,canvas,video{max-width:100%}
   <div class="page" id="page-revertido">
     <div class="rev-controls">
       <div class="grp"><label>De &lt;</label><input type="date" id="revComparar"></div>
-      <div class="grp"><label>Até</label><input type="date" id="revAtual"><button type="button" class="preset-btn rev-hoje-btn" id="revAtualHoje" title="Usar a data mais recente com planilha">Data atual</button></div>
+      <div class="grp"><label>Até</label><input type="date" id="revAtual"><button type="button" class="preset-btn rev-hoje-btn" id="revAtualHoje" title="Usar a data de hoje">Hoje</button></div>
       <div class="grp"><label>Comparação rápida</label><div class="presets" id="revQuick"><button type="button" class="preset-btn" data-days="1">Dia anterior</button><button type="button" class="preset-btn" data-days="7">Semana</button><button type="button" class="preset-btn" id="revMesBtn" aria-expanded="false">Mês</button></div><div class="presets rev-mes-opcoes" id="revMesOpcoes" hidden><button type="button" class="preset-btn" data-mes="atual">Mês atual</button><button type="button" class="preset-btn" data-mes="passado">Mês passado</button></div></div>
-      <div class="grp"><label>Prazo para tratar</label><div class="presets rev-prazo-toggle" id="revPrazoToggle" role="group" aria-label="Prazo para tratar"><button type="button" class="preset-btn" data-prazo="24">24h</button><button type="button" class="preset-btn" data-prazo="48">48h</button></div></div>
+      <div class="grp"><label>Prazo para tratar</label><span class="preset-btn active" id="revPrazoFixo" aria-label="Prazo fixo de 2 dias">2 dias</span></div>
       <div class="grp"><label>Regional</label><select id="revRegional"><option value="TODOS">Todas</option></select></div>
       <div class="grp"><label>Base</label><select id="revBase"><option value="TODAS">Todas as bases</option></select></div>
       <div class="grp"><label>Origem das bases</label><select id="revOrigem"><option value="TODAS">Todas as bases</option><option value="OFENSORES">Ofensores por Regional</option></select><small class="filter-help">Usa o mínimo definido em Ofensores por Regional</small></div>
@@ -1531,7 +1531,7 @@ img,svg,canvas,video{max-width:100%}
         <div class="rev-kpis"><div class="rev-kpi"><div class="lbl">Valor estava</div><div class="val" id="revValorEstava">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl" id="revKpiValorLabel">Valor revertido</div><div class="val" id="revValor">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl">Valor atual</div><div class="val" id="revRisco">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl" id="revKpiBasesLabel">Bases com reversão</div><div class="val" id="revBases">0</div></div><div class="rev-kpi"><div class="lbl">Pacotes dentro do prazo</div><div class="val" id="revPersistentesSemRisco">0</div></div><div class="rev-kpi"><div class="lbl">Pacotes em risco</div><div class="val" id="revPersistentesComRisco">0</div></div></div>
     <div class="rev-table-wrap"><table class="rev-table"><thead><tr><th>Situação</th><th>Regional</th><th>Base</th><th>Valor estava</th><th>Valor atual da base (Até)</th><th>Redução / aumento</th><th>Dentro do prazo</th><th>Em risco</th><th>Motorista mais ofensor</th><th>Risco do motorista</th><th>Dias como ofensor</th></tr></thead><tbody id="revBody"></tbody></table></div>
     <div class="driver-detail-panel" id="motoristaDetalhePanel" style="display:none;"><div class="driver-detail-head"><div><h3 id="motoristaDetalheTitulo">Detalhes do motorista</h3><div class="osub">Pacotes e ocorrências do motorista selecionado</div></div><button type="button" class="overlay-close" id="motoristaDetalheFechar">Fechar detalhes</button></div><div class="rev-kpis"><div class="rev-kpi"><div class="lbl">Motorista</div><div class="val" id="motoristaNome">—</div></div><div class="rev-kpi"><div class="lbl">Valor em risco</div><div class="val" id="motoristaValor">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl">Dias como ofensor</div><div class="val" id="motoristaOcorrencias">0</div><div id="motoristaOfensorFaixas"></div></div><div class="rev-kpi"><div class="lbl">Pacotes atuais do motorista</div><div class="val" id="motoristaPacotes">0</div></div></div><div class="rev-table-wrap"><table class="rev-table"><thead><tr><th>Data</th><th>Regional</th><th>Base</th><th>Pacote</th><th>Tipo</th><th>Valor de risco</th><th>Motivo</th></tr></thead><tbody id="motoristaBody"></tbody></table></div></div>
-    <p class="rev-note">No dia da planilha ativa, a comparação usa somente o turno apresentado (Manhã ou Tarde); pacotes que aparecem nos dois turnos não são somados novamente, e só os pacotes novos da tarde iniciam novo prazo. Escolha 24h ou 48h acima: nos dias úteis, o prazo começa quando o pacote aparece pela primeira vez no ciclo atual. Pacotes que entram no sábado ou domingo ficam protegidos até segunda-feira no mesmo horário (sábado: até 48h; domingo: até 24h), independentemente da opção selecionada. Vermelho = continua na última planilha e ultrapassou o prazo; laranja = ainda está dentro do prazo; verde = saiu da planilha (revertido). A escolha do prazo fica salva neste navegador.</p>
+    <p class="rev-note">No dia da planilha ativa, a comparação usa somente o turno apresentado (Manhã ou Tarde); pacotes que aparecem nos dois turnos não são somados novamente, e só os pacotes novos da tarde iniciam novo prazo. O prazo é fixo em 2 dias (48 horas) desde a primeira aparição do pacote no ciclo atual. Pacotes que entram no sábado ou domingo ficam protegidos até segunda-feira no mesmo horário. Vermelho = continua na última planilha e ultrapassou o prazo; laranja = ainda está dentro do prazo; verde = saiu da planilha (revertido).</p>
   </div>
 
   <!-- ===================== IMPORTADOS ===================== -->
@@ -4157,12 +4157,9 @@ function renderRevResumo(rangeDates,f,comp,atual,status){
   const totalRow=rangeDates.length>1?'<tr class="rev-resumo-total"><td>Total</td><td>'+fmtBRL(last)+'</td><td></td><td><span class="ok">'+fmtBRL(totRev)+'</span></td><td><span class="bad">'+fmtBRL(totNovo)+'</span></td></tr>':'';
   box.innerHTML='<div class="rev-resumo-head"><strong>Resumo do período'+({green:' · só Valor Revertido',orange:' · só Em prazo',red:' · só Não revertido'}[status]||'')+'</strong><span>'+fmtInt(rangeDates.length)+' dia(s) com planilha entre '+fullD(comp)+' e '+fullD(atual)+'</span></div><div class="rev-resumo-txt">'+frase+'</div><div class="rev-resumo-scroll"><table><thead><tr><th>Dia</th><th>Valor em risco</th><th>Pacotes</th><th>Revertido vs dia anterior</th><th>Valor novo</th></tr></thead><tbody>'+rows.join('')+totalRow+'</tbody></table></div>';
 }
-/* Prazo: 24 horas corridas desde a planilha em que o pacote entrou no ciclo atual.
+/* Prazo fixo: 2 dias (48 horas) desde a planilha em que o pacote entrou no ciclo atual.
    Uma nova aparição após ter sumido inicia um ciclo/prazo novo. */
-const REV_PRAZO_STORAGE_KEY='spot_rev_prazo_horas_v1';
-let revPrazoHoras=24;
-try{const savedPrazo=Number(localStorage.getItem(REV_PRAZO_STORAGE_KEY));if(savedPrazo===24||savedPrazo===48)revPrazoHoras=savedPrazo;}catch(e){}
-function atualizarBotaoPrazoRevertido(){document.querySelectorAll('#revPrazoToggle [data-prazo]').forEach(btn=>{const active=Number(btn.dataset.prazo)===revPrazoHoras;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});}
+const REV_PRAZO_HORAS=48;
 function revImportMins(imp){
   if(imp.savedAt){const d=new Date(imp.savedAt);if(!isNaN(d)) return d.getHours()*60+d.getMinutes();}
   const t=extractFileTime(imp.fileName);
@@ -4195,9 +4192,8 @@ function revPacoteVencido(entry,atualDay,horaMin,firstSeen){
   const firstTimestamp=first?.timestamp??(new Date(String(entry?.importDate||atualDay).slice(0,10)+'T00:00:00').getTime()+(Number(horaMin)||0)*60000);
   const currentTimestamp=new Date(atualDay+'T00:00:00').getTime()+(Number(horaMin)||0)*60000;
   const firstDay=new Date(firstTimestamp), weekday=firstDay.getDay();
-  /* Pacotes de sábado/domingo vencem na segunda no mesmo horário (48h/24h);
-     esse calendário útil tem prioridade sobre o seletor normal de 24h/48h. */
-  const allowedHours=weekday===6?48:weekday===0?24:revPrazoHoras;
+  /* Sábado e domingo têm o limite operacional na segunda-feira, no mesmo horário. */
+  const allowedHours=weekday===6?48:weekday===0?24:REV_PRAZO_HORAS;
   return currentTimestamp-firstTimestamp>=allowedHours*60*60000;
 }
 function setRevPeriodo(txt){
@@ -4230,7 +4226,8 @@ function renderRevertido(){
   if(revStatusFilter==='orange') revStatusFilter='TODOS';
   const dates=availableImportDates(), atual=document.getElementById('revAtual'), comp=document.getElementById('revComparar'), regSel=document.getElementById('revRegional'), baseSel=document.getElementById('revBase'), origemSel=document.getElementById('revOrigem');
   if(!regSel.dataset.filled){regSel.innerHTML='<option value="TODOS">Todas</option>'+REGIONAL_ORDER.map(r=>'<option value="'+r+'">'+(REGIONAL_LABELS[r]||r)+'</option>').join('');regSel.dataset.filled='1';}
-  if(!atual.value)atual.value=dates[dates.length-1]||todayStr(); if(!comp.value)comp.value=dates[Math.max(0,dates.length-2)]||isoShift(atual.value,-1);
+  if(!atual.value)atual.value=todayStr();
+  if(!comp.value){const todayWeekday=new Date(atual.value+'T00:00:00').getDay();comp.value=isoShift(atual.value,todayWeekday===0?-6:1-todayWeekday);}
   if(!dates.length){setRevPeriodo('Pacote Revertido — sem dados importados');document.getElementById('revBody').innerHTML='<tr><td colspan="11" class="history-empty">Escolha datas no calendário; importe planilhas para comparar os pacotes.</td></tr>';return;}
   if(atual.value<comp.value){const temp=atual.value;atual.value=comp.value;comp.value=temp;}
   const reg=regSel.value;
@@ -4301,7 +4298,7 @@ function renderRevertido(){
     const r=getRow(p.base,st);
     r.before+=beforeValue;r.current+=afterValue;r.reverted+=revAmt;r.statusValue=(r.statusValue||0)+(st==='green'?revAmt:afterValue);r.pkgs.add(p.k);
     if(st!=='green'){
-      /* Os indicadores seguem a mesma janela corrida de 24 horas do status. */
+      /* Os indicadores seguem o prazo fixo de 2 dias do status. */
       if(revPacoteVencido(p.lastEntry,endDay,horaAtual,firstSeen)){
         r.persistentComRisco++;baseRisk[p.base]=(baseRisk[p.base]||0)+1;
       }else{
@@ -4352,13 +4349,11 @@ function renderRevertido(){
   renderRevResumo(rangeDates,e=>baseOk(e.base)&&(!pkgSet||pkgSet.has(pkgKey(e))),comp.value,atual.value,revStatusFilter);
   document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const delta=b.baseDelta;const deltaClass=delta<-.005?'down':delta>.005?'up':'same';const deltaText=delta<-.005?'− '+fmtBRL(Math.abs(delta)):delta>.005?'+ '+fmtBRL(delta):fmtBRL(0);const statusLabel=({green:'Valor Revertido',red:'Não revertido'}[b.status]);return '<tr class="status-'+b.status+'"><td><span class="rev-status '+b.status+'"><i class="rev-dot '+b.status+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+fmtBRL(b.baseBefore)+'</strong></td><td>'+fmtBRL(b.baseCurrent)+'</td><td><span class="value-delta '+deltaClass+'">'+deltaText+'</span></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtBRL(b.driverRisk)+'</td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="11" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
 }
-atualizarBotaoPrazoRevertido();
-document.getElementById('revPrazoToggle').addEventListener('click',e=>{const btn=e.target.closest('[data-prazo]');if(!btn)return;revPrazoHoras=Number(btn.dataset.prazo)===48?48:24;try{localStorage.setItem(REV_PRAZO_STORAGE_KEY,String(revPrazoHoras));}catch(err){}atualizarBotaoPrazoRevertido();renderRevertido();});
 ['revAtual','revComparar','revRegional','revBase','revOrigem'].forEach(id=>document.getElementById(id).addEventListener('change',renderRevertido));
 document.getElementById('revQuick').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),idx=ds.indexOf(document.getElementById('revAtual').value);const i=idx<0?ds.length-1:idx;
-  if(Number(b.dataset.days)===7){ /* Semana: da segunda-feira da semana até a data escolhida (se for segunda, pega a semana anterior) */
+  if(Number(b.dataset.days)===7){ /* Semana: segunda-feira até a data selecionada, incluindo a própria segunda. */
     const fim=document.getElementById('revAtual').value||ds[i]||todayStr(), wd=new Date(fim+'T00:00:00').getDay();
-    let seg=isoShift(fim,wd===0?-6:1-wd); if(seg===fim)seg=isoShift(seg,-7);
+    const seg=isoShift(fim,wd===0?-6:1-wd);
     document.getElementById('revAtual').value=fim;document.getElementById('revComparar').value=seg;
   } else {document.getElementById('revAtual').value=ds[i];document.getElementById('revComparar').value=ds[Math.max(0,i-Number(b.dataset.days))];}
   renderRevertido();});
@@ -4378,7 +4373,7 @@ document.getElementById('revQuick').addEventListener('click',e=>{const b=e.targe
   box.addEventListener('click',e=>{const b=e.target.closest('[data-mes]');if(b)setMes(b.dataset.mes);});
   quick.addEventListener('click',e=>{if(e.target.closest('[data-days]')){box.hidden=true;btnMes.classList.remove('active');btnMes.setAttribute('aria-expanded','false');box.querySelectorAll('[data-mes]').forEach(x=>x.classList.remove('active'));}});
 })();
-document.getElementById('revAtualHoje').addEventListener('click',()=>{const ds=availableImportDates();document.getElementById('revAtual').value=ds[ds.length-1]||todayStr();renderRevertido();});
+document.getElementById('revAtualHoje').addEventListener('click',()=>{document.getElementById('revAtual').value=todayStr();renderRevertido();});
 document.getElementById('revLegend').addEventListener('click',e=>{const btn=e.target.closest('.rev-filter');if(!btn)return;revStatusFilter=btn.dataset.status;document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x===btn));renderRevertido();});
 document.getElementById('revBody').addEventListener('click',e=>{const base=e.target.closest('[data-rev-base]');if(base){openRevertidoBasePackageDetail(base.dataset.revBase||'');return;}const btn=e.target.closest('.driver-link');if(!btn)return;motoristaSelecionado=btn.dataset.driver||'';renderMotoristas();document.getElementById('motoristaDetalhePanel').scrollTop=0;});
 function renderMotoristas(){
