@@ -1697,7 +1697,6 @@ img,svg,canvas,video{max-width:100%}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="revertido-config.js"></script>
 <script>
 if(window.SPOT_MODE){
 (function(){
@@ -4304,7 +4303,7 @@ function renderRevResumo(rangeDates,f,comp,atual,status){
 }
 /* Prazo fixo: 2 dias (48 horas) desde a planilha em que o pacote entrou no ciclo atual.
    Uma nova aparição após ter sumido inicia um ciclo/prazo novo. */
-const REV_PRAZO_HORAS=window.REVERTIDO_CONFIG?.prazoHoras??48;
+const REV_PRAZO_HORAS=48; /* prazo fixo da regra: 2 dias */
 function revImportMins(imp){
   if(imp.savedAt){const d=new Date(imp.savedAt);if(!isNaN(d)) return d.getHours()*60+d.getMinutes();}
   const t=extractFileTime(imp.fileName);

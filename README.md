@@ -24,4 +24,4 @@ A aba estava em branco porque o `index.html` não tinha a lógica nem o CSS dess
 
 ## Regra de Valor Revertido
 
-O arquivo executado pelo dashboard é o `index.html`. O `script.js` mantido na pasta é legado e não é carregado por esta página. A configuração oficial do prazo da análise fica em `revertido-config.js`, carregado antes do código do dashboard. Atualmente o prazo é de 48 horas (2 dias), usado para classificar pacotes revertidos e não revertidos.
+O arquivo executado pelo dashboard é o `index.html`. O `script.js` mantido na pasta é legado e não é carregado por esta página. A configuração oficial do prazo da análise fica diretamente no JavaScript do dashboard (`index.html`): atualmente são 48 horas (2 dias), usadas para classificar pacotes revertidos e não revertidos.
