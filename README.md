@@ -21,3 +21,7 @@ A lista suspensa da planilha é gerada a partir das mesmas 13 opções coloridas
 ## Aba Análise Base (corrigida)
 
 A aba estava em branco porque o `index.html` não tinha a lógica nem o CSS dessa aba (ela existia só no `script.js`, que a página não carrega). Agora tudo está dentro do `index.html`: filtro por regional e base, calendário De/Até, atalhos de 3/6/12 meses, resumo por mês e, ao clicar no mês, o valor de cada dia. Os dados vêm das planilhas já importadas (arquivos antigos salvos no navegador).
+
+## Regra de Valor Revertido
+
+O arquivo executado pelo dashboard é o `index.html`. O `script.js` mantido na pasta é legado e não é carregado por esta página. A configuração oficial do prazo da análise fica em `revertido-config.js`, carregado antes do código do dashboard. Atualmente o prazo é de 48 horas (2 dias), usado para classificar pacotes revertidos e não revertidos.
