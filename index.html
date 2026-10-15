@@ -1340,6 +1340,7 @@ img,svg,canvas,video{max-width:100%}
     <button class="nav-btn" data-page="lostroutes"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/><path d="m16 16 4 4M20 16l-4 4"/></svg> Perdidos em rota</button>
     <button class="nav-btn" data-page="diaria"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><rect x="7" y="13" width="5" height="4" rx="1"/></svg> Visão Diária</button>
     <button class="nav-btn" data-page="analise"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/><path d="M9 13v-2M11.5 13V9M14 13v-3"/></svg> Análise</button>
+    <button class="nav-btn" data-page="analisebase"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 19V5h16v14z"/><path d="M8 15v-4M12 15V8M16 15v-6"/><path d="M3 19h18"/></svg> Análise Base</button>
     <button class="nav-btn" data-page="importados"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14h6M12.5 11.5 15 14l-2.5 2.5"/></svg> Importados</button>
     <span class="public-mode-badge">Visualização pública</span>
   </div>
@@ -1514,6 +1515,32 @@ img,svg,canvas,video{max-width:100%}
 .rev-resumo tr.rev-resumo-total td{font-weight:800;border-bottom:0}
 .rev-resumo .ok{color:var(--spot-green);font-weight:700}.rev-resumo .bad{color:var(--svc-danger);font-weight:700}.rev-resumo .mut{color:var(--text-muted)}
 </style>
+  <!-- ===================== ANÁLISE POR BASE ===================== -->
+  <div class="page" id="page-analisebase">
+    <div class="base-analysis-controls">
+      <div class="grp"><label>De</label><input type="date" id="analiseBaseDe" aria-label="Data inicial da Análise Base"></div>
+      <div class="grp"><label>Até</label><input type="date" id="analiseBaseAte" aria-label="Data final da Análise Base"></div>
+      <div class="grp"><label>Período rápido</label><div class="presets" id="analiseBasePeriodos"><button type="button" class="preset-btn" data-months="3">3 meses</button><button type="button" class="preset-btn active" data-months="6">6 meses</button><button type="button" class="preset-btn" data-months="12">12 meses</button></div></div>
+      <div class="grp"><label>Regional</label><select id="analiseBaseRegional"><option value="TODOS">Todas as regionais</option></select></div>
+      <div class="grp"><label>Base</label><select id="analiseBaseBase"><option value="TODAS">Todas as bases</option></select></div>
+      <button type="button" class="capture-btn" id="btnCapturaAnaliseBase" title="Capturar Análise Base"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg> Capturar tela</button>
+    </div>
+    <p class="filter-help base-analysis-help">Selecione uma regional, uma base e o intervalo no calendário. O resumo mostra o valor por mês; clique em um mês para abrir o detalhamento do valor por dia.</p>
+    <div class="analise-kpis base-analysis-kpis">
+      <div class="analise-kpi"><div class="lbl">Valor no período</div><div class="val" id="anBaseValor">R$ 0,00</div></div>
+      <div class="analise-kpi"><div class="lbl">Pacotes no período</div><div class="val" id="anBasePacotes">0</div></div>
+      <div class="analise-kpi"><div class="lbl">Meses com dados</div><div class="val" id="anBaseMeses">0</div></div>
+      <div class="analise-kpi"><div class="lbl">Dias com dados</div><div class="val" id="anBaseDias">0</div></div>
+    </div>
+    <div class="chart-card base-analysis-card">
+      <div class="chart-card-head"><div><h3>Resumo mensal por base</h3><div class="chart-hint">Clique em qualquer linha para ver o resumo diário daquele mês</div></div><strong id="anBaseTitulo" class="base-analysis-selection">Todas as bases</strong></div>
+      <div class="table-scroll base-analysis-scroll"><table class="base-analysis-table"><thead><tr><th>Mês</th><th>Valor total</th><th>Pacotes</th><th>Dias com dados</th><th>Média por dia</th><th></th></tr></thead><tbody id="anBaseMesBody"></tbody></table></div>
+    </div>
+    <div class="chart-card base-analysis-card" id="anBaseDetalheCard" hidden>
+      <div class="chart-card-head"><div><h3 id="anBaseDetalheTitulo">Detalhe diário</h3><div class="chart-hint">Resumo do valor registrado em cada dia do mês selecionado</div></div><button type="button" class="btn-reset" id="anBaseFecharDetalhe">Fechar detalhe</button></div>
+      <div class="table-scroll base-analysis-scroll"><table class="base-analysis-table"><thead><tr><th>Data</th><th>Dia</th><th>Valor total</th><th>Pacotes</th><th>SVC</th><th>XPT</th></tr></thead><tbody id="anBaseDiaBody"></tbody></table></div>
+    </div>
+  </div>
   <!-- ===================== PACOTE REVERTIDO ===================== -->
   <div class="page" id="page-revertido">
     <div class="rev-controls">

@@ -53,6 +53,7 @@ let pendingReturnFile=null;
 let pendingDriverFile=null;
 let exportSeedEntries=null;
 let chartAnaliseDia=null, chartAnaliseRegional=null, chartAnaliseOfensoras=null;
+let analiseBaseRows=[];
 let revStatusFilter='TODOS';
 let motoristaSelecionado='';
 const chartValueLabels={id:'chartValueLabels',afterDatasetsDraw(chart){const ctx=chart.ctx;const horizontal=chart.options.indexAxis==='y';ctx.save();ctx.font='700 10px Arial';ctx.fillStyle=cssColor('--text-primary','#f5f5f5');ctx.textBaseline='middle';chart.data.datasets.forEach((dataset,di)=>{const meta=chart.getDatasetMeta(di);meta.data.forEach((bar,i)=>{const value=dataset.data[i];if(value==null)return;const pos=bar.tooltipPosition();if(horizontal){ctx.textAlign='left';ctx.fillText(fmtBRL(value),Math.max(pos.x,bar.base)+7,pos.y);}else{ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(fmtBRL(value),pos.x,pos.y-6);}});});ctx.restore();}};
@@ -812,7 +813,7 @@ document.getElementById('btnConfirmDrivers').addEventListener('click',function()
 function setPage(page){
   if(PUBLIC_VIEW_MODE && page!=='geral' && page!=='regional') page='geral';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
-  ['geral','ofensores','regional','lostroutes','diaria','analise','revertido','importados'].forEach(p=>{
+  ['geral','ofensores','regional','lostroutes','diaria','analise','analisebase','revertido','importados'].forEach(p=>{
     document.getElementById('page-'+p).classList.toggle('active', p===page);
   });
   document.getElementById('subtabsBar').style.display = page==='geral' ? 'block' : 'none';
@@ -821,6 +822,7 @@ function setPage(page){
   if(page==='lostroutes'){ lostRouteNav={level:'list',regional:null}; renderLostRoutesPage(); }
   if(page==='diaria') renderDiaria();
   if(page==='analise') renderAnalise();
+  if(page==='analisebase') renderAnaliseBase();
   if(page==='revertido') renderRevertido();
 }
 document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click', ()=>setPage(btn.dataset.page)));
@@ -2133,7 +2135,7 @@ document.getElementById('diariaRegional').addEventListener('change', renderDiari
 document.getElementById('diariaOrigem').addEventListener('change', renderDiaria);
 document.getElementById('diariaOrdem').addEventListener('change', renderDiaria);
 document.getElementById('diariaTipoToggle').addEventListener('click', function(e){ const btn=e.target.closest('.toggle-btn'); if(!btn) return; document.querySelectorAll('#diariaTipoToggle .toggle-btn').forEach(b=>b.classList.toggle('active',b===btn)); renderDiaria(); });
-[['btnCapturaGeral','#page-geral','pagina-inicial'],['btnCapturaOfensores','#page-ofensores','ofensores-por-regional'],['btnCapturaDiaria','#page-diaria','visao-diaria'],['btnCapturaAnalise','#page-analise','analise'],['btnCapturaAnaliseTopo','#page-analise','analise'],['btnCapturaRevertido','#page-revertido','pacote-revertido']].forEach(([id,selector,name])=>document.getElementById(id)?.addEventListener('click',()=>captureDashboardElement(selector,name)));
+[['btnCapturaGeral','#page-geral','pagina-inicial'],['btnCapturaOfensores','#page-ofensores','ofensores-por-regional'],['btnCapturaDiaria','#page-diaria','visao-diaria'],['btnCapturaAnaliseBase','#page-analisebase','analise-base'],['btnCapturaAnalise','#page-analise','analise'],['btnCapturaAnaliseTopo','#page-analise','analise'],['btnCapturaRevertido','#page-revertido','pacote-revertido']].forEach(([id,selector,name])=>document.getElementById(id)?.addEventListener('click',()=>captureDashboardElement(selector,name)));
 
 /* ===== ANÁLISE DE PACOTE DIÁRIO ===== */
 function availableImportDates(){ return Array.from(new Set(IMPORTS.map(i=>i.importDate).filter(Boolean))).sort(); }
@@ -2216,6 +2218,58 @@ function renderAnalise(){
 document.getElementById('analisePeriodos').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),end=ds[ds.length-1];if(!end)return;const n=Number(b.dataset.days);dateInputSet('analiseAte',end);if(n===7){const weekday=new Date(end+'T00:00:00').getDay();dateInputSet('analiseDe',isoShift(end,weekday===0?-6:1-weekday));}else dateInputSet('analiseDe',n?ds[Math.max(0,ds.length-n)]:ds[0]);renderAnalise();});
 document.getElementById('analiseTipoToggle').addEventListener('click',e=>{const b=e.target.closest('.toggle-btn');if(!b)return;document.querySelectorAll('#analiseTipoToggle .toggle-btn').forEach(x=>x.classList.toggle('active',x===b));renderAnalise();});
 
+/* ===== ANÁLISE POR BASE ===== */
+function monthKeyFromDate(day){ return String(day||'').slice(0,7); }
+function shiftMonthKey(key,delta){ const [y,m]=String(key).split('-').map(Number); const d=new Date(y,(m||1)-1+delta,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function monthLabelBR(key){ const [y,m]=String(key).split('-').map(Number); return new Date(y,(m||1)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase()); }
+function baseAnalysisFilteredEntries(day){
+  const reg=document.getElementById('analiseBaseRegional')?.value||'TODOS';
+  const base=document.getElementById('analiseBaseBase')?.value||'TODAS';
+  return snapshotEntriesForDay(day).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(base==='TODAS'||e.base===base));
+}
+function baseAnalysisDateRows(){
+  const de=document.getElementById('analiseBaseDe')?.value||'', ate=document.getElementById('analiseBaseAte')?.value||'';
+  return availableImportDates().filter(d=>(!de||d>=de)&&(!ate||d<=ate)).map(day=>{ const entries=baseAnalysisFilteredEntries(day); const svc=entries.filter(e=>e.tipo==='SVC').reduce((sum,e)=>sum+(Number(e.valor)||0),0); const xpt=entries.filter(e=>e.tipo==='XPT').reduce((sum,e)=>sum+(Number(e.valor)||0),0); return {day,entries,valor:entries.reduce((sum,e)=>sum+(Number(e.valor)||0),0),svc,xpt}; }).filter(row=>row.entries.length);
+}
+function populateAnaliseBaseFilters(){
+  const reg=document.getElementById('analiseBaseRegional'), base=document.getElementById('analiseBaseBase');
+  const regCur=reg.value||'TODOS', baseCur=base.value||'TODAS';
+  if(!reg.dataset.filled){ reg.innerHTML='<option value="TODOS">Todas as regionais</option>'+REGIONAL_ORDER.map(r=>'<option value="'+escHtml(r)+'">'+escHtml(REGIONAL_LABELS[r]||r)+'</option>').join(''); reg.dataset.filled='1'; }
+  reg.value=REGIONAL_ORDER.includes(regCur)?regCur:'TODOS';
+  const bases=Array.from(new Set(IMPORTS.flatMap(i=>(i.entries||[])).map(e=>e.base).filter(Boolean).filter(b=>reg.value==='TODOS'||regionalFromBasePrefix(b)===reg.value))).sort();
+  base.innerHTML='<option value="TODAS">Todas as bases</option>'+bases.map(b=>'<option value="'+escHtml(b)+'">'+escHtml(b)+'</option>').join('');
+  base.value=bases.includes(baseCur)?baseCur:'TODAS';
+}
+function renderAnaliseBaseDetalhe(month){
+  const card=document.getElementById('anBaseDetalheCard'), body=document.getElementById('anBaseDiaBody'); if(!card||!body)return;
+  const rows=analiseBaseRows.filter(row=>monthKeyFromDate(row.day)===month); card.hidden=false;
+  const reg=document.getElementById('analiseBaseRegional').value, base=document.getElementById('analiseBaseBase').value;
+  const selection=base==='TODAS'?(reg==='TODOS'?'Todas as bases':REGIONAL_LABELS[reg]||reg):base;
+  document.getElementById('anBaseDetalheTitulo').textContent='Detalhe diário · '+monthLabelBR(month)+' · '+selection;
+  body.innerHTML=rows.length?rows.map(row=>{ const d=new Date(row.day+'T00:00:00'); return '<tr><td><strong>'+escHtml(row.day.split('-').reverse().join('/'))+'</strong></td><td>'+WEEKDAY_ABBR[d.getDay()]+'</td><td><strong>'+fmtBRL(row.valor)+'</strong></td><td>'+fmtInt(row.entries.length)+'</td><td>'+fmtBRL(row.svc)+'</td><td>'+fmtBRL(row.xpt)+'</td></tr>'; }).join(''):'<tr><td colspan="6" class="base-analysis-empty">Nenhum dado neste mês para o filtro atual.</td></tr>';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function renderAnaliseBase(){
+  const dates=availableImportDates(), de=document.getElementById('analiseBaseDe'), ate=document.getElementById('analiseBaseAte');
+  populateAnaliseBaseFilters();
+  if(!dates.length){ document.getElementById('anBaseMesBody').innerHTML='<tr><td colspan="6" class="base-analysis-empty">Importe planilhas para visualizar o histórico por base.</td></tr>'; return; }
+  if(!ate.value) dateInputSet('analiseBaseAte',dates[dates.length-1]);
+  if(!de.value) dateInputSet('analiseBaseDe',shiftMonthKey(monthKeyFromDate(ate.value||dates[dates.length-1]),-5)+'-01');
+  if(de.value>ate.value) dateInputSet('analiseBaseDe',ate.value);
+  analiseBaseRows=baseAnalysisDateRows();
+  const months={}; analiseBaseRows.forEach(row=>{ const key=monthKeyFromDate(row.day); if(!months[key])months[key]={month:key,valor:0,pacotes:0,dias:0}; months[key].valor+=row.valor; months[key].pacotes+=row.entries.length; months[key].dias++; });
+  const list=Object.values(months).sort((a,b)=>b.month.localeCompare(a.month));
+  const total=analiseBaseRows.reduce((sum,r)=>sum+r.valor,0); document.getElementById('anBaseValor').textContent=fmtBRL(total); document.getElementById('anBasePacotes').textContent=fmtInt(analiseBaseRows.reduce((sum,r)=>sum+r.entries.length,0)); document.getElementById('anBaseMeses').textContent=fmtInt(list.length); document.getElementById('anBaseDias').textContent=fmtInt(analiseBaseRows.length);
+  const reg=document.getElementById('analiseBaseRegional').value, base=document.getElementById('analiseBaseBase').value; const selection=base==='TODAS'?(reg==='TODOS'?'Todas as bases':REGIONAL_LABELS[reg]||reg):base; document.getElementById('anBaseTitulo').textContent=selection;
+  const body=document.getElementById('anBaseMesBody'); body.innerHTML=list.length?list.map(row=>'<tr data-analysis-month="'+row.month+'"><td class="month-link">'+escHtml(monthLabelBR(row.month))+'</td><td><strong>'+fmtBRL(row.valor)+'</strong></td><td>'+fmtInt(row.pacotes)+'</td><td>'+fmtInt(row.dias)+'</td><td>'+fmtBRL(row.dias?row.valor/row.dias:0)+'</td><td class="month-link">Ver dias →</td></tr>').join(''):'<tr><td colspan="6" class="base-analysis-empty">Nenhum dado encontrado para o período, regional ou base selecionada.</td></tr>';
+  document.getElementById('anBaseDetalheCard').hidden=true;
+}
+document.getElementById('analiseBaseRegional').addEventListener('change',()=>{ document.getElementById('analiseBaseBase').value='TODAS'; renderAnaliseBase(); });
+document.getElementById('analiseBaseBase').addEventListener('change',renderAnaliseBase);
+['analiseBaseDe','analiseBaseAte'].forEach(id=>document.getElementById(id).addEventListener('change',renderAnaliseBase));
+document.getElementById('analiseBasePeriodos').addEventListener('click',e=>{ const btn=e.target.closest('[data-months]'); if(!btn)return; const dates=availableImportDates(), end=dates[dates.length-1]; if(!end)return; const months=Number(btn.dataset.months)||6; dateInputSet('analiseBaseAte',end); dateInputSet('analiseBaseDe',shiftMonthKey(monthKeyFromDate(end),-(months-1))+'-01'); document.querySelectorAll('#analiseBasePeriodos .preset-btn').forEach(x=>x.classList.toggle('active',x===btn)); renderAnaliseBase(); });
+document.getElementById('anBaseMesBody').addEventListener('click',e=>{ const row=e.target.closest('[data-analysis-month]'); if(row)renderAnaliseBaseDetalhe(row.dataset.analysisMonth); });
+document.getElementById('anBaseFecharDetalhe').addEventListener('click',()=>{document.getElementById('anBaseDetalheCard').hidden=true;});
 /* ===== PACOTE REVERTIDO ===== */
 function basesDosOfensoresPorValor(minimo){
   const map={};
