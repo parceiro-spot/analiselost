@@ -17,3 +17,7 @@ Site estático pronto para publicação no GitHub Pages.
 ## Situação: dropdown e integração com o dashboard
 
 A lista suspensa da planilha é gerada a partir das mesmas 13 opções coloridas do dashboard. O importador reconhece cabeçalhos iniciados por `Situação`, `Situation`, `Status` ou `Fila` (por exemplo, `Situação (lista clicável)` e `Fila atual`). Se houver mais de uma dessas colunas, prioriza `Situação`/`Status` em vez de `Fila`. Depois de editar a planilha no Excel/OneDrive, importe o arquivo no dashboard por **Anexar planilha de retorno** e confirme com **OK**; não há sincronização automática do OneDrive para o dashboard.
+
+## Aba Análise Base (corrigida)
+
+A aba estava em branco porque o `index.html` não tinha a lógica nem o CSS dessa aba (ela existia só no `script.js`, que a página não carrega). Agora tudo está dentro do `index.html`: filtro por regional e base, calendário De/Até, atalhos de 3/6/12 meses, resumo por mês e, ao clicar no mês, o valor de cada dia. Os dados vêm das planilhas já importadas (arquivos antigos salvos no navegador).

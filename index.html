@@ -1225,7 +1225,12 @@ img,svg,canvas,video{max-width:100%}
 .regional-history-table tr.regional-history-completed{cursor:pointer;pointer-events:auto;transition:opacity .15s ease,background .15s ease}
 .regional-history-table tr.regional-history-completed:hover{opacity:.95!important;background:var(--bg-card-hover)!important}
 .regional-history-table tr.regional-history-completed td{cursor:pointer;pointer-events:auto}
-</style></head>
+</style><style id="analise-base-style">
+/* ===== ANÁLISE BASE ===== */
+.base-analysis-controls{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;padding:16px 18px;margin-bottom:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px}.base-analysis-controls .grp{display:flex;flex-direction:column;gap:6px}.base-analysis-controls label{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text-secondary)}.base-analysis-controls input,.base-analysis-controls select{min-width:155px;padding:9px 10px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-inset);color:var(--text-primary);font:inherit;font-size:12px}.base-analysis-controls .capture-btn{margin-left:auto}.base-analysis-help{margin:2px 0 16px}.base-analysis-kpis{margin-bottom:16px}.base-analysis-card{margin-bottom:16px}.base-analysis-selection{font-size:12px;color:var(--spot-green);text-align:right}.base-analysis-scroll{max-height:520px}.base-analysis-table{width:100%;border-collapse:collapse;font-size:12px}.base-analysis-table th,.base-analysis-table td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--border-color);white-space:nowrap}.base-analysis-table th{position:sticky;top:0;background:var(--bg-card);z-index:1;font-size:10px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-secondary)}.base-analysis-table tbody tr{cursor:pointer;transition:background .15s}.base-analysis-table tbody tr:hover{background:var(--bg-card-hover)}.base-analysis-table td strong{color:var(--text-primary)}.base-analysis-table .month-link{color:var(--spot-green);font-weight:900}.base-analysis-empty{text-align:center!important;padding:28px!important;color:var(--text-muted)}@media(max-width:800px){.base-analysis-controls .capture-btn{margin-left:0}.base-analysis-controls input,.base-analysis-controls select{width:100%}.base-analysis-controls .grp{flex:1;min-width:145px}.base-analysis-selection{width:100%;text-align:left}}
+
+</style>
+</head>
 <body>
 <div id="spotSplash" aria-hidden="true">
   <div class="sp-strips"><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -2667,7 +2672,7 @@ document.getElementById('btnConfirmDrivers').addEventListener('click',function()
 function setPage(page){
   if(PUBLIC_VIEW_MODE && page!=='geral' && page!=='regional') page='geral';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
-  ['geral','ofensores','regional','lostroutes','diaria','analise','revertido','importados'].forEach(p=>{
+  ['geral','ofensores','regional','lostroutes','diaria','analise','analisebase','revertido','importados'].forEach(p=>{
     const el=document.getElementById('page-'+p); if(el) el.classList.toggle('active', p===page);
   });
   const subtabs=document.getElementById('subtabsBar'); if(subtabs) subtabs.style.display = page==='geral' ? 'block' : 'none';
@@ -2677,6 +2682,7 @@ function setPage(page){
     if(page==='lostroutes'){ lostRouteNav={level:'list',regional:null}; renderLostRoutesPage(); }
     if(page==='diaria') renderDiaria();
     if(page==='analise') renderAnalise();
+    if(page==='analisebase') renderAnaliseBase();
     if(page==='revertido') renderRevertido();
   } catch(err) {
     console.error('Falha ao abrir a aba '+page,err);
@@ -4147,6 +4153,111 @@ function renderAnalise(){
 document.getElementById('analisePeriodos').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),end=ds[ds.length-1];if(!end)return;const n=Number(b.dataset.days);dateInputSet('analiseAte',end);if(n===7){const weekday=new Date(end+'T00:00:00').getDay();dateInputSet('analiseDe',isoShift(end,weekday===0?-6:1-weekday));}else dateInputSet('analiseDe',n?ds[Math.max(0,ds.length-n)]:ds[0]);renderAnalise();});
 document.getElementById('analiseTipoToggle').addEventListener('click',e=>{const b=e.target.closest('.toggle-btn');if(!b)return;document.querySelectorAll('#analiseTipoToggle .toggle-btn').forEach(x=>x.classList.toggle('active',x===b));renderAnalise();});
 
+/* ===== ANÁLISE BASE (histórico por regional/base, mês a mês e dia a dia) ===== */
+function abDayOf(imp){ return String(imp.importDate||'').slice(0,10) || String(imp.savedAt||'').slice(0,10); }
+function abDates(){ return Array.from(new Set(IMPORTS.map(abDayOf).filter(Boolean))).sort(); }
+function abEntriesForDay(day){
+  const imps=IMPORTS.filter(i=>abDayOf(i)===day).slice().sort((a,b)=>String(a.savedAt||'').localeCompare(String(b.savedAt||'')));
+  const map=new Map();
+  imps.forEach(imp=>(imp.entries||[]).forEach(e=>{ const k=String(e.pacote||'').trim()||('__'+e.base+'|'+e.driverId+'|'+e.valor+'|'+e.date); map.set(k,e); }));
+  return Array.from(map.values());
+}
+function monthKeyFromDate(day){ return String(day||'').slice(0,7); }
+function shiftMonthKey(key,delta){ const [y,m]=String(key).split('-').map(Number); const d=new Date(y,(m||1)-1+delta,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function monthLabelBR(key){ const [y,m]=String(key).split('-').map(Number); return new Date(y,(m||1)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase()); }
+function abSelection(){
+  const reg=document.getElementById('analiseBaseRegional').value, base=document.getElementById('analiseBaseBase').value;
+  return base==='TODAS'?(reg==='TODOS'?'Todas as bases':(REGIONAL_LABELS[reg]||reg)):base;
+}
+function abFilteredEntries(day){
+  const reg=document.getElementById('analiseBaseRegional').value||'TODOS';
+  const base=document.getElementById('analiseBaseBase').value||'TODAS';
+  return abEntriesForDay(day).filter(e=>{
+    const b=String(e.base||'').trim();
+    return (reg==='TODOS'||regionalFromBasePrefix(b)===reg)&&(base==='TODAS'||b===base);
+  });
+}
+function abDateRows(){
+  const de=document.getElementById('analiseBaseDe').value||'', ate=document.getElementById('analiseBaseAte').value||'';
+  return abDates().filter(d=>(!de||d>=de)&&(!ate||d<=ate)).map(day=>{
+    const entries=abFilteredEntries(day);
+    const sum=list=>list.reduce((s,e)=>s+(Number(e.valor)||0),0);
+    return {day,entries,valor:sum(entries),svc:sum(entries.filter(e=>e.tipo==='SVC')),xpt:sum(entries.filter(e=>e.tipo==='XPT'))};
+  }).filter(r=>r.entries.length);
+}
+let analiseBaseRows=[];
+let analiseBaseOpenMonth=null;
+function populateAnaliseBaseFilters(){
+  const reg=document.getElementById('analiseBaseRegional'), base=document.getElementById('analiseBaseBase');
+  const regCur=reg.value||'TODOS', baseCur=base.value||'TODAS';
+  if(!reg.dataset.filled){
+    reg.innerHTML='<option value="TODOS">Todas as regionais</option>'+REGIONAL_ORDER.map(r=>'<option value="'+escHtml(r)+'">'+escHtml(REGIONAL_LABELS[r]||r)+'</option>').join('');
+    reg.dataset.filled='1';
+  }
+  reg.value=REGIONAL_ORDER.includes(regCur)?regCur:'TODOS';
+  const bases=Array.from(new Set(IMPORTS.flatMap(i=>(i.entries||[])).map(e=>String(e.base||'').trim()).filter(Boolean).filter(b=>reg.value==='TODOS'||regionalFromBasePrefix(b)===reg.value))).sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  base.innerHTML='<option value="TODAS">Todas as bases</option>'+bases.map(b=>'<option value="'+escHtml(b)+'">'+escHtml(b)+'</option>').join('');
+  base.value=bases.includes(baseCur)?baseCur:'TODAS';
+}
+function renderAnaliseBaseDetalhe(month){
+  const card=document.getElementById('anBaseDetalheCard'), body=document.getElementById('anBaseDiaBody'); if(!card||!body)return;
+  analiseBaseOpenMonth=month;
+  const rows=analiseBaseRows.filter(r=>monthKeyFromDate(r.day)===month).sort((a,b)=>a.day.localeCompare(b.day));
+  card.hidden=false;
+  document.getElementById('anBaseDetalheTitulo').textContent='Detalhe diário · '+monthLabelBR(month)+' · '+abSelection();
+  const tot=rows.reduce((s,r)=>s+r.valor,0), totP=rows.reduce((s,r)=>s+r.entries.length,0), totS=rows.reduce((s,r)=>s+r.svc,0), totX=rows.reduce((s,r)=>s+r.xpt,0);
+  body.innerHTML=rows.length?rows.map(row=>{
+    const d=new Date(row.day+'T00:00:00');
+    return '<tr><td><strong>'+escHtml(row.day.split('-').reverse().join('/'))+'</strong></td><td>'+WEEKDAY_ABBR[d.getDay()]+'</td><td><strong>'+fmtBRL(row.valor)+'</strong></td><td>'+fmtInt(row.entries.length)+'</td><td>'+fmtBRL(row.svc)+'</td><td>'+fmtBRL(row.xpt)+'</td></tr>';
+  }).join('')+'<tr style="font-weight:800"><td>TOTAL</td><td></td><td>'+fmtBRL(tot)+'</td><td>'+fmtInt(totP)+'</td><td>'+fmtBRL(totS)+'</td><td>'+fmtBRL(totX)+'</td></tr>'
+  :'<tr><td colspan="6" class="base-analysis-empty">Nenhum dado neste mês para o filtro atual.</td></tr>';
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function renderAnaliseBase(){
+  const dates=abDates(), de=document.getElementById('analiseBaseDe'), ate=document.getElementById('analiseBaseAte');
+  populateAnaliseBaseFilters();
+  const body=document.getElementById('anBaseMesBody');
+  if(!dates.length){
+    body.innerHTML='<tr><td colspan="6" class="base-analysis-empty">Nenhuma planilha importada ainda. Importe planilhas na aba “Importados” para ver o histórico por base.</td></tr>';
+    ['anBaseValor'].forEach(id=>document.getElementById(id).textContent=fmtBRL(0));
+    ['anBasePacotes','anBaseMeses','anBaseDias'].forEach(id=>document.getElementById(id).textContent='0');
+    document.getElementById('anBaseDetalheCard').hidden=true; return;
+  }
+  const first=dates[0], last=dates[dates.length-1];
+  if(!ate.value) dateInputSet('analiseBaseAte',last);
+  if(!de.value){ const sixAgo=shiftMonthKey(monthKeyFromDate(ate.value||last),-5)+'-01'; dateInputSet('analiseBaseDe',sixAgo<first?first:sixAgo); }
+  if(de.value>ate.value) dateInputSet('analiseBaseDe',ate.value);
+  de.min=first; de.max=last; ate.min=first; ate.max=last;
+  analiseBaseRows=abDateRows();
+  const months={};
+  analiseBaseRows.forEach(row=>{ const key=monthKeyFromDate(row.day); if(!months[key])months[key]={month:key,valor:0,pacotes:0,dias:0}; months[key].valor+=row.valor; months[key].pacotes+=row.entries.length; months[key].dias++; });
+  const list=Object.values(months).sort((a,b)=>b.month.localeCompare(a.month));
+  document.getElementById('anBaseValor').textContent=fmtBRL(analiseBaseRows.reduce((s,r)=>s+r.valor,0));
+  document.getElementById('anBasePacotes').textContent=fmtInt(analiseBaseRows.reduce((s,r)=>s+r.entries.length,0));
+  document.getElementById('anBaseMeses').textContent=fmtInt(list.length);
+  document.getElementById('anBaseDias').textContent=fmtInt(analiseBaseRows.length);
+  document.getElementById('anBaseTitulo').textContent=abSelection();
+  body.innerHTML=list.length?list.map(row=>'<tr data-analysis-month="'+row.month+'"><td class="month-link">'+escHtml(monthLabelBR(row.month))+'</td><td><strong>'+fmtBRL(row.valor)+'</strong></td><td>'+fmtInt(row.pacotes)+'</td><td>'+fmtInt(row.dias)+'</td><td>'+fmtBRL(row.dias?row.valor/row.dias:0)+'</td><td class="month-link">Ver dias →</td></tr>').join('')
+    :'<tr><td colspan="6" class="base-analysis-empty">Nenhum dado encontrado para o período, regional ou base selecionada.</td></tr>';
+  if(analiseBaseOpenMonth&&months[analiseBaseOpenMonth]) renderAnaliseBaseDetalhe(analiseBaseOpenMonth);
+  else { analiseBaseOpenMonth=null; document.getElementById('anBaseDetalheCard').hidden=true; }
+}
+document.getElementById('analiseBaseRegional').addEventListener('change',()=>{ document.getElementById('analiseBaseBase').value='TODAS'; renderAnaliseBase(); });
+document.getElementById('analiseBaseBase').addEventListener('change',renderAnaliseBase);
+['analiseBaseDe','analiseBaseAte'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{ document.querySelectorAll('#analiseBasePeriodos .preset-btn').forEach(x=>x.classList.remove('active')); renderAnaliseBase(); }));
+document.getElementById('analiseBasePeriodos').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-months]'); if(!btn)return;
+  const dates=abDates(), end=dates[dates.length-1]; if(!end)return;
+  const months=Number(btn.dataset.months)||6;
+  dateInputSet('analiseBaseAte',end);
+  dateInputSet('analiseBaseDe',shiftMonthKey(monthKeyFromDate(end),-(months-1))+'-01');
+  document.querySelectorAll('#analiseBasePeriodos .preset-btn').forEach(x=>x.classList.toggle('active',x===btn));
+  renderAnaliseBase();
+});
+document.getElementById('anBaseMesBody').addEventListener('click',e=>{ const row=e.target.closest('[data-analysis-month]'); if(row)renderAnaliseBaseDetalhe(row.dataset.analysisMonth); });
+document.getElementById('anBaseFecharDetalhe').addEventListener('click',()=>{ analiseBaseOpenMonth=null; document.getElementById('anBaseDetalheCard').hidden=true; });
+document.getElementById('btnCapturaAnaliseBase')?.addEventListener('click',()=>captureDashboardElement('#page-analisebase','analise-base'));
+{ const __origRenderAll=renderAll; renderAll=function(){ const r=__origRenderAll.apply(this,arguments); try{ if(document.getElementById('page-analisebase').classList.contains('active')) renderAnaliseBase(); }catch(err){ console.error(err); } return r; }; }
 /* ===== PACOTE REVERTIDO ===== */
 function basesDosOfensoresPorValor(minimo){
   const map={};
