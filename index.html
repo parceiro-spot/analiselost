@@ -4372,7 +4372,7 @@ function renderRevertido(){
   if(!regSel.dataset.filled){regSel.innerHTML='<option value="TODOS">Todas</option>'+REGIONAL_ORDER.map(r=>'<option value="'+r+'">'+(REGIONAL_LABELS[r]||r)+'</option>').join('');regSel.dataset.filled='1';}
   if(!atual.value)atual.value=todayStr();
   if(!comp.value){const todayWeekday=new Date(atual.value+'T00:00:00').getDay();comp.value=isoShift(atual.value,todayWeekday===0?-6:1-todayWeekday);}
-  if(!dates.length){setRevPeriodo('Valor Revertido — sem dados importados');document.getElementById('revBody').innerHTML='<tr><td colspan="10" class="history-empty">Escolha datas no calendário; importe os pacotes para comparar.</td></tr>';return;}
+  if(!dates.length){setRevPeriodo((revViewMode==='pacote'?'Pacote Revertido':'Valor Revertido')+' — sem dados importados');document.getElementById('revBody').innerHTML='<tr><td colspan="10" class="history-empty">Escolha datas no calendário; importe os pacotes para comparar.</td></tr>';return;}
   if(atual.value<comp.value){const temp=atual.value;atual.value=comp.value;comp.value=temp;}
   const reg=regSel.value;
   const origem=origemSel.value;
@@ -4498,7 +4498,7 @@ function renderRevertido(){
     const rB=redBefore[r.base]||0, rC=redCurrent[r.base]||0;
     return {...r,status,baseBefore,baseCurrent,baseDelta,baseWithin:baseWithinValue,baseRisk:baseRiskValue,packageTotal:basePackageTotals[r.base]||0,packageReverted:basePackageReverted[r.base]||0,redBefore:rB,redCurrent:rC};
   }).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
-  const visibleRows=revStatusFilter==='TODOS'?rows:rows.filter(r=>r.status===revStatusFilter);
+  const visibleRows=revStatusFilter==='TODOS'?rows:(revStatusFilter==='green'?rows.filter(r=>(r.packageReverted||0)>0):rows.filter(r=>(r.baseRisk||0)>0));
   const sumBy=f=>visibleRows.reduce((s,r)=>s+f(r),0);
   const totalPackages=sumBy(r=>(r.packageTotal||0));
   const totalReverted=sumBy(r=>(r.packageReverted||0));
@@ -4510,12 +4510,12 @@ function renderRevertido(){
   const allReverted=Array.from(metricBases).reduce((n,base)=>n+(basePackageReverted[base]||0),0);
   const allWithin=Array.from(metricBases).reduce((n,base)=>n+(baseWithin[base]||0),0);
   const allRisk=Array.from(metricBases).reduce((n,base)=>n+(baseRisk[base]||0),0);
-  const basesCount=new Set((revStatusFilter==='TODOS'?visibleRows.filter(r=>(r.packageReverted||0)>0):visibleRows).map(r=>r.base)).size;
+  const basesCount=new Set(visibleRows.map(r=>r.base)).size;
   const packageMode=revViewMode==='pacote';
   const legend=document.getElementById('revLegend');
   if(legend) legend.style.display=packageMode?'none':'';
-  const displayedBefore=revStatusFilter==='red'?sumBy(r=>r.redBefore):totalBaseBefore;
-  const displayedCurrent=revStatusFilter==='red'?sumBy(r=>r.redCurrent):totalBaseCurrent;
+  const displayedBefore=revStatusFilter==='red'?sumBy(r=>r.redBefore):(revStatusFilter==='green'?sumBy(r=>r.reverted):totalBaseBefore);
+  const displayedCurrent=revStatusFilter==='red'?sumBy(r=>r.redCurrent):(revStatusFilter==='green'?0:totalBaseCurrent);
   const displayedReverted=revStatusFilter==='red'?0:sumBy(r=>r.reverted);
   document.getElementById('revKpiValorLabel').textContent=packageMode?(revStatusFilter==='red'?'Pacotes não revertidos':'Pacotes revertidos'):'Valor revertido';
   document.getElementById('revKpiRiscoLabel').textContent=packageMode?'% Pacote Revertido':'Valor atual';
@@ -4530,10 +4530,10 @@ function renderRevertido(){
   document.getElementById('revColAntes').textContent=packageMode?'Pacotes analisados':'Valor estava';
   document.getElementById('revColRevertido').textContent=packageMode?'Pacotes revertidos':'Valor revertido';
   document.getElementById('revColPercent').textContent=packageMode?'% Pacote Revertido':'Valor atual da base (Até)';
-  setRevPeriodo('Valor Revertido · '+fmtFull(startDay)+' até '+fmtFull(endDay)+((startDay!==comp.value||endDay!==atual.value)?' · só há planilha de '+fmtFull(startDay)+' a '+fmtFull(endDay)+' dentro do intervalo pedido':''));
+  setRevPeriodo((packageMode?'Pacote Revertido':'Valor Revertido')+' · '+fmtFull(startDay)+' até '+fmtFull(endDay)+((startDay!==comp.value||endDay!==atual.value)?' · só há planilha de '+fmtFull(startDay)+' a '+fmtFull(endDay)+' dentro do intervalo pedido':''));
   const pkgSet=revStatusFilter==='TODOS'?null:new Set(visibleRows.flatMap(r=>Array.from(r.pkgs)));
   renderRevResumo(rangeDates,e=>baseOk(e.base)&&valOk(e)&&(!pkgSet||pkgSet.has(pkgKey(e))),comp.value,atual.value,revStatusFilter);
-  document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const total=b.packageTotal||0, reverted=b.packageReverted||0;const statusLabel=({green:'Pacote Revertido',red:'Não revertido'}[b.status]);return '<tr class="status-'+b.status+'"><td><span class="rev-status '+b.status+'"><i class="rev-dot '+b.status+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(b.baseBefore))+'</strong></td><td>'+(packageMode?fmtInt(reverted):fmtBRL(b.reverted))+'</td><td><strong>'+(packageMode?percent(reverted,total):fmtBRL(b.baseCurrent))+'</strong></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="10" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
+  document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const total=b.packageTotal||0, reverted=b.packageReverted||0;const statusLabel=({green:'Pacote Revertido',red:'Não revertido'}[b.status]);const valueBefore=revStatusFilter==='red'?b.redBefore:(revStatusFilter==='green'?b.reverted:b.baseBefore);const valueCurrent=revStatusFilter==='red'?b.redCurrent:(revStatusFilter==='green'?0:b.baseCurrent);return '<tr class="status-'+b.status+'"><td><span class="rev-status '+b.status+'"><i class="rev-dot '+b.status+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(valueBefore))+'</strong></td><td>'+(packageMode?fmtInt(reverted):fmtBRL(revStatusFilter==='red'?0:b.reverted))+'</td><td><strong>'+(packageMode?percent(reverted,total):fmtBRL(valueCurrent))+'</strong></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="10" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
 }
 ['revAtual','revComparar','revRegional','revBase','revOrigem'].forEach(id=>document.getElementById(id).addEventListener('change',renderRevertido));
 document.getElementById('revQuick').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),idx=ds.indexOf(document.getElementById('revAtual').value);const i=idx<0?ds.length-1:idx;
