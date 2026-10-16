@@ -755,7 +755,20 @@ html body #justPhotoViewer .photo-viewer-panel{position:fixed!important;top:50%!
 .lost-comp-chip span{color:var(--spot-green);font-weight:800;margin-left:4px}
 .lost-comp-chip:hover{border-color:var(--spot-primary);color:var(--text-primary)}
 .lost-base-card.comp-only{border-left-style:dashed;opacity:.9}
- .brand-badge{cursor:pointer;transition:transform .2s,box-shadow .2s}.brand-badge:hover{transform:translateY(-2px);box-shadow:0 5px 16px var(--spot-glow)}</style>
+ .brand-badge{cursor:pointer;transition:transform .2s,box-shadow .2s}.brand-badge:hover{transform:translateY(-2px);box-shadow:0 5px 16px var(--spot-glow)}
+/* Barra de corte mínimo: bases com valor menor ou igual ao limite ficam ocultas. */
+.rev-value-range{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-4px 0 16px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;color:var(--text-secondary);font-size:12px}
+.rev-value-range>strong{color:var(--text-primary);font-size:12px}
+.rev-value-range label{display:flex;align-items:center;gap:7px;font-weight:700}
+.rev-value-range input{width:130px;padding:8px 10px;border:1px solid var(--border-color);border-radius:7px;background:var(--bg-inset,#000);color:var(--text-primary);font:inherit}
+.rev-value-range input:focus{outline:2px solid var(--spot-primary);outline-offset:1px}
+.rev-value-range>span{font-size:11px;color:var(--text-muted)}
+.rev-risk-toggle{display:inline-block;width:auto;max-width:100%;padding:0;border:0;background:transparent;appearance:none;-webkit-appearance:none;color:var(--svc-danger,#ff5252);font:inherit;font-weight:900;text-align:left;cursor:pointer;outline:none;user-select:none}
+.rev-risk-toggle:hover,.rev-risk-toggle:focus-visible{text-decoration:underline;outline:none}
+.rev-risk-detail{margin-top:10px;padding-top:9px;border-top:1px solid var(--border-color);font-size:11px;line-height:1.45;color:var(--text-secondary)}
+.rev-risk-detail[hidden]{display:none}
+@media(max-width:620px){.rev-value-range{align-items:flex-start}.rev-value-range label{flex:1;min-width:125px;flex-direction:column;align-items:stretch}.rev-value-range input{width:100%}}
+</style>
 <style id="photo-viewer-enhancement">
 /* ===== Visualizador de fotos em alta qualidade ===== */
 #justPhotoViewer{padding:10px!important}
@@ -1372,7 +1385,7 @@ img,svg,canvas,video{max-width:100%}
   <!-- ===================== VISÃO GERAL ===================== -->
   <div class="page active" id="page-geral">
     <div class="dashboard-planilha-toolbar">
-      <div class="active-planilha-controls"><label class="active-planilha-select-label" for="dashboardImportSelect">Apresentar</label><select id="dashboardImportSelect" class="active-planilha-select" aria-label="Selecionar planilha para apresentar"><option value="">Nenhuma planilha importada</option></select><div class="active-planilha-badge" id="activePlanilhaBadge">Nenhuma planilha importada</div></div><button type="button" class="mini-camera" id="btnCapturaGeral" title="Capturar página inicial" aria-label="Capturar página inicial"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>
+      <div class="active-planilha-controls"><label class="active-planilha-select-label" for="dashboardImportSelect">PLANILHA ATIVA</label><select id="dashboardImportSelect" class="active-planilha-select" aria-label="Selecionar a planilha ativa"><option value="">Nenhuma planilha importada</option></select></div><button type="button" class="mini-camera" id="btnCapturaGeral" title="Capturar página inicial" aria-label="Capturar página inicial"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>
     </div>
     <div class="kpi-grid">
       <div class="kpi-card total"><div class="kpi-top"><span class="kpi-label">Valor Total SVC &amp; XPT</span><div class="kpi-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="9" cy="7" rx="6" ry="2.6"/><path d="M3 7v4c0 1.4 2.7 2.6 6 2.6s6-1.2 6-2.6V7"/><path d="M15 12.4c3 .2 6 1.3 6 2.6v3c0 1.4-2.7 2.6-6 2.6s-6-1.2-6-2.6v-2"/></svg></div></div><div class="kpi-value" id="kpiTotal">R$ 0,00</div><div class="kpi-sub" id="kpiTotalSub">Manhã: — · Tarde: —</div><div class="kpi-sub kpi-sub-strong" id="kpiTotalSoma" style="display:none;"></div><div class="delta-badge" id="kpiTotalDelta" style="display:none;"></div></div>
@@ -1562,12 +1575,12 @@ img,svg,canvas,video{max-width:100%}
     </div>
     <p class="filter-help" style="margin-top:-6px;margin-bottom:12px;">Clique nos campos de data para abrir o calendário ou digite a data manualmente. Datas sem planilha também podem ser consultadas.</p>
     <div class="rev-legend" id="revLegend"><strong>Situação:</strong><button type="button" class="rev-filter active" data-status="TODOS">Todos</button><button type="button" class="rev-filter" data-status="green"><i class="rev-dot green"></i> Revertido</button><button type="button" class="rev-filter" data-status="red"><i class="rev-dot red"></i> Não revertido</button></div>
-    <div class="rev-value-range" role="group" aria-label="Filtrar bases por faixa de valor"><strong>Faixa de valor (R$)</strong><label for="revValorDe">De:<input id="revValorDe" type="text" inputmode="decimal" placeholder="Ex.: 1.000"></label><label for="revValorAte">Até:<input id="revValorAte" type="text" inputmode="decimal" placeholder="Ex.: 2.000"></label><span>Deixe em branco para não limitar.</span></div>
+    <div class="rev-value-range" role="group" aria-label="Filtrar bases a partir de um valor"><strong>Valor mínimo para exibir:</strong><label for="revValorMin">R$<input id="revValorMin" type="text" inputmode="decimal" placeholder="Ex.: 2.000" aria-label="Valor mínimo para exibir as bases"></label><span>Mostra bases com valor igual ou acima do limite. Deixe vazio para mostrar todas.</span></div>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;display:flex;align-items:center;gap:10px;" id="revPeriodo">Valor Revertido <button type="button" class="mini-camera" id="btnCapturaRevertido" title="Capturar pacote revertido" aria-label="Capturar pacote revertido"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button></p>
-        <div class="rev-kpis"><div class="rev-kpi"><div class="lbl" id="revKpiAntesLabel">Valor estava</div><div class="val" id="revValorEstava">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl" id="revKpiValorLabel">Valor revertido</div><div class="val" id="revValor">R$ 0,00</div></div><div class="rev-kpi rev-value-current-card"><div class="lbl" id="revKpiRiscoLabel">Valor atual</div><div class="val" id="revRisco">R$ 0,00</div></div><div class="rev-kpi rev-risk-card"><div class="lbl" id="revKpiNaoLabel">% em risco</div><button type="button" class="val rev-risk-toggle" id="revNaoRevertido" aria-expanded="false" aria-controls="revRiskDetail">0,0%</button><div class="rev-risk-detail" id="revRiskDetail" hidden></div></div><div class="rev-kpi"><div class="lbl" id="revKpiBasesLabel">Bases com reversão</div><div class="val" id="revBases">0</div></div><div class="rev-kpi"><div class="lbl">Pacotes dentro do prazo</div><div class="val" id="revPersistentesSemRisco">0</div></div><div class="rev-kpi"><div class="lbl">Pacotes em risco</div><div class="val" id="revPersistentesComRisco">0</div></div></div>
-    <div class="rev-table-wrap"><table class="rev-table"><thead><tr><th>Situação</th><th>Regional</th><th>Base</th><th>Valor estava</th><th>Valor atual</th><th>Variação do valor</th><th>Pacotes dentro do prazo</th><th>Pacotes em risco</th><th>Motorista mais ofensor</th><th>Valor em risco do motorista</th><th>Dias como ofensor</th></tr></thead><tbody id="revBody"></tbody></table></div>
+        <div class="rev-kpis"><div class="rev-kpi"><div class="lbl" id="revKpiAntesLabel">Valor estava</div><div class="val" id="revValorEstava">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl" id="revKpiValorLabel">Valor revertido</div><div class="val" id="revValor">R$ 0,00</div></div><div class="rev-kpi rev-value-current-card"><div class="lbl" id="revKpiRiscoLabel">Valor atual</div><div class="val" id="revRisco">R$ 0,00</div></div><div class="rev-kpi rev-risk-card"><div class="lbl" id="revKpiNaoLabel">% em risco</div><span role="button" tabindex="0" class="val rev-risk-toggle" id="revNaoRevertido" aria-expanded="false" aria-controls="revRiskDetail">0,0%</span><div class="rev-risk-detail" id="revRiskDetail" hidden></div></div><div class="rev-kpi"><div class="lbl" id="revKpiBasesLabel">Bases com reversão</div><div class="val" id="revBases">0</div></div><div class="rev-kpi"><div class="lbl">Pacotes dentro do prazo</div><div class="val" id="revPersistentesSemRisco">0</div></div><div class="rev-kpi"><div class="lbl">Pacotes em risco</div><div class="val" id="revPersistentesComRisco">0</div></div></div>
+    <div class="rev-table-wrap"><table class="rev-table"><thead><tr><th>Situação</th><th>Regional</th><th>Base</th><th id="revColAntes">Valor estava</th><th id="revColRevertido">Redução confirmada</th><th id="revColNaoRevertido">Valor não revertido</th><th id="revColPercent" class="rev-summary-col">% Pacote Revertido</th><th>Dentro do prazo</th><th>Em risco</th><th>Motorista mais ofensor</th><th>Dias como ofensor</th></tr></thead><tbody id="revBody"></tbody></table></div>
     <div class="driver-detail-panel" id="motoristaDetalhePanel" style="display:none;"><div class="driver-detail-head"><div><h3 id="motoristaDetalheTitulo">Detalhes do motorista</h3><div class="osub">Pacotes e ocorrências do motorista selecionado</div></div><button type="button" class="overlay-close" id="motoristaDetalheFechar">Fechar detalhes</button></div><div class="rev-kpis"><div class="rev-kpi"><div class="lbl">Motorista</div><div class="val" id="motoristaNome">—</div></div><div class="rev-kpi"><div class="lbl">Valor em risco</div><div class="val" id="motoristaValor">R$ 0,00</div></div><div class="rev-kpi"><div class="lbl">Dias como ofensor</div><div class="val" id="motoristaOcorrencias">0</div><div id="motoristaOfensorFaixas"></div></div><div class="rev-kpi"><div class="lbl">Pacotes atuais do motorista</div><div class="val" id="motoristaPacotes">0</div></div></div><div class="rev-table-wrap"><table class="rev-table"><thead><tr><th>Data</th><th>Regional</th><th>Base</th><th>Pacote</th><th>Tipo</th><th>Valor de risco</th><th>Motivo</th></tr></thead><tbody id="motoristaBody"></tbody></table></div></div>
-    <p class="rev-note">Cada pacote é contado uma única vez no período. Na aba percentual: Revertido = tratado até 48 horas; Não revertido = não tratado até 48 horas. Pacotes que ainda estão dentro das 48 horas ficam aguardando a decisão e não entram como ofensor. Pacotes que ainda não completaram 48 horas ficam fora dos dois valores. A seleção semanal acompanha os pacotes desde a primeira aparição e não soma repetição diária. Pacotes da tarde têm seu próprio horário de vencimento.</p>
+    <p class="rev-note">Cada pacote é contado uma única vez no período. Valor revertido inclui pacotes que saíram da planilha entre as datas e reduções de valor observadas. Valor não revertido em risco é o valor de pacotes que continuam na planilha atual após vencer o prazo de 48 horas. Pacotes ainda dentro do prazo ficam aguardando a decisão. A seleção semanal acompanha os pacotes desde a primeira aparição e não soma repetição diária. Pacotes da tarde têm seu próprio horário de vencimento.</p>
   </div>
 
   <!-- ===================== IMPORTADOS ===================== -->
@@ -4404,11 +4417,11 @@ function renderRevertido(){
     setRevPeriodo('Valor Revertido · '+fmtFull(comp.value)+' até '+fmtFull(atual.value)+' · nenhuma planilha importada neste intervalo');
     document.getElementById('revValorEstava').textContent=revViewMode==='valor'?'R$ 0,00':'0';document.getElementById('revValor').textContent=revViewMode==='valor'?'R$ 0,00':'0';document.getElementById('revRisco').textContent=revViewMode==='valor'?'R$ 0,00':'0,0%';
     ['revBases','revPersistentesSemRisco','revPersistentesComRisco'].forEach(id=>{document.getElementById(id).textContent=fmtInt(0);});
-    document.getElementById('revBody').innerHTML='<tr><td colspan="10" class="history-empty">Não há planilha importada entre as datas selecionadas.</td></tr>';
+    document.getElementById('revBody').innerHTML='<tr><td colspan="11" class="history-empty">Não há planilha importada entre as datas selecionadas.</td></tr>';
     renderRevResumo([],()=>true,comp.value,atual.value,revStatusFilter);
     return;
   }
-  const startDay=rangeDates[0], endDay=rangeDates[rangeDates.length-1], lastIdx=rangeDates.length-1;
+  const startDay=rangeDates[0], endDay=rangeDates[rangeDates.length-1];
   const pkgKey=e=>String(e.pacote||'').trim()||('__'+e.base+'|'+e.driverId+'|'+e.valor+'|'+e.date);
   const baseOk=base=>(reg==='TODOS'||regionalFromBasePrefix(base)===reg)&&(!basesOfensor||basesOfensor.has(base))&&(baseSel.value==='TODAS'||base===baseSel.value);
   /* "Valor que não entra": pacote cujo MAIOR valor no período é <= ao limite é ignorado
@@ -4417,13 +4430,17 @@ function renderRevertido(){
   const maxVal=new Map();
   if(valMin>0) rangeDates.forEach(d=>revertidoEntriesForDay(d).forEach(e=>{const k=pkgKey(e),v=Number(e.valor)||0;if(!maxVal.has(k)||v>maxVal.get(k))maxVal.set(k,v);}));
   const valOk=e=>valMin<=0||(maxVal.has(pkgKey(e))?maxVal.get(pkgKey(e))>valMin:(Number(e.valor)||0)>valMin);
+  const currentImport=revSnapshotImportForDay(endDay);
+  const endTimestamp=currentImport?revImportTimestamp(currentImport):(new Date(endDay+'T00:00:00').getTime()+24*60*60*1000);
+  const importSequence=IMPORTS.filter(i=>i.importDate>=startDay&&i.importDate<=endDay&&revImportTimestamp(i)<=endTimestamp).slice().sort((a,b)=>revImportTimestamp(a)-revImportTimestamp(b));
+  const snapshotSequence=importSequence.length?importSequence:rangeDates.map(d=>revSnapshotImportForDay(d)).filter(Boolean);
+  const lastIdx=snapshotSequence.length-1;
   const pk=new Map(), baseDriver={};
-  rangeDates.forEach((d,idx)=>{
-    const dayImport=revSnapshotImportForDay(d);
-    const dayMins=dayImport?revImportMins(dayImport):(dayImport&&dayImport.turno==='Tarde'?15*60:9*60);
-    const dayTimestamp=new Date(d+'T00:00:00').getTime()+dayMins*60000;
+  snapshotSequence.forEach((dayImport,idx)=>{
+    const d=dayImport.importDate;
+    const dayTimestamp=revImportTimestamp(dayImport);
     const seen=new Map();
-    revertidoEntriesForDay(d).forEach(e=>{if(baseOk(e.base)&&valOk(e))seen.set(pkgKey(e),e);});
+    (dayImport.entries||[]).forEach(e=>{if(baseOk(e.base)&&valOk(e))seen.set(pkgKey(e),e);});
     seen.forEach((e,k)=>{
       const v=Number(e.valor)||0;
       let p=pk.get(k);
@@ -4431,23 +4448,24 @@ function renderRevertido(){
       p.lastIdx=idx;p.lastValue=v;p.lastEntry=e;p.lastTimestamp=dayTimestamp;
       const bd=baseDriver[e.base]||(baseDriver[e.base]={}), id=String(e.driverId||'Não identificado');
       const dr=bd[id]||(bd[id]={count:0,value:0,currentValue:0});
-      const age=Number(diasParado(e,String(d)+'T00:00:00')); dr.days=dr.days||new Set(); if(age>=3)dr.days.add(d); dr.count=dr.days.size; dr.value+=v; if(idx===lastIdx&&age>=3)dr.currentValue+=v;
+      const age=Number(diasParado(e,String(d)+'T00:00:00')); dr.days=dr.days||new Set(); if(age>=3)dr.days.add(d); dr.count=dr.days.size; dr.dayValues=dr.dayValues||{};dr.dayValues[d]=v;dr.value=Object.values(dr.dayValues).reduce((sum,n)=>sum+n,0); if(idx===lastIdx&&age>=3)dr.currentValue+=v;
     });
   });
-  const currentImport=revSnapshotImportForDay(endDay), horaAtual=currentImport?revImportMins(currentImport):24*60, firstSeen=revFirstSeenMap(endDay,currentImport), refDate=new Date(endDay+'T00:00:00');
+  const horaAtual=currentImport?revImportMins(currentImport):24*60, firstSeen=revFirstSeenMap(endDay,currentImport), refDate=new Date(endDay+'T00:00:00');
   /* Valor atual é sempre o total da base na data "Até", independente do status
      da linha. Assim, uma base não aparece com R$ 0,00 só porque a linha exibida
      contém pacotes revertidos; o status continua sendo calculado por pacote. */
-  const currentByBase={}, beforeByBase={}, baseWithin={}, baseRisk={}, withinValueByBase={}, riskValueByBase={}, redBefore={}, redCurrent={};
+  const currentByBase={}, beforeByBase={}, baseWithin={}, baseRisk={}, withinValueByBase={}, riskValueByBase={}, removedValueByBase={}, basePackageRemoved={}, redBefore={}, redCurrent={};
   const basePackageTotals={}, basePackageReverted={}, basePackageRisk={};
-  revertidoEntriesForDay(startDay).forEach(e=>{if(baseOk(e.base)&&valOk(e))beforeByBase[e.base]=(beforeByBase[e.base]||0)+(Number(e.valor)||0);});
-  revertidoEntriesForDay(endDay).forEach(e=>{if(baseOk(e.base)&&valOk(e))currentByBase[e.base]=(currentByBase[e.base]||0)+(Number(e.valor)||0);});
+  const firstImport=snapshotSequence[0]||revSnapshotImportForDay(startDay);
+  (firstImport?.entries||[]).forEach(e=>{if(baseOk(e.base)&&valOk(e))beforeByBase[e.base]=(beforeByBase[e.base]||0)+(Number(e.valor)||0);});
+  (currentImport?.entries||[]).forEach(e=>{if(baseOk(e.base)&&valOk(e))currentByBase[e.base]=(currentByBase[e.base]||0)+(Number(e.valor)||0);});
   const rowsMap=new Map();
   const getRow=(base,st)=>{
     const key=base+'|'+st;
     if(!rowsMap.has(key)){
       const dr=Object.entries(baseDriver[base]||{}).sort((a,z)=>z[1].count-a[1].count||z[1].value-a[1].value)[0];
-      rowsMap.set(key,{base,reg:regionalFromBasePrefix(base)||'OUTROS',status:st,before:0,current:0,statusValue:0,reverted:0,packageTotal:0,packageReverted:0,persistentSemRisco:0,persistentComRisco:0,pkgs:new Set(),driverId:dr?dr[0]:'',driverName:dr?getDriverName(dr[0]):'Não identificado',driverRisk:dr?(dr[1].currentValue||dr[1].value):0,driverCount:dr?dr[1].count:0});
+      rowsMap.set(key,{base,reg:regionalFromBasePrefix(base)||'OUTROS',status:st,before:0,current:0,statusValue:0,reverted:0,removedUnconfirmed:0,packageTotal:0,packageReverted:0,persistentSemRisco:0,persistentComRisco:0,pkgs:new Set(),driverId:dr?dr[0]:'',driverName:dr?getDriverName(dr[0]):'Não identificado',driverRisk:dr?(dr[1].currentValue||dr[1].value):0,driverCount:dr?dr[1].count:0});
     }
     return rowsMap.get(key);
   };
@@ -4455,39 +4473,33 @@ function renderRevertido(){
     const inLast=p.lastIdx===lastIdx;
     const isNew=lastIdx>0&&p.firstIdx===lastIdx;           /* só apareceu na última planilha: não havia antes */
     const beforeValue=p.firstIdx===0?p.firstValue:0, afterValue=inLast?p.lastValue:0;
-    let st, revAmt=0;
-    const referenceTimestamp=inLast?dayTimestampForEntry(p.lastEntry,endDay,horaAtual):p.lastTimestamp;
-    const elapsedHours=Math.max(0,(referenceTimestamp-p.firstTimestamp)/3600000);
+    let st, revAmt=0, removedAmt=0;
+    const firstTimestamp=firstSeen.get(p.k)?.timestamp??p.firstTimestamp;
+    const referenceTimestamp=p.lastTimestamp;
+    const elapsedHours=Math.max(0,(referenceTimestamp-firstTimestamp)/3600000);
+    revAmt=inLast?Math.max(0,beforeValue-afterValue):Math.max(beforeValue,Number(p.lastValue)||0);
     if(!inLast){
-      /* Tratado até 48h = Revertido; tratado somente depois de 48h = Não revertido. */
-      st=elapsedHours<=REV_PRAZO_HORAS?'green':'red';
-      revAmt=st==='green'?beforeValue:0;
-    }
-    else if(elapsedHours>REV_PRAZO_HORAS) st='red';
-    else { baseWithin[p.base]=(baseWithin[p.base]||0)+1; withinValueByBase[p.base]=(withinValueByBase[p.base]||0)+p.lastValue; return; }
+      st='green'; removedAmt=0;
+    } else if(elapsedHours>REV_PRAZO_HORAS) st='red';
+    else { st='orange'; baseWithin[p.base]=(baseWithin[p.base]||0)+1; withinValueByBase[p.base]=(withinValueByBase[p.base]||0)+p.lastValue; }
     basePackageTotals[p.base]=(basePackageTotals[p.base]||0)+1;
-    if(st==='green') basePackageReverted[p.base]=(basePackageReverted[p.base]||0)+1;
+    if(revAmt>0.005) basePackageReverted[p.base]=(basePackageReverted[p.base]||0)+1;
     if(st==='red') basePackageRisk[p.base]=(basePackageRisk[p.base]||0)+1;
     const r=getRow(p.base,st);
-    r.before+=beforeValue;r.current+=afterValue;r.reverted+=revAmt;r.packageTotal=(r.packageTotal||0)+1;r.packageReverted=(r.packageReverted||0)+(st==='green'?1:0);r.packageWithin=(r.packageWithin||0)+(st==='orange'?1:0);r.packageRisk=(r.packageRisk||0)+(st==='red'?1:0);r.statusValue=(r.statusValue||0)+(st==='green'?revAmt:afterValue);r.pkgs.add(p.k);
-    if(st==='red'){redBefore[p.base]=(redBefore[p.base]||0)+beforeValue;redCurrent[p.base]=(redCurrent[p.base]||0)+afterValue;riskValueByBase[p.base]=(riskValueByBase[p.base]||0)+(inLast?p.lastValue:beforeValue);}
-    if(st!=='green'){
-      /* Os indicadores seguem o prazo fixo de 48 horas do status. */
-      if(revPacoteVencido(p.lastEntry,endDay,horaAtual,firstSeen)){
-        r.persistentComRisco++;baseRisk[p.base]=(baseRisk[p.base]||0)+1;
-      }else{
-        r.persistentSemRisco++;baseWithin[p.base]=(baseWithin[p.base]||0)+1;
-      }
-    }
+    r.before+=beforeValue;r.current+=afterValue;r.reverted+=revAmt;r.removedUnconfirmed=(r.removedUnconfirmed||0)+removedAmt;r.packageTotal=(r.packageTotal||0)+1;r.packageReverted=(r.packageReverted||0)+(revAmt>0.005?1:0);r.packageWithin=(r.packageWithin||0)+(st==='orange'?1:0);r.packageRisk=(r.packageRisk||0)+(st==='red'?1:0);r.statusValue=(r.statusValue||0)+(st==='red'?afterValue:revAmt);r.pkgs.add(p.k);
+    if(st==='red'){redBefore[p.base]=(redBefore[p.base]||0)+beforeValue;redCurrent[p.base]=(redCurrent[p.base]||0)+afterValue;riskValueByBase[p.base]=(riskValueByBase[p.base]||0)+p.lastValue;}
+    if(st==='red'){
+      r.persistentComRisco++;baseRisk[p.base]=(baseRisk[p.base]||0)+1;
+    } else if(st==='orange') { r.persistentSemRisco++;baseWithin[p.base]=(baseWithin[p.base]||0)+1; }
   });
   /* Uma única linha por base: a situação exibida é a mais crítica encontrada
      entre os pacotes da base (Não Revertido > Em Prazo > Valor Revertido). */
-  const statusPriority={green:1,orange:2,red:3};
+  const statusPriority={green:1,orange:2,removed:3,red:4};
   const oneRowPerBase=new Map();
   rowsMap.forEach(r=>{
     const current=oneRowPerBase.get(r.base);
     if(!current){ oneRowPerBase.set(r.base,{...r,pkgs:new Set(r.pkgs)}); return; }
-    current.before+=r.before; current.current+=r.current; current.reverted+=r.reverted; current.packageTotal=(current.packageTotal||0)+(r.packageTotal||0); current.packageReverted=(current.packageReverted||0)+(r.packageReverted||0); current.packageWithin=(current.packageWithin||0)+(r.packageWithin||0); current.packageRisk=(current.packageRisk||0)+(r.packageRisk||0); current.statusValue+=r.statusValue||0;
+    current.before+=r.before; current.current+=r.current; current.reverted+=r.reverted; current.removedUnconfirmed=(current.removedUnconfirmed||0)+(r.removedUnconfirmed||0); current.packageTotal=(current.packageTotal||0)+(r.packageTotal||0); current.packageReverted=(current.packageReverted||0)+(r.packageReverted||0); current.packageWithin=(current.packageWithin||0)+(r.packageWithin||0); current.packageRisk=(current.packageRisk||0)+(r.packageRisk||0); current.statusValue+=r.statusValue||0;
     current.persistentSemRisco+=r.persistentSemRisco||0; current.persistentComRisco+=r.persistentComRisco||0;
     r.pkgs.forEach(k=>current.pkgs.add(k));
     if((statusPriority[r.status]||0)>(statusPriority[current.status]||0)){ current.status=r.status; current.driverId=r.driverId; current.driverName=r.driverName; current.driverRisk=r.driverRisk; current.driverCount=r.driverCount; }
@@ -4498,15 +4510,16 @@ function renderRevertido(){
   const rows=Array.from(oneRowPerBase.values()).map(r=>{
     const baseBefore=beforeByBase[r.base]||0, baseCurrent=currentByBase[r.base]||0;
     const baseDelta=baseCurrent-baseBefore, baseWithinValue=baseWithin[r.base]||0, baseRiskValue=baseRisk[r.base]||0;
-    /* Situação da base decidida pelos PACOTES (não pela variação do valor total):
-       qualquer pacote vencido (mais de 48h) que continua na planilha deixa a base vermelha;
-       sem pacote vencido, a base é verde (pacotes tratados saíram da planilha).
-       Assim a cor não muda conforme a data de "Comparar". */
-    const status=(basePackageReverted[r.base]||0)>0 ? 'green' : (baseRiskValue>0 ? 'red' : 'green');
+    /* Situação da base: risco vencido atual tem prioridade; remoções sem confirmação ficam separadas; reduções observadas são confirmadas. */
+    const status=(basePackageReverted[r.base]||0)>0?'green':(baseRiskValue>0?'red':((basePackageRemoved[r.base]||0)>0?'removed':'orange')); 
     const rB=redBefore[r.base]||0, rC=redCurrent[r.base]||0;
-    const reconciledCurrent=Math.max(0,baseBefore-(r.reverted||0)); return {...r,status,baseBefore,baseCurrent,baseDelta,reconciledCurrent,nonRevertedValue:riskValueByBase[r.base]||0,treatmentValue:withinValueByBase[r.base]||0,baseWithin:baseWithinValue,baseRisk:baseRiskValue,packageTotal:basePackageTotals[r.base]||0,packageReverted:basePackageReverted[r.base]||0,redBefore:rB,redCurrent:rC};
+    const reconciledCurrent=Math.max(0,baseBefore-(r.reverted||0)); return {...r,status,baseBefore,baseCurrent,baseDelta,reconciledCurrent,removedUnconfirmed:removedValueByBase[r.base]||0,nonRevertedValue:status==='red'?(riskValueByBase[r.base]||0):0,treatmentValue:withinValueByBase[r.base]||0,baseWithin:baseWithinValue,baseRisk:status==='red'?baseRiskValue:0,packageTotal:basePackageTotals[r.base]||0,packageReverted:basePackageReverted[r.base]||0,redBefore:rB,redCurrent:rC};
   }).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
-  const visibleRows=revStatusFilter==='TODOS'?rows:(revStatusFilter==='green'?rows.filter(r=>(r.packageReverted||0)>0):rows.filter(r=>(r.baseRisk||0)>0));
+  const categoryRows=revStatusFilter==='TODOS'?rows:(revStatusFilter==='green'?rows.filter(r=>r.status==='green'):(revStatusFilter==='red'?rows.filter(r=>r.status==='red'):(revStatusFilter==='removed'?rows.filter(r=>r.status==='removed'):rows.filter(r=>r.status==='orange'))));
+  const valueMinRaw=document.getElementById('revValorMin')?.value.trim()||'';
+  const valueMin=valueMinRaw?parseBRNumber(valueMinRaw):null;
+  const selectedStatus=revStatusFilter;
+  const visibleRows=categoryRows.filter(r=>{const amount=selectedStatus==='red'?(r.nonRevertedValue||0):(selectedStatus==='green'?(r.reverted||0):(selectedStatus==='removed'?(r.removedUnconfirmed||0):(r.baseCurrent||0)));return valueMin===null||amount>=valueMin;});
   const sumBy=f=>visibleRows.reduce((s,r)=>s+f(r),0);
   const totalPackages=sumBy(r=>(r.packageTotal||0));
   const totalReverted=sumBy(r=>(r.packageReverted||0));
@@ -4517,7 +4530,7 @@ function renderRevertido(){
   const allPackages=Array.from(metricBases).reduce((n,base)=>n+(basePackageTotals[base]||0),0);
   const allReverted=Array.from(metricBases).reduce((n,base)=>n+(basePackageReverted[base]||0),0);
   const allWithin=Array.from(metricBases).reduce((n,base)=>n+(baseWithin[base]||0),0);
-  const allRisk=Array.from(metricBases).reduce((n,base)=>n+(baseRisk[base]||0),0);
+  const allRisk=Array.from(metricBases).reduce((n,base)=>n+((rows.find(r=>r.base===base)?.status==='red')?(baseRisk[base]||0):0),0);
   const basesCount=new Set(visibleRows.map(r=>r.base)).size;
   const packageMode=revViewMode==='pacote';
   if(revStatusFilter==='orange') revStatusFilter='TODOS';
@@ -4532,29 +4545,29 @@ function renderRevertido(){
   const packagePercent=percent(packageRevertedMetric,packageTotalMetric);
   document.getElementById('revKpiAntesLabel').textContent=packageMode?'Pacotes analisados':'Valor estava';
   document.getElementById('revKpiValorLabel').textContent=packageMode?'% Pacote Revertido':(revStatusFilter==='red'?'Valor não revertido':'Valor revertido');
-  document.getElementById('revKpiRiscoLabel').textContent=packageMode?'Pacotes revertidos':'Sem Valor atual';
+  document.getElementById('revKpiRiscoLabel').textContent=packageMode?'Pacotes revertidos':'Valor atual';
   document.getElementById('revKpiBasesLabel').textContent=packageMode?(revStatusFilter==='red'?'Bases não revertidas':'Bases com reversão'):(revStatusFilter==='red'?'Bases sem reversão':'Bases com reversão');
   document.getElementById('revValorEstava').textContent=packageMode?fmtInt(packageTotalMetric):fmtBRL(displayedBefore);
-  document.getElementById('revValor').textContent=packageMode?packagePercent:fmtBRL(revStatusFilter==='red'?displayedCurrent:displayedReverted);
-  document.getElementById('revRisco').textContent=packageMode?fmtInt(packageRevertedMetric):'—';
-  document.getElementById('revKpiNaoLabel').textContent=packageMode?'% Não Revertido':'Valor não revertido';
+  document.getElementById('revValor').textContent=packageMode?packagePercent:(revStatusFilter==='red'?'↓ '+fmtBRL(displayedNonReverted):fmtBRL(displayedReverted));
+  document.getElementById('revRisco').textContent=packageMode?fmtInt(packageRevertedMetric):fmtBRL(displayedCurrent);
+  document.getElementById('revKpiNaoLabel').textContent=packageMode?'% Não Revertido':'% em risco';
   document.getElementById('revNaoRevertido').closest('.rev-kpi').hidden=!packageMode&&revStatusFilter==='green';
-  document.getElementById('revNaoRevertido').textContent=packageMode?percent(revStatusFilter==='red'?totalRisk:allRisk,revStatusFilter==='TODOS'?allPackages:totalPackages):fmtBRL(displayedNonReverted);
-  document.querySelector('.rev-value-current-card')?.classList.toggle('rev-value-hidden',!packageMode);
+  document.getElementById('revNaoRevertido').textContent=packageMode?percent(revStatusFilter==='red'?totalRisk:allRisk,revStatusFilter==='TODOS'?allPackages:totalPackages):percent(displayedNonReverted,displayedCurrent);document.getElementById('revNaoRevertido').dataset.currentValue=String(displayedCurrent);document.getElementById('revNaoRevertido').dataset.riskValue=String(displayedNonReverted);
+  document.querySelector('.rev-value-current-card')?.classList.toggle('rev-value-hidden',packageMode);
   document.getElementById('revColPercent')?.classList.toggle('rev-value-hidden',!packageMode);
   document.getElementById('revBases').textContent=fmtInt(basesCount);
   document.getElementById('revPersistentesSemRisco').textContent=fmtInt(revStatusFilter==='TODOS'?allWithin:totalWithin);
   document.getElementById('revPersistentesComRisco').textContent=fmtInt(revStatusFilter==='TODOS'?allRisk:totalRisk);
-  document.getElementById('revViewHelp').textContent=packageMode?'Tratado até 48 horas = Revertido · não tratado até 48 horas = Não revertido.':'Visão por valor em R$. O prazo de tratamento é de 48 horas corridas.';
+  document.getElementById('revViewHelp').textContent=packageMode?'Redução de valor observada ou pacote ausente na planilha atual = revertido.':'Pacotes ausentes na planilha atual ou com redução de valor observada são revertidos; pacotes ainda presentes entram em risco somente após 48 horas.';
   document.getElementById('revColAntes').textContent=packageMode?'Pacotes analisados':'Valor estava';
-  document.getElementById('revColRevertido').textContent=packageMode?(revStatusFilter==='red'?'Pacotes não revertidos':'Pacotes revertidos'):(revStatusFilter==='red'?'Valor não revertido':'Valor revertido');
-  document.getElementById('revColNaoRevertido').textContent=packageMode?'% Não Revertido':'Valor não revertido';
+  document.getElementById('revColRevertido').textContent=packageMode?(revStatusFilter==='red'?'Pacotes não revertidos':'Pacotes revertidos'):'Valor revertido';
+  document.getElementById('revColNaoRevertido').textContent=packageMode?'% Não Revertido':'Valor não revertido em risco';
   document.getElementById('revColNaoRevertido').hidden=!packageMode&&revStatusFilter==='green';
   document.getElementById('revColPercent').textContent=packageMode?'% Pacote Revertido':'';
   setRevPeriodo((packageMode?'Pacote Revertido':'Valor Revertido')+' · '+fmtFull(startDay)+' até '+fmtFull(endDay)+((startDay!==comp.value||endDay!==atual.value)?' · só há planilha de '+fmtFull(startDay)+' a '+fmtFull(endDay)+' dentro do intervalo pedido':''));
   const pkgSet=revStatusFilter==='TODOS'?null:new Set(visibleRows.flatMap(r=>Array.from(r.pkgs)));
   renderRevResumo(rangeDates,e=>baseOk(e.base)&&valOk(e)&&(!pkgSet||pkgSet.has(pkgKey(e))),comp.value,atual.value,revStatusFilter);
-  document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const total=b.packageTotal||0, reverted=b.packageReverted||0;const rowStatus=revStatusFilter==='green'?'green':(revStatusFilter==='red'?'red':b.status);const statusLabel=({green:packageMode?'Revertido':'Pacote Revertido',orange:'',red:packageMode?'Não revertido':'Não revertido'}[rowStatus]);const valueBefore=b.baseBefore;const valueCurrent=b.baseCurrent;const valueNonReverted=rowStatus==='red'?(b.nonRevertedValue||0):0;return '<tr class="status-'+rowStatus+'"><td><span class="rev-status '+rowStatus+'"><i class="rev-dot '+rowStatus+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(valueBefore))+'</strong></td><td>'+(packageMode?fmtInt(reverted):'<span class="rev-value-trend '+(rowStatus==='red'?'down':'up')+'">'+(rowStatus==='red'?'↓ ':'↑ ')+fmtBRL(rowStatus==='red'?valueNonReverted:b.reverted)+'</span>')+'</td>'+(packageMode?'<td>'+percent(rowStatus==='green'?reverted:(b.baseRisk||0),total)+'</td>':(revStatusFilter==='green'?'':'<td>'+fmtBRL(valueNonReverted)+'</td>'))+'<td class="rev-summary-col '+(packageMode?'':'rev-value-hidden')+'"><strong>'+(packageMode?percent(reverted,total):'')+'</strong></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="11" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
+  document.getElementById('revBody').innerHTML=visibleRows.length?visibleRows.map(b=>{const total=b.packageTotal||0, reverted=b.packageReverted||0;const rowStatus=revStatusFilter==='green'?'green':(revStatusFilter==='red'?'red':b.status);const statusLabel=({green:packageMode?'Revertido':'Valor revertido',orange:'Em prazo',red:'Não revertido'}[rowStatus]);const valueBefore=b.baseBefore;const valueCurrent=b.baseCurrent;const valueNonReverted=rowStatus==='red'?(b.nonRevertedValue||0):0;return '<tr class="status-'+rowStatus+'"><td><span class="rev-status '+rowStatus+'"><i class="rev-dot '+rowStatus+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(valueBefore))+'</strong></td><td>'+(packageMode?fmtInt(reverted):'<span class="rev-value-trend up">'+'↑ '+fmtBRL(b.reverted)+'</span>')+'</td>'+(packageMode?'<td>'+percent(rowStatus==='green'?reverted:(b.baseRisk||0),total)+'</td>':(revStatusFilter==='green'?'':'<td>'+(rowStatus==='red'?'↓ ':'')+fmtBRL(valueNonReverted)+'</td>'))+'<td class="rev-summary-col '+(packageMode?'':'rev-value-hidden')+'"><strong>'+(packageMode?percent(reverted,total):'')+'</strong></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';}).join(''):'<tr><td colspan="11" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
 }
 ['revAtual','revComparar','revRegional','revBase','revOrigem'].forEach(id=>document.getElementById(id).addEventListener('change',renderRevertido));
 document.getElementById('revQuick').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),idx=ds.indexOf(document.getElementById('revAtual').value);const i=idx<0?ds.length-1:idx;
@@ -4583,6 +4596,9 @@ document.getElementById('revQuick').addEventListener('click',e=>{const b=e.targe
 document.getElementById('revAtualHoje').addEventListener('click',()=>{document.getElementById('revAtual').value=todayStr();renderRevertido();});
 document.getElementById('revInnerTabs').addEventListener('click',e=>{const btn=e.target.closest('[data-rev-view]');if(!btn)return;revViewMode=btn.dataset.revView||'valor';revStatusFilter='TODOS';document.querySelectorAll('#revInnerTabs [data-rev-view]').forEach(x=>x.classList.toggle('active',x===btn));document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x.dataset.status==='TODOS'));renderRevertido();});
 document.getElementById('revLegend').addEventListener('click',e=>{const btn=e.target.closest('.rev-filter');if(!btn)return;revStatusFilter=btn.dataset.status;document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x===btn));renderRevertido();});
+document.getElementById('revValorMin').addEventListener('input',renderRevertido);
+document.getElementById('revNaoRevertido').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.currentTarget.click();}});
+document.getElementById('revNaoRevertido').addEventListener('click',e=>{if(revViewMode==='pacote')return;const btn=e.currentTarget,detail=document.getElementById('revRiskDetail');if(btn.getAttribute('aria-expanded')==='true'){btn.setAttribute('aria-expanded','false');detail.hidden=true;return;}const current=Number(btn.dataset.currentValue)||0,risk=Number(btn.dataset.riskValue)||0;detail.innerHTML='<div class="risk-detail-row"><span>Valor atual</span><strong>'+fmtBRL(current)+'</strong></div><div class="risk-detail-row risk-detail-danger"><span>Se não tratar o valor vencido</span><strong>↑ '+fmtBRL(current+risk)+'</strong></div><small>Valor não revertido vencido (48h+): '+fmtBRL(risk)+'</small>';detail.hidden=false;btn.setAttribute('aria-expanded','true');});
 document.getElementById('revBody').addEventListener('click',e=>{const base=e.target.closest('[data-rev-base]');if(base){openRevertidoBasePackageDetail(base.dataset.revBase||'');return;}const btn=e.target.closest('.driver-link');if(!btn)return;motoristaSelecionado=btn.dataset.driver||'';renderMotoristas();document.getElementById('motoristaDetalhePanel').scrollTop=0;});
 function renderMotoristas(){
   const rows=[];
