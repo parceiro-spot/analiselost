@@ -1567,7 +1567,7 @@ img,svg,canvas,video{max-width:100%}
     <div class="rev-controls">
       <div class="grp"><label>De &lt;</label><input type="date" id="revComparar"></div>
       <div class="grp"><label>Até</label><input type="date" id="revAtual"><button type="button" class="preset-btn rev-hoje-btn" id="revAtualHoje" title="Usar a data de hoje">Hoje</button></div>
-      <div class="grp"><label>Comparação rápida</label><div class="presets" id="revQuick"><button type="button" class="preset-btn" data-days="1">Dia anterior</button><button type="button" class="preset-btn" data-days="7">Semana</button><button type="button" class="preset-btn" id="revMesBtn" aria-expanded="false">Mês</button></div><div class="presets rev-mes-opcoes" id="revMesOpcoes" hidden><button type="button" class="preset-btn" data-mes="atual">Mês atual</button><button type="button" class="preset-btn" data-mes="passado">Mês passado</button></div></div>
+      <div class="grp"><label>Comparação rápida</label><div class="presets" id="revQuick"><button type="button" class="preset-btn" data-days="1">Dia anterior</button><button type="button" class="preset-btn" data-days="7">Semana</button><button type="button" class="preset-btn" id="revMetaSemana">Meta da semana</button><button type="button" class="preset-btn" id="revMesBtn" aria-expanded="false">Mês</button></div><div class="presets rev-mes-opcoes" id="revMesOpcoes" hidden><button type="button" class="preset-btn" data-mes="atual">Mês atual</button><button type="button" class="preset-btn" data-mes="passado">Mês passado</button></div></div>
       <div class="grp"><label>Prazo para tratar</label><span class="preset-btn active" id="revPrazoFixo" aria-label="Prazo fixo de 48 horas">48 horas</span></div>
       <div class="grp"><label>Regional</label><select id="revRegional"><option value="TODOS">Todas</option></select></div>
       <div class="grp"><label>Base</label><select id="revBase"><option value="TODAS">Todas as bases</option></select></div>
@@ -4523,11 +4523,15 @@ function renderRevertido(){
   const configuredMetaRaw=document.getElementById('revMeta')?.value.trim()||'';
   const configuredMetaPct=configuredMetaRaw?Math.max(0,parseBRNumber(configuredMetaRaw)):0;
   const metaHelp=document.getElementById('revMetaHelp');
-  const totalMetaReduction=Object.values(beforeByBase).reduce((sum,value)=>sum+(Number(value)||0),0)*configuredMetaPct/100;
+  const selectedBaseForMeta=document.getElementById('revBase')?.value||'TODAS';
+  const selectedBaseBefore=selectedBaseForMeta!=='TODAS'?(beforeByBase[selectedBaseForMeta]||0):0;
+  const selectedBaseReduction=selectedBaseBefore*configuredMetaPct/100;
   if(metaHelp){
-    metaHelp.textContent=configuredMetaPct>0
-      ? 'As bases terão que diminuir −'+fmtBRL(totalMetaReduction)
-      : 'As bases terão que diminuir —';
+    metaHelp.textContent=configuredMetaPct>0 && selectedBaseBefore>0
+      ? 'A base terá que diminuir −'+fmtBRL(selectedBaseReduction)
+      : configuredMetaPct>0
+        ? 'Selecione uma base para ver quanto ela terá que diminuir'
+        : 'As bases terão que diminuir —';
   }
   const rows=Array.from(oneRowPerBase.values()).map(r=>{
     const baseBefore=beforeByBase[r.base]||0, baseCurrent=currentByBase[r.base]||0;
@@ -4631,11 +4635,13 @@ function renderRevertido(){
       : ((revStatusFilter==='green'||revStatusFilter==='red')?'':'<td>'+((b.nonRevertedValue||0)>0.005?'<span class="rev-value-trend up">'+fmtBRL(b.nonRevertedValue)+'</span>':fmtBRL(0))+'</td>');
     const metaRaw=document.getElementById('revMeta')?.value.trim()||'';
     const metaPct=metaRaw?Math.max(0,parseBRNumber(metaRaw)):0;
-    const metaTarget=b.baseBefore*metaPct/100;
+    const metaReduction=b.baseBefore*metaPct/100;
+    const metaValueTarget=Math.max(0,b.baseBefore-metaReduction);
     const reducedValue=Math.max(0,b.baseBefore-b.baseCurrent);
-    const metaResult=reducedValue-metaTarget;
+    const metaHit=b.baseBefore>0 && b.baseCurrent<=metaValueTarget;
+    const metaGap=Math.max(0,b.baseCurrent-metaValueTarget);
     const metaCell=packageMode?'<td class="rev-meta-column rev-value-hidden"></td>':(metaPct>0
-      ? '<td class="rev-meta-column"><strong class="'+(metaResult>=-0.005?'meta-ok':'meta-pending')+'">'+(metaResult>=-0.005?'Atingiu':'Faltam')+'</strong><br><small>Reduziu '+fmtBRL(reducedValue)+' / meta '+fmtBRL(metaTarget)+(metaResult>=-0.005?'':' · falta '+fmtBRL(Math.abs(metaResult)))+'</small></td>'
+      ? '<td class="rev-meta-column"><strong class="'+(metaHit?'meta-ok':'meta-pending')+'">'+(metaHit?'Atingiu':'Faltam')+'</strong><br><small>Meta: até '+fmtBRL(metaValueTarget)+' · Atual: '+fmtBRL(b.baseCurrent)+(metaHit?' · Reduziu '+fmtBRL(reducedValue):' · falta reduzir '+fmtBRL(metaGap))+'</small></td>'
       : '<td class="rev-meta-column">—</td>');
     const currentValueCell='<td class="rev-current-column '+(packageMode?'rev-value-hidden':'')+'">'+fmtBRL(b.baseCurrent)+'</td>';
     return '<tr class="status-'+rowStatus+'"><td><span class="rev-status '+rowStatus+'"><i class="rev-dot '+rowStatus+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(b.baseBefore))+'</strong></td><td>'+(packageMode?fmtInt(reverted):'<span class="rev-value-trend '+valueTrend+'">'+valueText+'</span>')+'</td>'+currentValueCell+nonRevertedCell+metaCell+'<td class="rev-summary-col '+(packageMode?'':'rev-value-hidden')+'"><strong>'+(packageMode?percent(reverted,total):'')+'</strong></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';
@@ -4649,6 +4655,15 @@ document.getElementById('revQuick').addEventListener('click',e=>{const b=e.targe
     document.getElementById('revAtual').value=fim;document.getElementById('revComparar').value=seg;
   } else {document.getElementById('revAtual').value=ds[i];document.getElementById('revComparar').value=ds[Math.max(0,i-Number(b.dataset.days))];}
   renderRevertido();});
+document.getElementById('revMetaSemana').addEventListener('click',()=>{
+  const ref=document.getElementById('revAtual').value||todayStr();
+  const wd=new Date(ref+'T00:00:00').getDay();
+  const seg=isoShift(ref,wd===0?-6:1-wd);
+  const sexta=isoShift(seg,4);
+  document.getElementById('revComparar').value=seg;
+  document.getElementById('revAtual').value=sexta;
+  renderRevertido();
+});
 (function(){
   const box=document.getElementById('revMesOpcoes'), btnMes=document.getElementById('revMesBtn'), quick=document.getElementById('revQuick');
   const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
