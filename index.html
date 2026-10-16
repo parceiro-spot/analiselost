@@ -4532,9 +4532,12 @@ function renderRevertido(){
     const rB=redBefore[r.base]||0, rC=redCurrent[r.base]||0;
     const reconciledCurrent=Math.max(0,baseBefore-(r.reverted||0)); return {...r,status,baseBefore,baseCurrent,baseDelta,reconciledCurrent,removedUnconfirmed:removedValueByBase[r.base]||0,nonRevertedValue:packageMode?(status==='red'?(riskValueByBase[r.base]||0):0):(riskValueByBase[r.base]||0),treatmentValue:withinValueByBase[r.base]||0,baseWithin:baseWithinValue,baseRisk:status==='red'?baseRiskValue:0,packageTotal:basePackageTotals[r.base]||0,packageReverted:basePackageReverted[r.base]||0,redBefore:rB,redCurrent:rC};
   }).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
+  /* No Valor Revertido, cada base pertence a uma única situação.
+     Como o risco vencido tem prioridade, uma base mista fica somente em
+     Não revertido e não aparece também no filtro Revertido. */
   const categoryRows=revStatusFilter==='TODOS' ? rows
-    : revStatusFilter==='green' ? (packageMode ? rows.filter(r=>r.status==='green') : rows.filter(r=>(r.reverted||0)>0.005))
-    : revStatusFilter==='red' ? (packageMode ? rows.filter(r=>r.status==='red') : rows.filter(r=>(r.nonRevertedValue||0)>0.005))
+    : revStatusFilter==='green' ? rows.filter(r=>r.status==='green')
+    : revStatusFilter==='red' ? rows.filter(r=>r.status==='red')
     : revStatusFilter==='removed' ? rows.filter(r=>r.status==='removed')
     : rows.filter(r=>(r.baseWithin||0)>0);
   const valueMinRaw=document.getElementById('revValorMin')?.value.trim()||'';
