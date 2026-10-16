@@ -24,4 +24,4 @@ A aba estava em branco porque o `index.html` não tinha a lógica nem o CSS dess
 
 ## Regra de Valor Revertido
 
-O arquivo executado pelo dashboard é o `index.html`. O `script.js` mantido na pasta é legado e não é carregado por esta página. A configuração oficial do prazo fica diretamente no JavaScript do dashboard (`index.html`): na aba **Valor Revertido**, cada pacote tem 24 horas para desaparecer da planilha seguinte; se continuar, o valor passa a **não revertido**. A aba **Pacote Revertido** mantém a regra própria de 48 horas.
+O arquivo executado pelo dashboard é o `index.html`. O `script.js` mantido na pasta é legado e não é carregado por esta página. A configuração oficial do prazo fica diretamente no JavaScript do dashboard (`index.html`): na aba **Valor Revertido**, o pacote é acompanhado nas primeiras 24 horas e pode permanecer em acompanhamento até 48 horas. Depois de 48 horas, a base é classificada pela maioria do valor: pelo menos 50% revertido = **Revertido**; pelo menos 50% vencido e maior que o revertido = **Não revertido**; os demais ficam em acompanhamento. A aba **Pacote Revertido** mantém a regra própria de 48 horas.
