@@ -4523,9 +4523,10 @@ function renderRevertido(){
   const configuredMetaRaw=document.getElementById('revMeta')?.value.trim()||'';
   const configuredMetaPct=configuredMetaRaw?Math.max(0,parseBRNumber(configuredMetaRaw)):0;
   const metaHelp=document.getElementById('revMetaHelp');
+  const totalMetaReduction=Object.values(beforeByBase).reduce((sum,value)=>sum+(Number(value)||0),0)*configuredMetaPct/100;
   if(metaHelp){
     metaHelp.textContent=configuredMetaPct>0
-      ? ('Meta de '+String(configuredMetaPct).replace('.',',')+'%: cada base precisa reduzir '+String(configuredMetaPct).replace('.',',')+'% do próprio Valor estava. Ex.: uma base de R$ 20.000 precisa reduzir '+fmtBRL(20000*configuredMetaPct/100)+' e terminar em até '+fmtBRL(20000-(20000*configuredMetaPct/100))+'.')
+      ? ('Meta de '+String(configuredMetaPct).replace('.',',')+'%: as bases terão que diminuir −'+fmtBRL(totalMetaReduction)+' no total. A meta é aplicada individualmente: cada base deve reduzir '+String(configuredMetaPct).replace('.',',')+'% do próprio Valor estava.')
       : 'Informe a porcentagem de redução desejada. Ex.: 5% em R$ 20.000 = reduzir R$ 1.000; valor-alvo: R$ 19.000.';
   }
   const rows=Array.from(oneRowPerBase.values()).map(r=>{
