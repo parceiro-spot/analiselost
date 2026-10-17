@@ -4035,7 +4035,7 @@ function regMetaLine(bl,filterFn,label){
   if(!bl) return '';
   let total=0; Object.keys(bl.byBase).forEach(b=>{ if(filterFn(b)) total+=bl.byBase[b]; });
   if(!(total>0)) return '';
-  return '<div class="reg-meta" title="Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(total)+' do início da semana">'+(label||'Meta')+': −'+fmtBRL(total*bl.pct/100)+' até sexta</div>';
+  return '<div class="reg-meta" title="Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(total)+' do início da semana">'+(label||'Meta')+': '+fmtBRL(total*bl.pct/100)+' até sexta</div>';
 }
 function regMetaToggleHtml(){
   if(!regMetaPct()) return '';
@@ -4619,11 +4619,11 @@ function renderRevertido(){
     } else if(!metaBasesList.length){
       metaHelp.textContent='Meta '+metaPctTxt+' · sem bases com valor neste período';
     } else if(baseSel.value!=='TODAS'){
-      metaHelp.textContent='Meta '+metaPctTxt+' · a base '+baseSel.value+' terá que diminuir −'+fmtBRL(metaReductionTotal)+' até sexta ('+metaFridayTxt+') · de '+fmtBRL(metaBeforeTotal)+' para até '+fmtBRL(metaBeforeTotal-metaReductionTotal);
+      metaHelp.textContent='Meta '+metaPctTxt+' · a base '+baseSel.value+' terá que diminuir '+fmtBRL(metaReductionTotal)+' até sexta ('+metaFridayTxt+') · de '+fmtBRL(metaBeforeTotal)+' para até '+fmtBRL(metaBeforeTotal-metaReductionTotal);
     } else if(reg!=='TODOS'){
-      metaHelp.textContent='Meta '+metaPctTxt+' · as '+metaBasesList.length+' bases da regional '+(REGIONAL_LABELS[reg]||reg)+' terão que diminuir −'+fmtBRL(metaReductionTotal)+' no total até sexta ('+metaFridayTxt+')';
+      metaHelp.textContent='Meta '+metaPctTxt+' · as '+metaBasesList.length+' bases da regional '+(REGIONAL_LABELS[reg]||reg)+' terão que diminuir '+fmtBRL(metaReductionTotal)+' no total até sexta ('+metaFridayTxt+')';
     } else {
-      metaHelp.textContent='Meta '+metaPctTxt+' · as '+metaBasesList.length+' bases terão que diminuir −'+fmtBRL(metaReductionTotal)+' no total até sexta ('+metaFridayTxt+')';
+      metaHelp.textContent='Meta '+metaPctTxt+' · as '+metaBasesList.length+' bases terão que diminuir '+fmtBRL(metaReductionTotal)+' no total até sexta ('+metaFridayTxt+')';
     }
   }
   const rows=Array.from(oneRowPerBase.values()).map(r=>{
@@ -4749,7 +4749,7 @@ function renderRevertido(){
           ? '<span class="meta-line-delta"><strong class="meta-pending">Aumentou: +'+fmtBRL(-metaDelta)+'</strong></span>'
           : '<span class="meta-line-delta"><small class="meta-line-done">Sem variação'+(metaHit?'':' · faltam '+fmtBRL(metaGap))+'</small></span>');
     const metaCell=packageMode?'<td class="rev-meta-column rev-value-hidden"></td>':(metaPct>0
-      ? '<td class="rev-meta-column"><span class="meta-line-goal">Diminuir '+fmtBRL(metaReduction)+' até sexta</span><span class="meta-line-delta"><strong class="'+(metaHit?'meta-ok':'meta-pending')+'">'+(metaHit?'Atingiu':'Não atingiu')+'</strong></span>'+metaDeltaLine+((b.graceValue||0)>0.005?'<small class="meta-line-done">Não conta: '+fmtBRL(b.graceValue)+' de pacotes novos (até 24h para tratar)</small>':'')+'</td>'
+      ? '<td class="rev-meta-column"><span class="meta-line-goal">META: '+fmtBRL(metaReduction)+' até sexta</span><span class="meta-line-delta"><strong class="'+(metaHit?'meta-ok':'meta-pending')+'">'+(metaHit?'Atingiu':'Não atingiu')+'</strong></span>'+metaDeltaLine+((b.graceValue||0)>0.005?'<small class="meta-line-done">Não conta: '+fmtBRL(b.graceValue)+' de pacotes novos (até 24h para tratar)</small>':'')+'</td>'
       : '<td class="rev-meta-column">—</td>');
     const currentValueCell='<td class="rev-current-column '+(packageMode?'rev-value-hidden':'')+'">'+fmtBRL(b.baseCurrent)+'</td>';
     return '<tr class="status-'+rowStatus+'"><td><span class="rev-status '+rowStatus+'"><i class="rev-dot '+rowStatus+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(b.baseBefore))+'</strong></td><td class="rev-col-revertido'+(hideRevertido?' rev-value-hidden':'')+'">'+(packageMode?fmtInt(reverted):'<span class="rev-value-trend '+valueTrend+'">'+valueText+'</span>')+'</td>'+currentValueCell+nonRevertedCell+metaCell+'<td class="rev-summary-col '+(packageMode?'':'rev-value-hidden')+'"><strong>'+(packageMode?percent(reverted,total):'')+'</strong></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';
