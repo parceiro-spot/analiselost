@@ -2840,6 +2840,7 @@ function prepareCaptureClone(doc){
       '.offenders-row .obar-fill{height:8px!important;border-radius:999px!important;background:var(--spot-green)!important}'+
       '.offenders-row .oval{flex:0 0 auto!important}';
     doc.head.appendChild(st);
+    if(!regMetaCaptureOn()) doc.querySelectorAll('.reg-meta').forEach(n=>n.remove());
     doc.querySelectorAll('.offenders-row').forEach(row=>{
       ['l','r'].forEach(side=>{const e=doc.createElement('i');e.className='capture-edge '+side;row.appendChild(e);});
     });
@@ -4013,6 +4014,44 @@ function renderRegionalHistoricalMatches(query,activeEntries){
   }).join('');
   return '<section class="regional-history-panel"><div class="regional-history-head"><div><h3>Histórico · fora da planilha ativa</h3><p>Resultados antigos da busca, separados dos totais atuais. A opacidade indica que o pacote não está na planilha selecionada.</p></div><span class="regional-history-count">'+fmtInt(matches.length)+' registro(s)'+(matches.length>limit?' · mostrando '+limit:'')+'</span></div>'+(rows?'<div class="regional-history-scroll"><table class="regional-history-table"><thead><tr><th>ID do pacote</th><th>Motorista</th><th>Rota</th><th>Base</th><th>Produto / motivo</th><th>Encontrado em</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="regional-history-empty">Nenhum registro anterior correspondente a “'+escHtml(query)+'”.</div>')+'</section>';
 }
+/* ===== Meta semanal nas Regionais e Bases ===== */
+const META_CAPTURA_KEY='spot_dashboard_meta_captura_v1';
+function regMetaPct(){ try{ const raw=localStorage.getItem('spot_dashboard_meta_semanal_v1')||''; const n=raw?parseBRNumber(raw):0; return n>0?n:0; }catch(e){ return 0; } }
+function regMetaCaptureOn(){ try{ return localStorage.getItem(META_CAPTURA_KEY)==='1'; }catch(e){ return false; } }
+function regMetaSince(){ try{ return localStorage.getItem('spot_dashboard_meta_semanal_since_v1')||''; }catch(e){ return ''; } }
+/* Base de cálculo: primeira planilha da semana (segunda) ou, se a meta foi ativada no meio da semana,
+   a primeira planilha a partir do dia da ativação. A meta vale até sexta. */
+function regMetaBaseline(activeImp){
+  const pct=regMetaPct(); if(!pct||!activeImp||!activeImp.importDate) return null;
+  const D=activeImp.importDate, wd=new Date(D+'T00:00:00').getDay();
+  const monday=isoShift(D,wd===0?-6:1-wd), since=regMetaSince();
+  const startDay=(since&&since>monday&&since<=D)?since:monday;
+  const seq=IMPORTS.filter(i=>i.importDate>=startDay&&i.importDate<=D).slice().sort((a,b)=>revImportTimestamp(a)-revImportTimestamp(b));
+  const first=seq[0]; if(!first) return null;
+  const byBase={}; (first.entries||[]).forEach(e=>{byBase[e.base]=(byBase[e.base]||0)+(Number(e.valor)||0);});
+  return {pct,byBase,startDay};
+}
+function regMetaLine(bl,filterFn,label){
+  if(!bl) return '';
+  let total=0; Object.keys(bl.byBase).forEach(b=>{ if(filterFn(b)) total+=bl.byBase[b]; });
+  if(!(total>0)) return '';
+  return '<div class="reg-meta" title="Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(total)+' do início da semana">'+(label||'Meta')+': −'+fmtBRL(total*bl.pct/100)+' até sexta</div>';
+}
+function regMetaToggleHtml(){
+  if(!regMetaPct()) return '';
+  const on=regMetaCaptureOn();
+  return '<button type="button" class="meta-capture-toggle'+(on?' on':'')+'" id="btnMetaCaptura" aria-pressed="'+on+'" title="META — ligado: a meta aparece na captura de tela. Desligado: a meta fica só na sua tela."><i class="meta-capture-box">'+(on?'✓':'')+'</i> META</button>';
+}
+function bindRegMetaToggle(){
+  const b=document.getElementById('btnMetaCaptura'); if(!b) return;
+  b.addEventListener('click',e=>{
+    e.stopPropagation();
+    const on=!regMetaCaptureOn();
+    try{ localStorage.setItem(META_CAPTURA_KEY,on?'1':'0'); }catch(err){}
+    b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on));
+    const box=b.querySelector('.meta-capture-box'); if(box) box.textContent=on?'✓':'';
+  });
+}
 function renderRegionalPage(){
   const crumb=document.getElementById('regionalBreadcrumb'); const content=document.getElementById('regionalContent');
   const activeImp=getSelectedImport();
@@ -4025,11 +4064,13 @@ function renderRegionalPage(){
   regionalEntries.forEach(e=>{const regional=regionalFromBasePrefix(e.base)||'OUTROS';if(!activeData[regional])activeData[regional]={entries:[]};activeData[regional].entries.push(e);});
   if(regionalNav.level==='list'){
     const turnosDoDia=activeImp?labelTurnosDoDia(activeImp.importDate):'';
-    crumb.innerHTML='<strong>Todas as regionais</strong><label class="regional-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="regionalSearch" type="search" value="'+escHtml(regionalSearch)+'" placeholder="Buscar pacote, rota ou motorista (inclui histórico)..." autocomplete="off"></label>'+(activeImp?'<span class="active-planilha-badge" style="margin-left:auto;"><b>'+(turnosDoDia==='Manhã - Tarde'?'PLANILHAS':'PLANILHA')+'</b> '+activeImp.importDate.split('-').reverse().join('/')+' · '+turnosDoDia+'</span>':'');
+    crumb.innerHTML='<strong>Todas as regionais</strong><label class="regional-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="regionalSearch" type="search" value="'+escHtml(regionalSearch)+'" placeholder="Buscar pacote, rota ou motorista (inclui histórico)..." autocomplete="off"></label>'+(activeImp?'<span class="active-planilha-badge" style="margin-left:0;flex:0 1 auto;width:fit-content;"><b>'+(turnosDoDia==='Manhã - Tarde'?'PLANILHAS':'PLANILHA')+'</b> '+activeImp.importDate.split('-').reverse().join('/')+' · '+turnosDoDia+'</span>':'')+regMetaToggleHtml()+'<button type="button" class="mini-camera" id="btnCapturaRegionais" title="Capturar regionais" aria-label="Capturar regionais"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>';
+    bindRegMetaToggle(); document.getElementById('btnCapturaRegionais')?.addEventListener('click',()=>captureDashboardElement('#regionalContent','regionais'));
+    const metaBL=regMetaBaseline(activeImp);
     const totalVal=regionalEntries.reduce((a,e)=>a+Number(e.valor||0),0);
     let html='<div class="regional-grid">';
-    const allJust=justifiedCount(regionalEntries); html+=`<div class="regional-card" data-r="TODAS"><div class="rname">Todas as bases</div><div class="rsub">${fmtInt(regionalEntries.length)} pacote(s)${query?' encontrados':''} · Soma somente da planilha ativa</div><div class="rval">${fmtBRL(totalVal)}</div><button type="button" class="regional-justified-btn" data-reg-just="TODAS">JUSTIFICADOS <span>${fmtInt(allJust)} / ${fmtInt(regionalEntries.length)} (${percentLabel(allJust,regionalEntries.length)})</span></button></div>`;
-    REGIONAL_ORDER.forEach(r=>{ if(!activeData[r]) return; const d=activeData[r]; const val=d.entries.reduce((a,e)=>a+Number(e.valor||0),0); const justCount=justifiedCount(d.entries); html+=`<div class="regional-card" data-r="${escHtml(r)}"><div class="rname">${escHtml(REGIONAL_LABELS[r]||r)}</div><div class="rsub">${fmtInt(d.entries.length)} pacote(s) · somente esta planilha</div><div class="rval">${fmtBRL(val)}</div><button type="button" class="regional-justified-btn" data-reg-just="${escHtml(r)}">JUSTIFICADOS <span>${fmtInt(justCount)} / ${fmtInt(d.entries.length)} (${percentLabel(justCount,d.entries.length)})</span></button></div>`; });
+    const allJust=justifiedCount(regionalEntries); html+=`<div class="regional-card" data-r="TODAS"><div class="rname">Todas as bases</div><div class="rsub">${fmtInt(regionalEntries.length)} pacote(s)${query?' encontrados':''} · Soma somente da planilha ativa</div><div class="rval">${fmtBRL(totalVal)}</div>${regMetaLine(metaBL,()=>true)}<button type="button" class="regional-justified-btn" data-reg-just="TODAS">JUSTIFICADOS <span>${fmtInt(allJust)} / ${fmtInt(regionalEntries.length)} (${percentLabel(allJust,regionalEntries.length)})</span></button></div>`;
+    REGIONAL_ORDER.forEach(r=>{ if(!activeData[r]) return; const d=activeData[r]; const val=d.entries.reduce((a,e)=>a+Number(e.valor||0),0); const justCount=justifiedCount(d.entries); html+=`<div class="regional-card" data-r="${escHtml(r)}"><div class="rname">${escHtml(REGIONAL_LABELS[r]||r)}</div><div class="rsub">${fmtInt(d.entries.length)} pacote(s) · somente esta planilha</div><div class="rval">${fmtBRL(val)}</div>${regMetaLine(metaBL,bs=>(regionalFromBasePrefix(bs)||'OUTROS')===r)}<button type="button" class="regional-justified-btn" data-reg-just="${escHtml(r)}">JUSTIFICADOS <span>${fmtInt(justCount)} / ${fmtInt(d.entries.length)} (${percentLabel(justCount,d.entries.length)})</span></button></div>`; });
     html+='</div>';
     content.innerHTML=html+renderRegionalHistoricalMatches(query,activeEntries);
     content.querySelectorAll('[data-regional-age]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();regionalAgeFilter=btn.dataset.regionalAge;renderRegionalPage();}));
@@ -4041,7 +4082,9 @@ function renderRegionalPage(){
     const isAllBases=r==='TODAS';
     const entriesForRegion=isAllBases?activeEntries:(activeData[r]?.entries||[]);
     if(!entriesForRegion.length){ regionalNav={level:'list',regional:null}; renderRegionalPage(); return; }
-    crumb.innerHTML=`<a data-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(isAllBases?'Todas as bases':(REGIONAL_LABELS[r]||r))}</strong><button type="button" class="dl-btn" id="btnDownloadRegionalBases" title="Baixar planilha desta regional" aria-label="Baixar planilha desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaBases" title="Capturar bases" aria-label="Capturar bases"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
+    crumb.innerHTML=`<a data-back="list">Todas as regionais</a> <svg class="ico" viewBox="0 0 24 24" style="width:9px;height:9px;"><path d="m9 5 7 7-7 7"/></svg> <strong>${escHtml(isAllBases?'Todas as bases':(REGIONAL_LABELS[r]||r))}</strong>${regMetaToggleHtml()}<button type="button" class="dl-btn" id="btnDownloadRegionalBases" title="Baixar planilha desta regional" aria-label="Baixar planilha desta regional"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaBases" title="Capturar bases" aria-label="Capturar bases"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>`;
+    bindRegMetaToggle();
+    const metaBL=regMetaBaseline(activeImp);
     const d={entries:entriesForRegion};
     const filteredEntries=bucketFilterEntries(d.entries, regionalBaseBucket);
     const baseMap={};
@@ -4049,13 +4092,14 @@ function renderRegionalPage(){
     const bases=Object.values(baseMap).sort((a,b)=>b.valor-a.valor);
     const max=bases.length?bases[0].valor:1;
     const counts=computeAgingCounts(d.entries);
-    let html='<div class="aging-strip" id="regBaseAging">'
+    const regMetaHead=regMetaLine(metaBL,bs=>isAllBases||(regionalFromBasePrefix(bs)||'OUTROS')===r,isAllBases?'Meta de todas as bases':'Meta '+(REGIONAL_LABELS[r]||r)).replace('class="reg-meta"','class="reg-meta reg-meta-head"');
+    let html=regMetaHead+'<div class="aging-strip" id="regBaseAging">'
       +BUCKET_KEYS.map(b=>`<div class="aging-chip ${regionalBaseBucket===b?'active':''} ${counts[b].cnt?'':'vazio'}" data-bucket="${b}"><div class="lbl">${BUCKET_LABELS[b]}</div><div class="cnt">${fmtInt(counts[b].cnt)}</div><div class="val">${fmtBRL(counts[b].val)}</div></div>`).join('')
       +'</div><div class="base-grid">';
     if(!bases.length){
       html+=`<div class="history-empty" style="grid-column:1/-1;padding:30px 0;">Nenhum pacote com ${escHtml(BUCKET_LABELS[regionalBaseBucket].toLowerCase())} nesta regional.</div>`;
     } else {
-      bases.forEach(b=>{ const baseRegional=regionalFromBasePrefix(b.base)||r; const nivel=b.valor>=20000?'red':b.valor>=10000?'orange':b.valor>=1000?'yellow':'blue'; const justBase=justifiedCount(b.entries); html+=`<div class="base-card offender-${nivel}" data-base="${escHtml(b.base)}"><div class="base-card-head"><div><div class="bname">${baseInfoLabel(b.base)}</div><div class="breg">${escHtml(REGIONAL_LABELS[baseRegional]||baseRegional||'Regional não identificada')}</div></div><div><div class="bval">${fmtBRL(b.valor)}</div><div class="bpac">${fmtInt(b.entries.length)} pacote(s)</div></div></div><div class="bbar"><div class="bbar-fill" style="width:${Math.max(4,(b.valor/max)*100)}%"></div></div><div class="base-justified">Justificados: <strong>${fmtInt(justBase)} / ${fmtInt(b.entries.length)}</strong> (${percentLabel(justBase,b.entries.length)})</div></div>`; });
+      bases.forEach(b=>{ const baseRegional=regionalFromBasePrefix(b.base)||r; const nivel=b.valor>=20000?'red':b.valor>=10000?'orange':b.valor>=1000?'yellow':'blue'; const justBase=justifiedCount(b.entries); html+=`<div class="base-card offender-${nivel}" data-base="${escHtml(b.base)}"><div class="base-card-head"><div><div class="bname">${baseInfoLabel(b.base)}</div><div class="breg">${escHtml(REGIONAL_LABELS[baseRegional]||baseRegional||'Regional não identificada')}</div></div><div><div class="bval">${fmtBRL(b.valor)}</div><div class="bpac">${fmtInt(b.entries.length)} pacote(s)</div>${regMetaLine(metaBL,bs=>bs===b.base)}</div></div><div class="bbar"><div class="bbar-fill" style="width:${Math.max(4,(b.valor/max)*100)}%"></div></div><div class="base-justified">Justificados: <strong>${fmtInt(justBase)} / ${fmtInt(b.entries.length)}</strong> (${percentLabel(justBase,b.entries.length)})</div></div>`; });
     }
     html+='</div>';
     content.innerHTML=html;
@@ -4663,10 +4707,13 @@ function renderRevertido(){
   document.getElementById('revColAntes').textContent=packageMode?'Pacotes analisados':'Valor estava';
   document.getElementById('revColRevertido').textContent=packageMode?(revStatusFilter==='red'?'Pacotes não revertidos':'Pacotes revertidos'):(revStatusFilter==='red'?'Valor não revertido':'Valor revertido');
   document.getElementById('revColAtual')?.classList.toggle('rev-value-hidden',packageMode);
-  { const hideRev=!packageMode&&configuredMetaPct>0&&revStatusFilter!=='red'; document.getElementById('revColRevertido')?.classList.toggle('rev-value-hidden',hideRev); document.getElementById('revValor')?.closest('.rev-kpi')?.classList.toggle('rev-value-hidden',hideRev); }
+  { const hideRev=!packageMode&&configuredMetaPct>0; document.getElementById('revColRevertido')?.classList.toggle('rev-value-hidden',hideRev); document.getElementById('revValor')?.closest('.rev-kpi')?.classList.toggle('rev-value-hidden',hideRev);
+    const gb=document.querySelector('#revLegend [data-status="green"]'), rb=document.querySelector('#revLegend [data-status="red"]');
+    if(gb) gb.innerHTML='<i class="rev-dot green"></i> '+(hideRev?'Atingiu':'Revertido');
+    if(rb) rb.innerHTML='<i class="rev-dot red"></i> '+(hideRev?'Não atingiu':'Não revertido'); }
   document.getElementById('revColMeta')?.classList.toggle('rev-value-hidden',packageMode);
   document.getElementById('revColNaoRevertido').textContent=packageMode?'% Não Revertido':'Pacote em risco';
-  document.getElementById('revColNaoRevertido').hidden=!packageMode&&(revStatusFilter==='green'||revStatusFilter==='red');
+  document.getElementById('revColNaoRevertido').hidden=false;
   document.getElementById('revColPercent').textContent=packageMode?'% Pacote Revertido':'';
   setRevPeriodo((packageMode?'Pacote Revertido':'Valor Revertido')+' · '+fmtFull(startDay)+' até '+fmtFull(endDay)+((startDay!==comp.value||endDay!==atual.value)?' · só há planilha de '+fmtFull(startDay)+' a '+fmtFull(endDay)+' dentro do intervalo pedido':''));
   const pkgSet=revStatusFilter==='TODOS'?null:new Set(visibleRows.flatMap(r=>Array.from(r.pkgs)));
@@ -4677,15 +4724,16 @@ function renderRevertido(){
   document.getElementById('revBody').innerHTML=tableRows.length?tableRows.map(b=>{
     const total=b.packageTotal||0, reverted=b.packageReverted||0;
     const rowStatus=revStatusFilter==='green'?'green':(revStatusFilter==='red'?'red':b.status);
-    const statusLabel=({green:packageMode?'Revertido':'Valor revertido',orange:'Em prazo',red:'Não revertido',removed:'Saiu sem confirmação'}[rowStatus]||'Em prazo');
+    const metaMode=!packageMode&&configuredMetaPct>0;
+    const statusLabel=metaMode&&(rowStatus==='green'||rowStatus==='red')?(rowStatus==='green'?'Atingiu':'Não atingiu'):({green:packageMode?'Revertido':'Valor revertido',orange:'Em prazo',red:'Não revertido',removed:'Saiu sem confirmação'}[rowStatus]||'Em prazo');
     const valueAmount=revStatusFilter==='red'?(packageMode?(b.nonRevertedValue||0):(b.valueNonReverted||0)):(packageMode?(b.reverted||0):(b.valueReverted||0));
     const valueTrend=revStatusFilter==='red'?'up':'down';
     const valueText=fmtBRL(valueAmount);
     const nonRevertedCell=packageMode
       ? '<td>'+percent(rowStatus==='green'?reverted:(b.baseRisk||0),total)+'</td>'
-      : ((revStatusFilter==='green'||revStatusFilter==='red')?'':'<td>'+((b.nonRevertedValue||0)>0.005?'<span class="rev-value-trend up">'+fmtBRL(b.nonRevertedValue)+'</span>':fmtBRL(0))+'</td>');
+      : ('<td>'+((b.nonRevertedValue||0)>0.005?'<span class="rev-value-trend up">'+fmtBRL(b.nonRevertedValue)+'</span>':fmtBRL(0))+'</td>');
     const metaRaw=document.getElementById('revMeta')?.value.trim()||'';
-    const hideRevertido=!packageMode&&configuredMetaPct>0&&revStatusFilter!=='red';
+    const hideRevertido=!packageMode&&configuredMetaPct>0;
     const metaPct=metaRaw?Math.max(0,parseBRNumber(metaRaw)):0;
     const metaReduction=b.baseBefore*metaPct/100;
     const metaValueTarget=Math.max(0,b.baseBefore-metaReduction);
@@ -4693,8 +4741,15 @@ function renderRevertido(){
     const reducedValue=Math.max(0,b.baseBefore-metaNow);
     const metaHit=b.baseBefore>0 && metaNow<=metaValueTarget;
     const metaGap=Math.max(0,metaNow-metaValueTarget);
+    /* Variação medida com a mesma regra do Atingiu/Não atingiu (pacotes novos < 24h não contam). */
+    const metaDelta=b.baseBefore-metaNow;
+    const metaDeltaLine=metaDelta>0.005
+      ? '<span class="meta-line-delta"><strong class="meta-ok">Diminuiu: '+fmtBRL(metaDelta)+'</strong>'+(metaHit?'':'<small class="meta-line-done"> · faltam '+fmtBRL(metaGap)+'</small>')+'</span>'
+      : (metaDelta<-0.005
+          ? '<span class="meta-line-delta"><strong class="meta-pending">Aumentou: +'+fmtBRL(-metaDelta)+'</strong></span>'
+          : '<span class="meta-line-delta"><small class="meta-line-done">Sem variação'+(metaHit?'':' · faltam '+fmtBRL(metaGap))+'</small></span>');
     const metaCell=packageMode?'<td class="rev-meta-column rev-value-hidden"></td>':(metaPct>0
-      ? '<td class="rev-meta-column"><span class="meta-line-goal">Reduzir '+fmtBRL(metaReduction)+' <small>(ficar em até '+fmtBRL(metaValueTarget)+')</small></span><strong class="'+(metaHit?'meta-ok':'meta-pending')+'">'+(metaHit?'Atingiu':'Não atingiu')+'</strong><small class="meta-line-done">Diminuiu '+fmtBRL(reducedValue)+' até sexta'+(metaHit?'':' · faltam '+fmtBRL(metaGap))+'</small>'+((b.graceValue||0)>0.005?'<small class="meta-line-done">Não conta: '+fmtBRL(b.graceValue)+' de pacotes novos (até 24h para tratar)</small>':'')+'</td>'
+      ? '<td class="rev-meta-column"><span class="meta-line-goal">Diminuir '+fmtBRL(metaReduction)+' até sexta</span><span class="meta-line-delta"><strong class="'+(metaHit?'meta-ok':'meta-pending')+'">'+(metaHit?'Atingiu':'Não atingiu')+'</strong></span>'+metaDeltaLine+((b.graceValue||0)>0.005?'<small class="meta-line-done">Não conta: '+fmtBRL(b.graceValue)+' de pacotes novos (até 24h para tratar)</small>':'')+'</td>'
       : '<td class="rev-meta-column">—</td>');
     const currentValueCell='<td class="rev-current-column '+(packageMode?'rev-value-hidden':'')+'">'+fmtBRL(b.baseCurrent)+'</td>';
     return '<tr class="status-'+rowStatus+'"><td><span class="rev-status '+rowStatus+'"><i class="rev-dot '+rowStatus+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(b.baseBefore))+'</strong></td><td class="rev-col-revertido'+(hideRevertido?' rev-value-hidden':'')+'">'+(packageMode?fmtInt(reverted):'<span class="rev-value-trend '+valueTrend+'">'+valueText+'</span>')+'</td>'+currentValueCell+nonRevertedCell+metaCell+'<td class="rev-summary-col '+(packageMode?'':'rev-value-hidden')+'"><strong>'+(packageMode?percent(reverted,total):'')+'</strong></td><td>'+fmtInt(b.baseWithin)+'</td><td>'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';
@@ -4740,7 +4795,7 @@ document.getElementById('revValorMin').addEventListener('input',renderRevertido)
 /* ===== Meta semanal: definida em Importados, vale também em Valor Revertido ===== */
 const META_SEMANAL_KEY='spot_dashboard_meta_semanal_v1';
 function loadMetaSemanal(){ try{ return localStorage.getItem(META_SEMANAL_KEY)||''; }catch(e){ return ''; } }
-function saveMetaSemanal(v){ try{ if(v) localStorage.setItem(META_SEMANAL_KEY,v); else localStorage.removeItem(META_SEMANAL_KEY); }catch(e){} }
+function saveMetaSemanal(v){ try{ if(v){ if(!localStorage.getItem(META_SEMANAL_KEY)) localStorage.setItem('spot_dashboard_meta_semanal_since_v1',todayStr()); localStorage.setItem(META_SEMANAL_KEY,v); } else { localStorage.removeItem(META_SEMANAL_KEY); localStorage.removeItem('spot_dashboard_meta_semanal_since_v1'); } }catch(e){} }
 function syncMetaSemanalUI(v,skipRev){
   const revIn=document.getElementById('revMeta'), impIn=document.getElementById('impMetaInput');
   if(revIn&&!skipRev&&revIn.value!==v) revIn.value=v;
@@ -4810,6 +4865,17 @@ window.__spotRun(async function init(){
 }
 </script>
 
+<style id="meta-regional-captura">
+.reg-meta{font-size:11.5px;font-weight:800;color:#60a5fa;margin-top:5px}
+:root.theme-light .reg-meta,:root.theme-pink .reg-meta{color:#2563eb}
+.base-card .reg-meta{text-align:right}
+.reg-meta-head{font-size:13px;margin:0 0 12px}
+.meta-capture-toggle{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--border-color);border-radius:999px;background:var(--bg-card);color:var(--text-secondary);font:700 11px inherit;cursor:pointer;white-space:nowrap}
+.meta-capture-toggle:hover{border-color:var(--spot-green)}
+.meta-capture-box{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border:1.5px solid var(--text-muted);border-radius:4px;font-style:normal;font-size:11px;line-height:1;color:#fff}
+.meta-capture-toggle.on{border-color:var(--spot-green);background:var(--spot-green);color:#fff}
+.meta-capture-toggle.on .meta-capture-box{border-color:#fff;background:rgba(255,255,255,.22)}
+</style>
 <style id="meta-semanal-importados">
 .imp-meta-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:6px}.imp-meta-head h3{margin-bottom:0!important}
 .imp-meta-box{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border-color);border-radius:10px;background:var(--bg-inset)}
@@ -4823,6 +4889,7 @@ window.__spotRun(async function init(){
 .rev-meta-column .meta-line-goal{display:block;font-size:12px;font-weight:800;color:var(--text-primary);margin-bottom:2px}
 .rev-meta-column .meta-line-goal small{font-size:10px;font-weight:600;color:var(--text-muted)}
 .rev-meta-column .meta-line-done{display:block;font-size:10.5px;color:var(--text-secondary);margin-top:2px}
+.rev-meta-column .meta-line-delta{display:block;margin-top:5px;font-size:12px}.rev-meta-column .meta-line-delta .meta-line-done{display:inline}
 .rev-meta-column strong.meta-ok{color:#16a34a}.rev-meta-column strong.meta-pending{color:#dc2626}
 </style>
 <style id="revertido-48h-and-active-selector-fixes">
