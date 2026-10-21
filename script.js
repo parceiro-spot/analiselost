@@ -2901,8 +2901,11 @@ function renderRevertido(){
   const metaHelp=document.getElementById('revMetaHelp');
   /* Mensagem padrão da meta: sempre mostra quanto precisa diminuir até sexta,
      para a base escolhida, para a regional escolhida ou para todas as bases. */
-  const metaBasesList=Object.keys(beforeByBase).filter(b=>beforeByBase[b]>0);
-  const metaBeforeTotal=metaBasesList.reduce((n,b)=>n+beforeByBase[b],0);
+  /* Base de cálculo da meta = a MESMA da aba Regional e Base: valor da 1ª planilha da semana. */
+  const metaBL=configuredMetaPct>0?regMetaBaseline(currentImport):null;
+  const metaBaseOf=b=>metaBL?(metaBL.byBase[b]||0):(beforeByBase[b]||0);
+  const metaBasesList=(metaBL?Object.keys(metaBL.byBase):Object.keys(beforeByBase)).filter(b=>baseOk(b)&&metaBaseOf(b)>0);
+  const metaBeforeTotal=metaBasesList.reduce((n,b)=>n+metaBaseOf(b),0);
   const metaReductionTotal=metaBeforeTotal*configuredMetaPct/100;
   const metaMonday=isoShift(endDay,(()=>{const wd=new Date(endDay+'T00:00:00').getDay();return wd===0?-6:1-wd;})());
   const metaFridayIso=isoShift(metaMonday,4), metaFridayTxt=metaFridayIso.slice(8,10)+'/'+metaFridayIso.slice(5,7);
@@ -2928,15 +2931,16 @@ function renderRevertido(){
     const valueReverted=packageMode?0:(r.reverted||0);
     const valueNonReverted=packageMode?0:(riskValueByBase[r.base]||0);
     const graceValue=Math.min(baseCurrent,graceByBase[r.base]||0), metaCurrent=Math.max(0,baseCurrent-graceValue);
-    const reducedForMeta=Math.max(0,baseBefore-metaCurrent);
-    const targetForMeta=baseBefore*configuredMetaPct/100;
+    const metaBase=metaBaseOf(r.base);
+    const reducedForMeta=Math.max(0,metaBase-metaCurrent);
+    const targetForMeta=metaBase*configuredMetaPct/100;
     const status=r.ofmVazio?'green':packageMode
       ? ((basePackageReverted[r.base]||0)>0?'green':(baseRiskValue>0?'red':((basePackageRemoved[r.base]||0)>0?'removed':'orange')))
       : (configuredMetaPct>0
-          ? (baseBefore>0 && reducedForMeta>=targetForMeta ? 'green':'red')
+          ? (metaBase>0 && reducedForMeta>=targetForMeta ? 'green':'red')
           : (baseRiskValue>0?'red':((basePackageReverted[r.base]||0)>0?'green':((basePackageRemoved[r.base]||0)>0?'removed':'orange'))));
     const rB=redBefore[r.base]||0, rC=redCurrent[r.base]||0;
-    const reconciledCurrent=Math.max(0,baseBefore-(r.reverted||0)); return {...r,graceValue,metaCurrent,status,baseBefore,baseCurrent,baseDelta,reconciledCurrent,removedUnconfirmed:removedValueByBase[r.base]||0,nonRevertedValue:packageMode?(status==='red'?(riskValueByBase[r.base]||0):0):valueNonReverted,valueReverted:valueReverted,valueNonReverted:valueNonReverted,treatmentValue:withinValueByBase[r.base]||0,baseWithin:baseWithinValue,baseRisk:status==='red'?baseRiskValue:0,packageTotal:basePackageTotals[r.base]||0,packageReverted:basePackageReverted[r.base]||0,redBefore:rB,redCurrent:rC};
+    const reconciledCurrent=Math.max(0,baseBefore-(r.reverted||0)); return {...r,graceValue,metaCurrent,status,baseBefore,metaBase,baseCurrent,baseDelta,reconciledCurrent,removedUnconfirmed:removedValueByBase[r.base]||0,nonRevertedValue:packageMode?(status==='red'?(riskValueByBase[r.base]||0):0):valueNonReverted,valueReverted:valueReverted,valueNonReverted:valueNonReverted,treatmentValue:withinValueByBase[r.base]||0,baseWithin:baseWithinValue,baseRisk:status==='red'?baseRiskValue:0,packageTotal:basePackageTotals[r.base]||0,packageReverted:basePackageReverted[r.base]||0,redBefore:rB,redCurrent:rC};
   }).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
   /* No Valor Revertido, cada base pertence a uma única situação.
      Como o risco vencido tem prioridade, uma base mista fica somente em
@@ -3030,14 +3034,15 @@ function renderRevertido(){
     const metaRaw=document.getElementById('revMeta')?.value.trim()||'';
     const hideRevertido=!packageMode&&configuredMetaPct>0;
     const metaPct=metaRaw?Math.max(0,parseBRNumber(metaRaw)):0;
-    const metaReduction=b.baseBefore*metaPct/100;
-    const metaValueTarget=Math.max(0,b.baseBefore-metaReduction);
+    const metaBaseV=(b.metaBase!==undefined?b.metaBase:b.baseBefore);
+    const metaReduction=metaBaseV*metaPct/100;
+    const metaValueTarget=Math.max(0,metaBaseV-metaReduction);
     const metaNow=(b.metaCurrent!==undefined?b.metaCurrent:b.baseCurrent);
-    const reducedValue=Math.max(0,b.baseBefore-metaNow);
-    const metaHit=b.baseBefore>0 && metaNow<=metaValueTarget;
+    const reducedValue=Math.max(0,metaBaseV-metaNow);
+    const metaHit=metaBaseV>0 && metaNow<=metaValueTarget;
     const metaGap=Math.max(0,metaNow-metaValueTarget);
     /* Variação medida com a mesma regra do Atingiu/Não atingiu (pacotes novos < 24h não contam). */
-    const metaDelta=b.baseBefore-metaNow;
+    const metaDelta=metaBaseV-metaNow;
     /* Meta explicada em linhas: quanto precisa reduzir, quanto já reduziu, quanto falta e o que não conta. */
     const metaLinha=(rotulo,valor,cls)=>'<span class="meta-row"><span class="meta-row-lbl">'+rotulo+'</span><strong class="meta-row-val'+(cls?' '+cls:'')+'">'+valor+'</strong></span>';
     const metaJaReduziu=metaDelta>0.005
@@ -3051,7 +3056,8 @@ function renderRevertido(){
       : '';
     const metaCell=packageMode?'<td class="rev-meta-column rev-value-hidden"></td>':(metaPct>0
       ? '<td class="rev-meta-column"><div class="meta-box">'
-        +metaLinha('Meta da semana','reduzir '+fmtBRL(metaReduction),'')
+        +metaLinha('Início da semana'+(metaBL&&metaBL.startDay?' ('+metaBL.startDay.slice(8,10)+'/'+metaBL.startDay.slice(5,7)+')':''),fmtBRL(metaBaseV),'')
+        +metaLinha('Meta (reduzir)',fmtBRL(metaReduction),'')
         +metaJaReduziu+metaFalta
         +'<span class="meta-badge '+(metaHit?'meta-badge-ok':'meta-badge-pending')+'">'+(metaHit?'Meta atingida':'Meta não atingida')+'</span>'
         +metaGraceTxt+'</div></td>'
