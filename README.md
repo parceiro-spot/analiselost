@@ -25,3 +25,11 @@ A aba estava em branco porque o `index.html` não tinha a lógica nem o CSS dess
 ## Regra de Valor Revertido
 
 O arquivo executado pelo dashboard é o `index.html`. O `script.js` mantido na pasta é legado e não é carregado por esta página. A configuração oficial do prazo fica diretamente no JavaScript do dashboard (`index.html`): na aba **Valor Revertido**, o valor é calculado pacote a pacote: pacote que desaparece até 48 horas entra como **Valor revertido**; pacote que continua presente após 48 horas entra como **Valor não revertido/ofensor**. O **Valor atual** mostra o total real atual. A aba **Pacote Revertido** usa a mesma regra própria de 48 horas.
+
+## Valor Revertido: Ofensores da manhã
+
+O antigo bloco "Selecionar bases / Escolha as regionais" foi removido. No lugar, a aba **Valor Revertido** tem **Ofensores da manhã**:
+
+1. De manhã, com a planilha da manhã aberta, digite o valor (ex.: 10.000) e clique **OK**. As bases com valor igual ou acima ficam guardadas para aquele dia.
+2. À tarde, clique em **Ver ofensores selecionados de manhã**. A tela mostra exatamente essas bases, independente do valor que elas têm agora. Clique de novo (**Voltar para todas as bases**) para sair do filtro.
+3. **Limpar lista** apaga a lista do dia. A câmera captura só o nome das bases guardadas.
