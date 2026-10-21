@@ -1268,6 +1268,7 @@ img,svg,canvas,video{max-width:100%}
 .rev-sel-names-row{font-size:12px;line-height:1.7;color:var(--text-primary)}
 .rev-sel-names-row b{margin-right:8px;color:var(--spot-green)}
 </style>
+<style id="rev-ofm-styles">.rev-ofm{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;color:var(--text-primary);font-size:12px}.rev-ofm label{display:inline-flex;align-items:center;gap:6px}.rev-ofm input{width:110px;padding:7px 9px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-inset);color:var(--text-primary);font:inherit}</style>
 </head>
 <body>
 <div id="spotSplash" aria-hidden="true">
@@ -1597,7 +1598,7 @@ img,svg,canvas,video{max-width:100%}
       <div class="grp"><label>Prazo para tratar</label><span class="preset-btn active" id="revPrazoFixo" aria-label="Prazo fixo de 24 horas">24 horas</span></div>
       <div class="grp"><label>Regional</label><select id="revRegional"><option value="TODOS">Todas</option></select></div>
       <div class="grp"><label>Base</label><select id="revBase"><option value="TODAS">Todas as bases</option></select></div>
-      <div class="grp"><label>Origem das bases</label><select id="revOrigem"><option value="TODAS">Todas as bases</option><option value="OFENSORES">Ofensores por Regional</option><option value="OFENSORES_MANHA">Ofensores da manhã</option></select><small class="filter-help" id="revOrigemHelp">Usa o mínimo definido em Ofensores por Regional</small></div>
+      <div class="grp"><label>Origem das bases</label><select id="revOrigem"><option value="TODAS">Todas as bases</option><option value="OFENSORES">Ofensores por Regional</option><option value="OFENSORES_MANHA">Ofensores selecionados de manhã</option></select><small class="filter-help" id="revOrigemHelp">Usa o mínimo definido em Ofensores por Regional</small></div>
     </div>
     <div class="rev-sel" id="revSel">
       <div class="rev-sel-bar">
@@ -1612,6 +1613,14 @@ img,svg,canvas,video{max-width:100%}
         <div class="rev-sel-actions"><button type="button" class="preset-btn rev-sel-ok" id="revSelOk">Confirmar</button><button type="button" class="preset-btn" id="revSelCancel">Cancelar</button><span class="rev-sel-count" id="revSelCount"></span></div>
       </div>
       <div class="rev-sel-names" id="revSelNames" hidden></div>
+    </div>
+    <div class="rev-ofm" id="revOfm">
+      <strong>Ofensores da manhã:</strong>
+      <label for="revOfmValor">R$<input id="revOfmValor" type="text" inputmode="decimal" placeholder="Ex.: 10.000" aria-label="Valor mínimo para travar a lista de ofensores"></label>
+      <button type="button" class="preset-btn rev-sel-ok" id="revOfmOk">OK</button>
+      <button type="button" class="preset-btn" id="revOfmUse">Ver ofensores selecionados de manhã</button>
+      <button type="button" class="preset-btn" id="revOfmClear" hidden>Limpar lista</button>
+      <span class="rev-sel-status" id="revOfmStatus">Digite o valor na planilha da manhã e clique OK para guardar essas bases.</span>
     </div>
     <p class="filter-help" style="margin-top:-6px;margin-bottom:12px;">Clique nos campos de data para abrir o calendário ou digite a data manualmente. Datas sem planilha também podem ser consultadas.</p>
     <div class="rev-legend" id="revLegend"><strong>Situação:</strong><button type="button" class="rev-filter active" data-status="TODOS">Todos</button><button type="button" class="rev-filter" data-status="green"><i class="rev-dot green"></i> Revertido</button><button type="button" class="rev-filter" data-status="red"><i class="rev-dot red"></i> Não revertido</button></div>
@@ -4529,13 +4538,9 @@ function renderRevertido(){
   if(atual.value<comp.value){const temp=atual.value;atual.value=comp.value;comp.value=temp;}
   const reg=regSel.value;
   const origem=origemSel.value;
-  const basesOfensor=origem==='OFENSORES'?basesDosOfensoresPorValor(offendersThreshold):(origem==='OFENSORES_MANHA'?(()=>{
-    /* Bases que eram ofensoras na planilha da MANHÃ do dia escolhido em "Até"; vale também ao ver a planilha da tarde. */
-    const manha=findTurnoImport(atual.value,'Manhã'), tot={};
-    (manha?.entries||[]).forEach(e=>{tot[e.base]=(tot[e.base]||0)+(Number(e.valor)||0);});
-    return new Set(Object.keys(tot).filter(b=>tot[b]>=Math.max(0,Number(offendersThreshold)||0)));
-  })():null);
-  { const h=document.getElementById('revOrigemHelp'); if(h)h.textContent=origem==='OFENSORES_MANHA'?(findTurnoImport(atual.value,'Manhã')?'Só as bases que eram ofensoras na planilha da manhã de '+atual.value.split('-').reverse().join('/'):'Não há planilha da manhã importada nesta data'):'Usa o mínimo definido em Ofensores por Regional'; }
+  const ofmSaved=revOfmGet(atual.value);
+  const basesOfensor=origem==='OFENSORES'?basesDosOfensoresPorValor(offendersThreshold):(origem==='OFENSORES_MANHA'?new Set(ofmSaved?ofmSaved.bases:[]):null);
+  revOfmRefreshUI(atual.value,origem);
   const currentBase=baseSel.value;
   const baseOptions=Array.from(new Set(IMPORTS.flatMap(i=>(i.entries||[])).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(!basesOfensor||basesOfensor.has(e.base))).map(e=>e.base))).sort();
   baseSel.innerHTML='<option value="TODAS">Todas as bases</option>'+baseOptions.map(b=>'<option value="'+escHtml(b)+'">'+escHtml(b)+'</option>').join('');
@@ -4842,6 +4847,37 @@ document.getElementById('revAtualHoje').addEventListener('click',()=>{document.g
 document.getElementById('revInnerTabs').addEventListener('click',e=>{const btn=e.target.closest('[data-rev-view]');if(!btn)return;revViewMode=btn.dataset.revView||'valor';revStatusFilter='TODOS';document.querySelectorAll('#revInnerTabs [data-rev-view]').forEach(x=>x.classList.toggle('active',x===btn));document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x.dataset.status==='TODOS'));renderRevertido();});
 document.getElementById('revLegend').addEventListener('click',e=>{const btn=e.target.closest('.rev-filter');if(!btn)return;revStatusFilter=btn.dataset.status;document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x===btn));renderRevertido();});
 document.getElementById('revValorMin').addEventListener('input',renderRevertido);
+/* ===== Ofensores da manhã: trava a lista de bases (>= valor) e reaparece de tarde, sem olhar o valor atual ===== */
+const REV_OFM_KEY='revOfensoresManhaSalvos';
+function revOfmMap(){try{return JSON.parse(localStorage.getItem(REV_OFM_KEY)||'{}')||{};}catch(e){return {};}}
+function revOfmGet(day){const m=revOfmMap();return m[day]||null;}
+function revOfmSet(day,val){try{const m=revOfmMap();if(val)m[day]=val;else delete m[day];localStorage.setItem(REV_OFM_KEY,JSON.stringify(m));}catch(e){}}
+function revOfmRefreshUI(day,origem){
+  const st=document.getElementById('revOfmStatus'); if(!st)return;
+  const sv=revOfmGet(day), inp=document.getElementById('revOfmValor');
+  document.getElementById('revOfmClear').hidden=!sv;
+  if(sv){
+    st.textContent='Lista guardada de '+day.split('-').reverse().join('/')+': '+sv.bases.length+' base(s) com valor ≥ '+fmtBRL(sv.valor)+' ('+sv.label+')'+(origem==='OFENSORES_MANHA'?' — mostrando exatamente essas bases':'');
+    if(inp&&document.activeElement!==inp&&!inp.value)inp.value=String(sv.valor).replace('.',',');
+  }else{
+    st.textContent=origem==='OFENSORES_MANHA'?'Nenhuma lista guardada em '+day.split('-').reverse().join('/')+'. Na planilha da manhã, digite o valor e clique OK.':'Digite o valor na planilha da manhã e clique OK para guardar essas bases.';
+  }
+}
+document.getElementById('revOfmOk').addEventListener('click',()=>{
+  const day=document.getElementById('revAtual').value, imp=revSnapshotImportForDay(day);
+  const valor=parseBRNumber(document.getElementById('revOfmValor').value);
+  if(!imp){alert('Não há planilha importada nesta data.');return;}
+  if(!(valor>0)){alert('Digite o valor mínimo (ex.: 10.000) antes de clicar OK.');return;}
+  const tot={}; (imp.entries||[]).forEach(e=>{const b=String(e.base||'').trim();if(b)tot[b]=(tot[b]||0)+(Number(e.valor)||0);});
+  const bases=Object.keys(tot).filter(b=>tot[b]>=valor).sort();
+  if(!bases.length){alert('Nenhuma base com valor igual ou acima de '+fmtBRL(valor)+' nesta planilha.');return;}
+  revOfmSet(day,{valor,bases,label:importFriendlyLabel(imp).split(' · ').pop()||'planilha',savedAt:new Date().toISOString()});
+  document.getElementById('revOrigem').value='OFENSORES_MANHA';
+  renderRevertido();
+});
+document.getElementById('revOfmUse').addEventListener('click',()=>{document.getElementById('revOrigem').value='OFENSORES_MANHA';renderRevertido();});
+document.getElementById('revOfmClear').addEventListener('click',()=>{revOfmSet(document.getElementById('revAtual').value,null);document.getElementById('revOfmValor').value='';renderRevertido();});
+
 /* ===== Valor Revertido: SELECIONAR PLANILHA (usa a mesma planilha ativa do dashboard) ===== */
 var revShowAll=false; /* MOSTRAR TUDO: ignora a seleção de bases sem apagá-la */
 function revSyncPlanilha(){
