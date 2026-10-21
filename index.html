@@ -1243,6 +1243,31 @@ img,svg,canvas,video{max-width:100%}
 .base-analysis-controls{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;padding:16px 18px;margin-bottom:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px}.base-analysis-controls .grp{display:flex;flex-direction:column;gap:6px}.base-analysis-controls label{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--text-secondary)}.base-analysis-controls input,.base-analysis-controls select{min-width:155px;padding:9px 10px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-inset);color:var(--text-primary);font:inherit;font-size:12px}.base-analysis-controls .capture-btn{margin-left:auto}.base-analysis-help{margin:2px 0 16px}.base-analysis-kpis{margin-bottom:16px}.base-analysis-card{margin-bottom:16px}.base-analysis-selection{font-size:12px;color:var(--spot-green);text-align:right}.base-analysis-scroll{max-height:520px}.base-analysis-table{width:100%;border-collapse:collapse;font-size:12px}.base-analysis-table th,.base-analysis-table td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--border-color);white-space:nowrap}.base-analysis-table th{position:sticky;top:0;background:var(--bg-card);z-index:1;font-size:10px;text-transform:uppercase;letter-spacing:.45px;color:var(--text-secondary)}.base-analysis-table tbody tr{cursor:pointer;transition:background .15s}.base-analysis-table tbody tr:hover{background:var(--bg-card-hover)}.base-analysis-table td strong{color:var(--text-primary)}.base-analysis-table .month-link{color:var(--spot-green);font-weight:900}.base-analysis-empty{text-align:center!important;padding:28px!important;color:var(--text-muted)}@media(max-width:800px){.base-analysis-controls .capture-btn{margin-left:0}.base-analysis-controls input,.base-analysis-controls select{width:100%}.base-analysis-controls .grp{flex:1;min-width:145px}.base-analysis-selection{width:100%;text-align:left}}
 
 </style>
+<style id="rev-sel-styles">
+.rev-sel{margin:-6px 0 14px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;color:var(--text-primary)}
+.rev-sel-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rev-sel-bar .mini-camera{margin-left:auto}
+.rev-sel-status{font-size:12px;color:var(--text-secondary)}
+.rev-sel-panel{margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color);display:flex;flex-direction:column;gap:14px}
+.rev-sel-step>strong{display:block;font-size:12px;margin-bottom:8px}
+.rev-sel-chips{display:flex;gap:8px;flex-wrap:wrap}
+.rev-sel-chips .rev-filter.active{border-color:var(--spot-green);color:var(--spot-green)}
+#revSelSearch{width:100%;max-width:280px;margin-bottom:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-inset);color:var(--text-primary);font:inherit;font-size:12px}
+.rev-sel-group{margin-bottom:12px}
+.rev-sel-ghead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12px}
+.rev-sel-ghead span{color:var(--text-secondary)}
+.rev-sel-ghead .preset-btn{padding:4px 8px;font-size:11px}
+.rev-sel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;max-height:220px;overflow:auto;padding:2px}
+.rev-sel-base{display:flex;align-items:center;gap:6px;font-size:12px;padding:5px 8px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-inset);cursor:pointer}
+.rev-sel-base:has(input:checked){border-color:var(--spot-green)}
+.rev-sel-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rev-sel-ok{background:var(--spot-green);color:#fff;border-color:var(--spot-green)}
+.rev-sel-count{font-size:12px;color:var(--text-secondary)}
+.rev-sel-names{margin-top:12px;padding:12px 14px;border:1px solid var(--border-color);border-radius:10px;background:var(--bg-card)}
+.rev-sel-names-title{font-size:13px;font-weight:800;margin-bottom:8px;color:var(--text-primary)}
+.rev-sel-names-row{font-size:12px;line-height:1.7;color:var(--text-primary)}
+.rev-sel-names-row b{margin-right:8px;color:var(--spot-green)}
+</style>
 </head>
 <body>
 <div id="spotSplash" aria-hidden="true">
@@ -1568,10 +1593,25 @@ img,svg,canvas,video{max-width:100%}
       <div class="grp"><label>De &lt;</label><input type="date" id="revComparar"></div>
       <div class="grp"><label>Até</label><input type="date" id="revAtual"><button type="button" class="preset-btn rev-hoje-btn" id="revAtualHoje" title="Usar a data de hoje">Hoje</button></div>
       <div class="grp"><label>Comparação rápida</label><div class="presets" id="revQuick"><button type="button" class="preset-btn" data-days="1">Dia anterior</button><button type="button" class="preset-btn" data-days="7">Semana</button><button type="button" class="preset-btn" id="revMetaSemana">Meta da semana</button><button type="button" class="preset-btn" id="revMesBtn" aria-expanded="false">Mês</button></div><div class="presets rev-mes-opcoes" id="revMesOpcoes" hidden><button type="button" class="preset-btn" data-mes="atual">Mês atual</button><button type="button" class="preset-btn" data-mes="passado">Mês passado</button></div></div>
+      <div class="grp"><label for="revPlanilha">SELECIONAR PLANILHA</label><select id="revPlanilha" aria-label="Selecionar planilha"><option value="">Nenhuma planilha importada</option></select></div>
       <div class="grp"><label>Prazo para tratar</label><span class="preset-btn active" id="revPrazoFixo" aria-label="Prazo fixo de 24 horas">24 horas</span></div>
       <div class="grp"><label>Regional</label><select id="revRegional"><option value="TODOS">Todas</option></select></div>
       <div class="grp"><label>Base</label><select id="revBase"><option value="TODAS">Todas as bases</option></select></div>
       <div class="grp"><label>Origem das bases</label><select id="revOrigem"><option value="TODAS">Todas as bases</option><option value="OFENSORES">Ofensores por Regional</option></select><small class="filter-help">Usa o mínimo definido em Ofensores por Regional</small></div>
+    </div>
+    <div class="rev-sel" id="revSel">
+      <div class="rev-sel-bar">
+        <button type="button" class="preset-btn" id="revSelOpen" aria-expanded="false" aria-controls="revSelPanel">Selecionar bases</button>
+        <span class="rev-sel-status" id="revSelStatus">Todas as bases</span>
+        <button type="button" class="preset-btn" id="revSelAll" hidden aria-pressed="false">MOSTRAR TUDO</button><button type="button" class="preset-btn" id="revSelClear" hidden>Limpar seleção</button>
+        <button type="button" class="mini-camera" id="revSelCam" title="Capturar só o nome das bases selecionadas" aria-label="Capturar só o nome das bases selecionadas"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>
+      </div>
+      <div class="rev-sel-panel" id="revSelPanel" hidden>
+        <div class="rev-sel-step"><strong>1) Escolha as regionais</strong><div class="rev-sel-chips" id="revSelRegs"></div></div>
+        <div class="rev-sel-step" id="revSelBasesStep" hidden><strong>2) Marque as bases de cada regional</strong><input type="search" id="revSelSearch" placeholder="Buscar base..." aria-label="Buscar base"><div id="revSelBases"></div></div>
+        <div class="rev-sel-actions"><button type="button" class="preset-btn rev-sel-ok" id="revSelOk">Confirmar</button><button type="button" class="preset-btn" id="revSelCancel">Cancelar</button><span class="rev-sel-count" id="revSelCount"></span></div>
+      </div>
+      <div class="rev-sel-names" id="revSelNames" hidden></div>
     </div>
     <p class="filter-help" style="margin-top:-6px;margin-bottom:12px;">Clique nos campos de data para abrir o calendário ou digite a data manualmente. Datas sem planilha também podem ser consultadas.</p>
     <div class="rev-legend" id="revLegend"><strong>Situação:</strong><button type="button" class="rev-filter active" data-status="TODOS">Todos</button><button type="button" class="rev-filter" data-status="green"><i class="rev-dot green"></i> Revertido</button><button type="button" class="rev-filter" data-status="red"><i class="rev-dot red"></i> Não revertido</button></div>
@@ -4483,6 +4523,7 @@ function renderRevertido(){
   if(prazoEl){ prazoEl.textContent=prazoHoras+' horas'; prazoEl.setAttribute('aria-label','Prazo fixo de '+prazoHoras+' horas'); }
   if(!regSel.dataset.filled){regSel.innerHTML='<option value="TODOS">Todas</option>'+REGIONAL_ORDER.map(r=>'<option value="'+r+'">'+(REGIONAL_LABELS[r]||r)+'</option>').join('');regSel.dataset.filled='1';}
   if(!atual.value)atual.value=todayStr();
+  if(typeof revSyncPlanilha==='function')revSyncPlanilha();
   if(!comp.value){const todayWeekday=new Date(atual.value+'T00:00:00').getDay();comp.value=isoShift(atual.value,todayWeekday===0?-6:1-todayWeekday);}
   if(!dates.length){setRevPeriodo((revViewMode==='pacote'?'Pacote Revertido':'Valor Revertido')+' — sem dados importados');document.getElementById('revBody').innerHTML='<tr><td colspan="13" class="history-empty">Escolha datas no calendário; importe os pacotes para comparar.</td></tr>';return;}
   if(atual.value<comp.value){const temp=atual.value;atual.value=comp.value;comp.value=temp;}
@@ -4512,7 +4553,9 @@ function renderRevertido(){
   }
   const startDay=rangeDates[0], endDay=rangeDates[rangeDates.length-1];
   const pkgKey=e=>String(e.pacote||'').trim()||('__'+e.base+'|'+e.driverId+'|'+e.valor+'|'+e.date);
-  const baseOk=base=>(reg==='TODOS'||regionalFromBasePrefix(base)===reg)&&(!basesOfensor||basesOfensor.has(base))&&(baseSel.value==='TODAS'||base===baseSel.value);
+  const selActive=typeof revSelBases!=='undefined'&&revSelBases&&revSelBases.size>0&&!(typeof revShowAll!=='undefined'&&revShowAll);
+  [regSel,baseSel].forEach(el=>{el.disabled=selActive;});
+  const baseOk=base=>selActive?(revSelBases.has(base)&&(!basesOfensor||basesOfensor.has(base))):((reg==='TODOS'||regionalFromBasePrefix(base)===reg)&&(!basesOfensor||basesOfensor.has(base))&&(baseSel.value==='TODAS'||base===baseSel.value));
   /* "Valor que não entra": pacote cujo MAIOR valor no período é <= ao limite é ignorado
      em tudo (revertido, não revertido, prazo e totais). Vazio ou 0 = desligado. */
   const valMin=0; /* A aba agora mede pacotes e percentuais; não filtra por valor em R$. */
@@ -4793,6 +4836,102 @@ document.getElementById('revAtualHoje').addEventListener('click',()=>{document.g
 document.getElementById('revInnerTabs').addEventListener('click',e=>{const btn=e.target.closest('[data-rev-view]');if(!btn)return;revViewMode=btn.dataset.revView||'valor';revStatusFilter='TODOS';document.querySelectorAll('#revInnerTabs [data-rev-view]').forEach(x=>x.classList.toggle('active',x===btn));document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x.dataset.status==='TODOS'));renderRevertido();});
 document.getElementById('revLegend').addEventListener('click',e=>{const btn=e.target.closest('.rev-filter');if(!btn)return;revStatusFilter=btn.dataset.status;document.querySelectorAll('#revLegend .rev-filter').forEach(x=>x.classList.toggle('active',x===btn));renderRevertido();});
 document.getElementById('revValorMin').addEventListener('input',renderRevertido);
+/* ===== Valor Revertido: SELECIONAR PLANILHA (usa a mesma planilha ativa do dashboard) ===== */
+var revShowAll=false; /* MOSTRAR TUDO: ignora a seleção de bases sem apagá-la */
+function revSyncPlanilha(){
+  const sel=document.getElementById('revPlanilha'); if(!sel)return;
+  const ordered=IMPORTS.slice().sort((a,b)=>compareMainImports(b,a));
+  const html=ordered.length?ordered.map(imp=>'<option value="'+escHtml(imp.id)+'">'+escHtml(importFriendlyLabel(imp)+' · '+(imp.fileName||'Arquivo'))+'</option>').join(''):'<option value="">Nenhuma planilha importada</option>';
+  if(sel.dataset.html!==html){sel.innerHTML=html;sel.dataset.html=html;}
+  const atual=document.getElementById('revAtual');
+  const used=atual&&atual.value?revSnapshotImportForDay(atual.value):null;
+  const id=used&&ordered.some(i=>i.id===used.id)?used.id:(ordered.some(i=>i.id===selectedImportId)?selectedImportId:(ordered[0]?.id||''));
+  sel.value=id;
+}
+document.getElementById('revPlanilha').addEventListener('change',function(){
+  const imp=IMPORTS.find(i=>i.id===this.value); if(!imp)return;
+  selectedImportId=imp.id; saveSelectedImport();
+  const atual=document.getElementById('revAtual'), comp=document.getElementById('revComparar');
+  atual.value=imp.importDate;
+  if(comp.value&&comp.value>imp.importDate)comp.value=isoShift(imp.importDate,-1);
+  try{renderDashboardImportSelector();updateImportUI();renderAll();}catch(e){}
+  renderRevertido();
+});
+
+/* ===== Valor Revertido: selecionar regionais e bases (multi) ===== */
+var revSelBases=new Set(); /* seleção confirmada */
+(function(){
+  const $=id=>document.getElementById(id);
+  let draftRegs=new Set(), draftBases=new Set(), panelOpen=false;
+  const allBases=()=>Array.from(new Set(IMPORTS.flatMap(i=>(i.entries||[])).map(e=>String(e.base||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  const basesOfReg=r=>allBases().filter(b=>regionalFromBasePrefix(b)===r);
+  const regLabel=r=>REGIONAL_LABELS[r]||r;
+  const regList=()=>{const known=REGIONAL_ORDER.slice();allBases().forEach(b=>{const r=regionalFromBasePrefix(b);if(r&&!known.includes(r))known.push(r);});return known.filter(r=>basesOfReg(r).length);};
+  function renderRegs(){
+    $('revSelRegs').innerHTML=regList().map(r=>'<button type="button" class="rev-filter'+(draftRegs.has(r)?' active':'')+'" data-reg="'+escHtml(r)+'" aria-pressed="'+draftRegs.has(r)+'">'+escHtml(regLabel(r))+'</button>').join('')||'<small>Nenhuma base importada.</small>';
+  }
+  function renderBases(){
+    const q=($('revSelSearch').value||'').trim().toLowerCase();
+    const regs=regList().filter(r=>draftRegs.has(r));
+    $('revSelBasesStep').hidden=!regs.length;
+    $('revSelBases').innerHTML=regs.map(r=>{
+      const list=basesOfReg(r), shown=list.filter(b=>!q||b.toLowerCase().includes(q));
+      const marked=list.filter(b=>draftBases.has(b)).length;
+      return '<div class="rev-sel-group"><div class="rev-sel-ghead"><b>'+escHtml(regLabel(r))+'</b><span>'+marked+'/'+list.length+'</span><button type="button" class="preset-btn" data-all="'+escHtml(r)+'">Marcar todas</button><button type="button" class="preset-btn" data-none="'+escHtml(r)+'">Desmarcar</button></div><div class="rev-sel-grid">'+(shown.map(b=>'<label class="rev-sel-base"><input type="checkbox" data-base="'+escHtml(b)+'"'+(draftBases.has(b)?' checked':'')+'><span>'+escHtml(b)+'</span></label>').join('')||'<small>Nenhuma base encontrada.</small>')+'</div></div>';
+    }).join('');
+    $('revSelCount').textContent=draftBases.size?draftBases.size+' base(s) marcada(s)':'';
+  }
+  /* Card só com o NOME das bases (é o que a câmera captura). */
+  function renderNames(){
+    const set=panelOpen?draftBases:revSelBases, box=$('revSelNames');
+    if(!set.size){box.hidden=true;box.innerHTML='';return;}
+    const groups=regList().map(r=>[r,Array.from(set).filter(b=>regionalFromBasePrefix(b)===r).sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}))]).filter(g=>g[1].length);
+    box.innerHTML='<div class="rev-sel-names-title">Bases selecionadas ('+set.size+')</div>'+groups.map(g=>'<div class="rev-sel-names-row"><b>'+escHtml(regLabel(g[0]))+'</b><span>'+g[1].map(escHtml).join(' · ')+'</span></div>').join('');
+    box.hidden=false;
+  }
+  function renderStatus(){
+    const n=revSelBases.size;
+    $('revSelStatus').textContent=n?(revShowAll?'Mostrando todas as bases ('+n+' selecionada(s) guardadas)':n+' base(s) selecionada(s) — filtros Regional/Base desativados'):'Todas as bases';
+    $('revSelAll').hidden=!n; $('revSelAll').textContent=revShowAll?'VOLTAR À SELEÇÃO':'MOSTRAR TUDO'; $('revSelAll').setAttribute('aria-pressed',String(revShowAll));
+    $('revSelClear').hidden=!n;
+    $('revSelOpen').textContent=n?'Editar seleção':'Selecionar bases';
+  }
+  function openPanel(){
+    draftBases=new Set(revSelBases);
+    draftRegs=new Set(Array.from(draftBases).map(b=>regionalFromBasePrefix(b)).filter(Boolean));
+    panelOpen=true;$('revSelPanel').hidden=false;$('revSelOpen').setAttribute('aria-expanded','true');
+    $('revSelSearch').value='';renderRegs();renderBases();renderNames();
+  }
+  function closePanel(){panelOpen=false;$('revSelPanel').hidden=true;$('revSelOpen').setAttribute('aria-expanded','false');renderNames();}
+  $('revSelOpen').addEventListener('click',()=>panelOpen?closePanel():openPanel());
+  $('revSelCancel').addEventListener('click',closePanel);
+  $('revSelOk').addEventListener('click',()=>{revSelBases=new Set(draftBases);revShowAll=false;closePanel();renderStatus();renderRevertido();});
+  $('revSelAll').addEventListener('click',()=>{revShowAll=!revShowAll;renderStatus();renderRevertido();});
+  $('revSelClear').addEventListener('click',()=>{revSelBases=new Set();revShowAll=false;draftBases=new Set();draftRegs=new Set();if(panelOpen)closePanel();renderStatus();renderNames();renderRevertido();});
+  $('revSelRegs').addEventListener('click',e=>{
+    const b=e.target.closest('[data-reg]');if(!b)return;const r=b.dataset.reg;
+    if(draftRegs.has(r)){draftRegs.delete(r);basesOfReg(r).forEach(x=>draftBases.delete(x));}else draftRegs.add(r);
+    renderRegs();renderBases();renderNames();
+  });
+  $('revSelBases').addEventListener('click',e=>{
+    const a=e.target.closest('[data-all]'),n=e.target.closest('[data-none]');
+    if(a){basesOfReg(a.dataset.all).forEach(x=>draftBases.add(x));renderBases();renderNames();}
+    if(n){basesOfReg(n.dataset.none).forEach(x=>draftBases.delete(x));renderBases();renderNames();}
+  });
+  $('revSelBases').addEventListener('change',e=>{
+    const c=e.target.closest('[data-base]');if(!c)return;
+    if(c.checked)draftBases.add(c.dataset.base);else draftBases.delete(c.dataset.base);
+    renderBases();renderNames();
+  });
+  $('revSelSearch').addEventListener('input',renderBases);
+  $('revSelCam').addEventListener('click',()=>{
+    renderNames();
+    if($('revSelNames').hidden){alert('Selecione e marque as bases antes de capturar.');return;}
+    captureDashboardElement('#revSelNames','bases-selecionadas');
+  });
+  renderStatus();
+})();
+
 /* ===== Meta semanal: definida em Importados, vale também em Valor Revertido ===== */
 const META_SEMANAL_KEY='spot_dashboard_meta_semanal_v1';
 function loadMetaSemanal(){ try{ return localStorage.getItem(META_SEMANAL_KEY)||''; }catch(e){ return ''; } }
