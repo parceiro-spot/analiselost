@@ -7,7 +7,6 @@ Site estático pronto para publicação no GitHub Pages.
 - `index.html`: estrutura da página (HTML).
 - `style.css`: todos os estilos (CSS).
 - `script.js`: toda a lógica do dashboard (JavaScript).
-- `legado/`: versões antigas de `style.css` e `script.js`, que não eram usadas pela página. Podem ser apagadas.
 
 Os três arquivos precisam ficar na mesma pasta.
 

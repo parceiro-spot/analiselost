@@ -2891,6 +2891,11 @@ function renderRevertido(){
   Object.keys(baseWithin).forEach(base=>{
     if(!oneRowPerBase.has(base)) oneRowPerBase.set(base,{base,reg:regionalFromBasePrefix(base)||'OUTROS',status:'green',before:0,current:0,statusValue:0,reverted:0,packageTotal:basePackageTotals[base]||0,packageReverted:0,persistentSemRisco:baseWithin[base]||0,persistentComRisco:0,pkgs:new Set(),driverId:'',driverName:'Não identificado',driverRisk:0,driverCount:0});
   });
+  const ofmAtivo=origem==='OFENSORES_MANHA'&&!!ofmSaved;
+  if(ofmAtivo) ofmSaved.bases.forEach(base=>{
+    if(!baseOk(base)||oneRowPerBase.has(base))return;
+    oneRowPerBase.set(base,{base,reg:regionalFromBasePrefix(base)||'OUTROS',status:'green',ofmVazio:true,before:0,current:0,statusValue:0,reverted:0,packageTotal:0,packageReverted:0,persistentSemRisco:0,persistentComRisco:0,pkgs:new Set(),driverId:'',driverName:'Não identificado',driverRisk:0,driverCount:0});
+  });
   const configuredMetaRaw=document.getElementById('revMeta')?.value.trim()||'';
   const configuredMetaPct=configuredMetaRaw?Math.max(0,parseBRNumber(configuredMetaRaw)):0;
   const metaHelp=document.getElementById('revMetaHelp');
@@ -2925,7 +2930,7 @@ function renderRevertido(){
     const graceValue=Math.min(baseCurrent,graceByBase[r.base]||0), metaCurrent=Math.max(0,baseCurrent-graceValue);
     const reducedForMeta=Math.max(0,baseBefore-metaCurrent);
     const targetForMeta=baseBefore*configuredMetaPct/100;
-    const status=packageMode
+    const status=r.ofmVazio?'green':packageMode
       ? ((basePackageReverted[r.base]||0)>0?'green':(baseRiskValue>0?'red':((basePackageRemoved[r.base]||0)>0?'removed':'orange')))
       : (configuredMetaPct>0
           ? (baseBefore>0 && reducedForMeta>=targetForMeta ? 'green':'red')
@@ -2944,7 +2949,7 @@ function renderRevertido(){
   const valueMinRaw=document.getElementById('revValorMin')?.value.trim()||'';
   const valueMin=valueMinRaw?parseBRNumber(valueMinRaw):null;
   const selectedStatus=revStatusFilter;
-  const visibleRows=categoryRows.filter(r=>{const amount=selectedStatus==='red'?(packageMode?(r.nonRevertedValue||0):(r.valueNonReverted||0)):(selectedStatus==='green'?(packageMode?(r.reverted||0):(r.valueReverted||0)):(selectedStatus==='removed'?(r.removedUnconfirmed||0):(r.baseCurrent||0)));return valueMin===null||amount>=valueMin;});
+  const visibleRows=categoryRows.filter(r=>{const amount=selectedStatus==='red'?(packageMode?(r.nonRevertedValue||0):(r.valueNonReverted||0)):(selectedStatus==='green'?(packageMode?(r.reverted||0):(r.valueReverted||0)):(selectedStatus==='removed'?(r.removedUnconfirmed||0):(r.baseCurrent||0)));return valueMin===null||ofmAtivo||amount>=valueMin;});
   const sumBy=f=>visibleRows.reduce((s,r)=>s+f(r),0);
   const totalPackages=sumBy(r=>(r.packageTotal||0));
   const totalReverted=sumBy(r=>(r.packageReverted||0));
@@ -3084,14 +3089,32 @@ document.getElementById('revLegend').addEventListener('click',e=>{const btn=e.ta
 document.getElementById('revValorMin').addEventListener('input',renderRevertido);
 /* ===== Ofensores da manhã: trava a lista de bases (>= valor) e reaparece de tarde, sem olhar o valor atual ===== */
 const REV_OFM_KEY='revOfensoresManhaSalvos';
-function revOfmMap(){try{return JSON.parse(localStorage.getItem(REV_OFM_KEY)||'{}')||{};}catch(e){return {};}}
-function revOfmGet(day){const m=revOfmMap();return m[day]||null;}
-function revOfmSet(day,val){try{const m=revOfmMap();if(val)m[day]=val;else delete m[day];localStorage.setItem(REV_OFM_KEY,JSON.stringify(m));}catch(e){}}
+let revOfmMem=null; /* cópia em memória: continua valendo mesmo se o navegador não deixar gravar */
+function revOfmMap(){
+  if(revOfmMem===null){try{revOfmMem=JSON.parse(localStorage.getItem(REV_OFM_KEY)||'{}')||{};}catch(e){revOfmMem={};}}
+  return revOfmMem;
+}
+/* Lista da data pedida; se não houver, usa a lista mais recente guardada até essa data. */
+function revOfmGet(day){
+  const m=revOfmMap();
+  if(m[day])return m[day];
+  const dias=Object.keys(m).filter(d=>d<=day).sort();
+  return dias.length?m[dias[dias.length-1]]:null;
+}
+function revOfmSet(day,val){
+  const m=revOfmMap();
+  if(val){m[day]=Object.assign({day},val);}
+  else{ /* limpar apaga a lista que está sendo usada (a da data ou a mais recente) */
+    const usada=revOfmGet(day); if(usada&&usada.day)delete m[usada.day]; delete m[day];
+  }
+  try{localStorage.setItem(REV_OFM_KEY,JSON.stringify(m));return true;}catch(e){return false;}
+}
 function revOfmRenderNames(sv){
   const box=document.getElementById('revOfmNames'); if(!box)return;
   if(!sv||!sv.bases||!sv.bases.length){box.hidden=true;box.innerHTML='';return;}
   const order=REGIONAL_ORDER.slice(); sv.bases.forEach(b=>{const r=regionalFromBasePrefix(b);if(r&&!order.includes(r))order.push(r);});
   const groups=order.map(r=>[r,sv.bases.filter(b=>regionalFromBasePrefix(b)===r).sort((x,y)=>x.localeCompare(y,'pt-BR',{numeric:true}))]).filter(g=>g[1].length);
+  const semReg=sv.bases.filter(b=>!order.includes(regionalFromBasePrefix(b))).sort((x,y)=>x.localeCompare(y,'pt-BR',{numeric:true})); if(semReg.length)groups.push(['OUTROS',semReg]);
   box.innerHTML='<div class="rev-sel-names-title">Ofensores da manhã ('+sv.bases.length+' bases · valor ≥ '+fmtBRL(sv.valor)+')</div>'+groups.map(g=>'<div class="rev-sel-names-row"><b>'+escHtml(REGIONAL_LABELS[g[0]]||g[0])+'</b><span>'+g[1].map(escHtml).join(' · ')+'</span></div>').join('');
   box.hidden=false;
 }
@@ -3102,7 +3125,7 @@ function revOfmRefreshUI(day,origem){
   document.getElementById('revOfmClear').hidden=!sv;
   if(useBtn){useBtn.classList.toggle('active',ativo);useBtn.textContent=ativo?'Voltar para todas as bases':'Puxar ofensores da manhã (valor atual)';}
   if(sv){
-    st.textContent='Lista guardada de '+day.split('-').reverse().join('/')+': '+sv.bases.length+' base(s) com valor ≥ '+fmtBRL(sv.valor)+' ('+sv.label+')'+(ativo?' — mostrando essas bases com o valor atual de cada uma':'');
+    st.textContent='Lista guardada de '+String(sv.day||day).split('-').reverse().join('/')+': '+sv.bases.length+' base(s) com valor ≥ '+fmtBRL(sv.valor)+' ('+sv.label+')'+(ativo?' — mostrando essas bases com o valor atual de cada uma':'');
     if(inp&&document.activeElement!==inp&&!inp.value)inp.value=String(sv.valor).replace('.',',');
   }else{
     st.textContent=ativo?'Nenhuma lista guardada em '+day.split('-').reverse().join('/')+'. Na planilha da manhã, digite o valor e clique em “Classificar como ofensores”.':'Manhã: digite o valor e clique em “Classificar como ofensores”. Tarde: não precisa digitar nada, clique em “Puxar ofensores da manhã (valor atual)”.';
@@ -3114,12 +3137,15 @@ document.getElementById('revOfmOk').addEventListener('click',()=>{
   const valor=parseBRNumber(document.getElementById('revOfmValor').value);
   if(!imp){alert('Não há planilha importada nesta data.');return;}
   if(!(valor>0)){alert('Digite o valor mínimo (ex.: 10.000) antes de clicar em “Classificar como ofensores”.');return;}
-  const tot={}; (imp.entries||[]).forEach(e=>{const b=String(e.base||'').trim();if(b)tot[b]=(tot[b]||0)+(Number(e.valor)||0);});
+  /* mesmo cálculo da tabela: cada pacote conta uma vez só */
+  const vistos=new Map(); (imp.entries||[]).forEach(e=>{const base=String(e.base||'').trim(); if(!base)return; const k=String(e.pacote||'').trim()||('__'+base+'|'+e.driverId+'|'+e.valor+'|'+e.date); vistos.set(k,{base,valor:Number(e.valor)||0});});
+  const tot={}; vistos.forEach(x=>{tot[x.base]=(tot[x.base]||0)+x.valor;});
   const bases=Object.keys(tot).filter(b=>tot[b]>=valor).sort();
   if(!bases.length){alert('Nenhuma base com valor igual ou acima de '+fmtBRL(valor)+' nesta planilha.');return;}
-  revOfmSet(day,{valor,bases,label:importFriendlyLabel(imp).split(' · ').pop()||'planilha',savedAt:new Date().toISOString()});
+  const gravou=revOfmSet(day,{valor,bases,label:importFriendlyLabel(imp).split(' · ').pop()||'planilha',savedAt:new Date().toISOString()});
   document.getElementById('revOrigem').value='OFENSORES_MANHA';
   renderRevertido();
+  alert('✔ '+bases.length+' base(s) classificada(s) como ofensores (valor ≥ '+fmtBRL(valor)+').\n\nÀ tarde, clique em “Puxar ofensores da manhã (valor atual)”.'+(gravou?'':'\n\nAtenção: o navegador não deixou gravar a lista. Ela vale enquanto esta página ficar aberta; não feche nem atualize a página até a tarde.'));
 });
 document.getElementById('revOfmUse').addEventListener('click',()=>{
   const o=document.getElementById('revOrigem');
