@@ -3038,13 +3038,23 @@ function renderRevertido(){
     const metaGap=Math.max(0,metaNow-metaValueTarget);
     /* Variação medida com a mesma regra do Atingiu/Não atingiu (pacotes novos < 24h não contam). */
     const metaDelta=b.baseBefore-metaNow;
-    const metaDeltaLine=metaDelta>0.005
-      ? '<span class="meta-line-delta"><strong class="meta-ok">Diminuiu: '+fmtBRL(metaDelta)+'</strong>'+(metaHit?'':'<small class="meta-line-done"> · faltam '+fmtBRL(metaGap)+'</small>')+'</span>'
-      : (metaDelta<-0.005
-          ? '<span class="meta-line-delta"><strong class="meta-pending">Aumentou: +'+fmtBRL(-metaDelta)+'</strong></span>'
-          : '<span class="meta-line-delta"><small class="meta-line-done">Sem variação'+(metaHit?'':' · faltam '+fmtBRL(metaGap))+'</small></span>');
+    /* Meta explicada em linhas: quanto precisa reduzir, quanto já reduziu, quanto falta e o que não conta. */
+    const metaLinha=(rotulo,valor,cls)=>'<span class="meta-row"><span class="meta-row-lbl">'+rotulo+'</span><strong class="meta-row-val'+(cls?' '+cls:'')+'">'+valor+'</strong></span>';
+    const metaJaReduziu=metaDelta>0.005
+      ? metaLinha('Já reduziu',fmtBRL(metaDelta),'meta-ok')
+      : (metaDelta<-0.005 ? metaLinha('Aumentou','+'+fmtBRL(-metaDelta),'meta-pending') : metaLinha('Já reduziu',fmtBRL(0),''));
+    const metaFalta=metaHit
+      ? metaLinha('Falta reduzir',fmtBRL(0)+' ✔','meta-ok')
+      : metaLinha('Falta reduzir',fmtBRL(metaGap),'meta-pending');
+    const metaGraceTxt=(b.graceValue||0)>0.005
+      ? '<small class="meta-line-grace">'+fmtBRL(b.graceValue)+' do valor atual são de pacotes que entraram há menos de 24h. Eles ainda estão no prazo de tratamento e por isso não contam na meta.</small>'
+      : '';
     const metaCell=packageMode?'<td class="rev-meta-column rev-value-hidden"></td>':(metaPct>0
-      ? '<td class="rev-meta-column"><span class="meta-line-goal">META: '+fmtBRL(metaReduction)+' até sexta</span><span class="meta-line-delta"><strong class="'+(metaHit?'meta-ok':'meta-pending')+'">'+(metaHit?'Atingiu':'Não atingiu')+'</strong></span>'+metaDeltaLine+((b.graceValue||0)>0.005?'<small class="meta-line-done meta-line-grace">'+fmtBRL(b.graceValue)+' não foram contados (pacotes 24h)</small>':'')+'</td>'
+      ? '<td class="rev-meta-column"><div class="meta-box">'
+        +metaLinha('Meta da semana','reduzir '+fmtBRL(metaReduction),'')
+        +metaJaReduziu+metaFalta
+        +'<span class="meta-badge '+(metaHit?'meta-badge-ok':'meta-badge-pending')+'">'+(metaHit?'Meta atingida':'Meta não atingida')+'</span>'
+        +metaGraceTxt+'</div></td>'
       : '<td class="rev-meta-column">—</td>');
     const currentValueCell='<td class="rev-current-column '+(packageMode?'rev-value-hidden':'')+'">'+fmtBRL(b.baseCurrent)+'</td>';
     return '<tr class="status-'+rowStatus+'"><td><span class="rev-status '+rowStatus+'"><i class="rev-dot '+rowStatus+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(b.baseBefore))+'</strong></td><td class="rev-col-revertido'+(hideRevertido?' rev-value-hidden':'')+'">'+(packageMode?fmtInt(reverted):'<span class="rev-value-trend '+valueTrend+'">'+valueText+'</span>')+'</td>'+currentValueCell+nonRevertedCell+metaCell+'<td class="rev-summary-col '+(packageMode?'':'rev-value-hidden')+'"><strong>'+(packageMode?percent(reverted,total):'')+'</strong></td><td class="'+(packageMode?'':'rev-value-hidden')+'">'+fmtInt(b.baseWithin)+'</td><td class="'+(packageMode?'':'rev-value-hidden')+'">'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';
