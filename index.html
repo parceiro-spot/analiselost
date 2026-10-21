@@ -1597,13 +1597,13 @@ img,svg,canvas,video{max-width:100%}
       <div class="grp"><label>Prazo para tratar</label><span class="preset-btn active" id="revPrazoFixo" aria-label="Prazo fixo de 24 horas">24 horas</span></div>
       <div class="grp"><label>Regional</label><select id="revRegional"><option value="TODOS">Todas</option></select></div>
       <div class="grp"><label>Base</label><select id="revBase"><option value="TODAS">Todas as bases</option></select></div>
-      <div class="grp"><label>Origem das bases</label><select id="revOrigem"><option value="TODAS">Todas as bases</option><option value="OFENSORES">Ofensores por Regional</option></select><small class="filter-help">Usa o mínimo definido em Ofensores por Regional</small></div>
+      <div class="grp"><label>Origem das bases</label><select id="revOrigem"><option value="TODAS">Todas as bases</option><option value="OFENSORES">Ofensores por Regional</option><option value="OFENSORES_MANHA">Ofensores da manhã</option></select><small class="filter-help" id="revOrigemHelp">Usa o mínimo definido em Ofensores por Regional</small></div>
     </div>
     <div class="rev-sel" id="revSel">
       <div class="rev-sel-bar">
         <button type="button" class="preset-btn" id="revSelOpen" aria-expanded="false" aria-controls="revSelPanel">Selecionar bases</button>
         <span class="rev-sel-status" id="revSelStatus">Todas as bases</span>
-        <button type="button" class="preset-btn" id="revSelAll" hidden aria-pressed="false">MOSTRAR TUDO</button><button type="button" class="preset-btn" id="revSelClear" hidden>Limpar seleção</button>
+        <button type="button" class="preset-btn" id="revSelClear" hidden>Limpar seleção</button>
         <button type="button" class="mini-camera" id="revSelCam" title="Capturar só o nome das bases selecionadas" aria-label="Capturar só o nome das bases selecionadas"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>
       </div>
       <div class="rev-sel-panel" id="revSelPanel" hidden>
@@ -4529,7 +4529,13 @@ function renderRevertido(){
   if(atual.value<comp.value){const temp=atual.value;atual.value=comp.value;comp.value=temp;}
   const reg=regSel.value;
   const origem=origemSel.value;
-  const basesOfensor=origem==='OFENSORES'?basesDosOfensoresPorValor(offendersThreshold):null;
+  const basesOfensor=origem==='OFENSORES'?basesDosOfensoresPorValor(offendersThreshold):(origem==='OFENSORES_MANHA'?(()=>{
+    /* Bases que eram ofensoras na planilha da MANHÃ do dia escolhido em "Até"; vale também ao ver a planilha da tarde. */
+    const manha=findTurnoImport(atual.value,'Manhã'), tot={};
+    (manha?.entries||[]).forEach(e=>{tot[e.base]=(tot[e.base]||0)+(Number(e.valor)||0);});
+    return new Set(Object.keys(tot).filter(b=>tot[b]>=Math.max(0,Number(offendersThreshold)||0)));
+  })():null);
+  { const h=document.getElementById('revOrigemHelp'); if(h)h.textContent=origem==='OFENSORES_MANHA'?(findTurnoImport(atual.value,'Manhã')?'Só as bases que eram ofensoras na planilha da manhã de '+atual.value.split('-').reverse().join('/'):'Não há planilha da manhã importada nesta data'):'Usa o mínimo definido em Ofensores por Regional'; }
   const currentBase=baseSel.value;
   const baseOptions=Array.from(new Set(IMPORTS.flatMap(i=>(i.entries||[])).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(!basesOfensor||basesOfensor.has(e.base))).map(e=>e.base))).sort();
   baseSel.innerHTML='<option value="TODAS">Todas as bases</option>'+baseOptions.map(b=>'<option value="'+escHtml(b)+'">'+escHtml(b)+'</option>').join('');
@@ -4891,8 +4897,7 @@ var revSelBases=new Set(); /* seleção confirmada */
   }
   function renderStatus(){
     const n=revSelBases.size;
-    $('revSelStatus').textContent=n?(revShowAll?'Mostrando todas as bases ('+n+' selecionada(s) guardadas)':n+' base(s) selecionada(s) — filtros Regional/Base desativados'):'Todas as bases';
-    $('revSelAll').hidden=!n; $('revSelAll').textContent=revShowAll?'VOLTAR À SELEÇÃO':'MOSTRAR TUDO'; $('revSelAll').setAttribute('aria-pressed',String(revShowAll));
+    $('revSelStatus').textContent=n?n+' base(s) selecionada(s) — filtros Regional/Base desativados':'Todas as bases';
     $('revSelClear').hidden=!n;
     $('revSelOpen').textContent=n?'Editar seleção':'Selecionar bases';
   }
@@ -4906,7 +4911,6 @@ var revSelBases=new Set(); /* seleção confirmada */
   $('revSelOpen').addEventListener('click',()=>panelOpen?closePanel():openPanel());
   $('revSelCancel').addEventListener('click',closePanel);
   $('revSelOk').addEventListener('click',()=>{revSelBases=new Set(draftBases);revShowAll=false;closePanel();renderStatus();renderRevertido();});
-  $('revSelAll').addEventListener('click',()=>{revShowAll=!revShowAll;renderStatus();renderRevertido();});
   $('revSelClear').addEventListener('click',()=>{revSelBases=new Set();revShowAll=false;draftBases=new Set();draftRegs=new Set();if(panelOpen)closePanel();renderStatus();renderNames();renderRevertido();});
   $('revSelRegs').addEventListener('click',e=>{
     const b=e.target.closest('[data-reg]');if(!b)return;const r=b.dataset.reg;
