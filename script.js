@@ -1127,6 +1127,7 @@ function prepareCaptureClone(doc){
       '.offenders-row .oval{flex:0 0 auto!important}';
     doc.head.appendChild(st);
     if(!regMetaCaptureOn()) doc.querySelectorAll('.reg-meta').forEach(n=>n.remove());
+    else doc.querySelectorAll('.reg-meta-extra').forEach(n=>n.remove());
     doc.querySelectorAll('.offenders-row').forEach(row=>{
       ['l','r'].forEach(side=>{const e=doc.createElement('i');e.className='capture-edge '+side;row.appendChild(e);});
     });
@@ -2331,9 +2332,9 @@ function regMetaLine(bl,filterFn,label){
   Object.keys(bl.byBase).forEach(b=>{ if(!filterFn(b)) return; const cur=bl.currentByBase[b]||0, gr=Math.min(cur,bl.graceByBase[b]||0); base+=bl.byBase[b]; atual+=Math.max(0,cur-gr); });
   if(!(base>0)) return '';
   const meta=base*bl.pct/100, delta=base-atual, falta=Math.max(0,atual-(base-meta));
-  const row=(l,v,c)=>'<span class=\"reg-meta-row\"><span class=\"reg-meta-lbl\">'+l+'</span><strong class=\"'+(c||'')+'\">'+v+'</strong></span>';
-  const reduziu=delta>0.005?row('Já reduziu',fmtBRL(delta),'meta-ok'):(delta<-0.005?row('Aumentou','+'+fmtBRL(-delta),'meta-pending'):row('Já reduziu',fmtBRL(0),''));
-  const faltaRow=falta<=0.005?row('Falta reduzir',fmtBRL(0)+' ✔','meta-ok'):row('Falta reduzir',fmtBRL(falta),'meta-pending');
+  const row=(l,v,c,x)=>'<span class=\"reg-meta-row'+(x?' reg-meta-extra':'')+'\"><span class=\"reg-meta-lbl\">'+l+'</span><strong class=\"'+(c||'')+'\">'+v+'</strong></span>';
+  const reduziu=delta>0.005?row('REDUZIU',fmtBRL(delta),'meta-ok',1):(delta<-0.005?row('Aumentou','+'+fmtBRL(-delta),'meta-pending',1):row('REDUZIU',fmtBRL(0),'',1));
+  const faltaRow=falta<=0.005?row('Falta reduzir',fmtBRL(0)+' ✔','meta-ok',1):row('Falta reduzir',fmtBRL(falta),'meta-pending',1);
   return '<div class=\"reg-meta\" title=\"Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(base)+' do início da semana, válida até sexta\">'+row((label||'META'),fmtBRL(meta),'')+reduziu+faltaRow+'</div>';
 }
 function regMetaToggleHtml(){
@@ -3059,8 +3060,8 @@ function renderRevertido(){
     /* Meta explicada em linhas: quanto precisa reduzir, quanto já reduziu, quanto falta e o que não conta. */
     const metaLinha=(rotulo,valor,cls)=>'<span class="meta-row"><span class="meta-row-lbl">'+rotulo+'</span><strong class="meta-row-val'+(cls?' '+cls:'')+'">'+valor+'</strong></span>';
     const metaJaReduziu=metaDelta>0.005
-      ? metaLinha('Já reduziu',fmtBRL(metaDelta),'meta-ok')
-      : (metaDelta<-0.005 ? metaLinha('Aumentou','+'+fmtBRL(-metaDelta),'meta-pending') : metaLinha('Já reduziu',fmtBRL(0),''));
+      ? metaLinha('REDUZIU',fmtBRL(metaDelta),'meta-ok')
+      : (metaDelta<-0.005 ? metaLinha('Aumentou','+'+fmtBRL(-metaDelta),'meta-pending') : metaLinha('REDUZIU',fmtBRL(0),''));
     const metaFalta=metaHit
       ? metaLinha('Falta reduzir',fmtBRL(0)+' ✔','meta-ok')
       : metaLinha('Falta reduzir',fmtBRL(metaGap),'meta-pending');
