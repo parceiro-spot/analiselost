@@ -813,7 +813,7 @@ document.getElementById('btnToggleSheetsFolder').addEventListener('click',functi
 document.getElementById('importsMonthChips').addEventListener('click',function(e){
   const select=e.target.closest('[data-month-select]'); if(select){ importsHistMonth=select.dataset.monthSelect; renderImportsHistory(); return; }
   const del=e.target.closest('[data-delete-month]'); if(!del)return; const month=del.dataset.deleteMonth; const [y,m]=month.split('-'); const label=new Date(Number(y),Number(m)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); if(!confirm('Excluir todas as planilhas de '+label+'? Esta ação não pode ser desfeita.'))return;
-  IMPORTS=IMPORTS.filter(imp=>String(imp.importDate||'').slice(0,7)!==month); if(importsHistMonth===month)importsHistMonth=''; if(selectedImportId&&!IMPORTS.some(imp=>imp.id===selectedImportId)){selectedImportId=null;saveSelectedImport();} persistImports(); rebuildStateData(); updateImportUI(); if(IMPORTS.length){document.getElementById('emptyState').style.display='none';renderAll();}else document.getElementById('emptyState').style.display='block';
+  IMPORTS=IMPORTS.filter(imp=>String(imp.importDate||'').slice(0,7)!==month); dropWeekBaselinesWhere(b=>String(b.importDate||'').slice(0,7)===month); seedWeekBaselines(); if(importsHistMonth===month)importsHistMonth=''; if(selectedImportId&&!IMPORTS.some(imp=>imp.id===selectedImportId)){selectedImportId=null;saveSelectedImport();} persistImports(); rebuildStateData(); updateImportUI(); if(IMPORTS.length){document.getElementById('emptyState').style.display='none';renderAll();}else document.getElementById('emptyState').style.display='block';
 });
 document.getElementById('importsHistBody').addEventListener('click', function(e){
   const del=e.target.closest('[data-del-import]');
@@ -835,6 +835,7 @@ document.getElementById('importsHistBody').addEventListener('click', function(e)
 });
 function deleteImport(id){
   IMPORTS=IMPORTS.filter(imp=>imp.id!==id);
+  dropWeekBaselinesWhere(b=>b.srcId===id); seedWeekBaselines();
   persistImports();
   rebuildStateData();
   if(selectedImportId===id){ selectedImportId=null; saveSelectedImport(); }
@@ -863,13 +864,38 @@ function renderMainImportBatchSummary(files){
   box.style.display='block';
   box.innerHTML='<strong>'+fmtInt(items.length)+' arquivo(s) selecionado(s)</strong><ol style="margin:6px 0 0;padding-left:20px;">'+shown.map(item=>'<li><b>'+item.importDate.split('-').reverse().join('/')+' · '+escHtml(item.fileTime||'horário não identificado')+' · '+escHtml(item.turno)+'</b> — '+escHtml(item.file.name)+'</li>').join('')+(items.length>20?'<li>… mais '+fmtInt(items.length-20)+' arquivo(s)</li>':'')+'</ol><div style="margin-top:7px;">Ao confirmar, cada arquivo substitui a versão importada do mesmo dia e turno. Manhã e Tarde são mantidas separadamente.</div>';
 }
+/* ===== Base da meta semanal: guarda SEMPRE a primeira planilha da semana (por horário do ARQUIVO) =====
+   Uma planilha nova do mesmo dia/turno substitui a antiga em IMPORTS; sem este registro a primeira
+   planilha da semana (ex.: segunda 07:00) se perdia quando outra do mesmo turno (segunda 09:12) entrava. */
+const WEEK_BASELINE_KEY='spot_dashboard_week_baselines_v1';
+let WEEK_BASELINES={};
+try{ WEEK_BASELINES=JSON.parse(localStorage.getItem(WEEK_BASELINE_KEY)||'{}')||{}; }catch(e){ WEEK_BASELINES={}; }
+function persistWeekBaselines(){ try{ localStorage.setItem(WEEK_BASELINE_KEY,JSON.stringify(WEEK_BASELINES)); }catch(e){} }
+function weekMondayOf(day){ const wd=new Date(day+'T00:00:00').getDay(); return isoShift(day,wd===0?-6:1-wd); }
+function weekOrderKey(imp){ const m=mainImportClockMinutes(imp); return String(imp.importDate||'')+'|'+String(m).padStart(4,'0'); }
+function fmtClockMins(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function rememberWeekBaseline(imp){
+  if(!imp||!imp.importDate||!(imp.entries||[]).length) return false;
+  const wk=weekMondayOf(imp.importDate), order=weekOrderKey(imp), cur=WEEK_BASELINES[wk];
+  if(cur&&cur.order<order) return false; /* já existe uma planilha mais cedo nesta semana */
+  const byBase={}, keys=[];
+  (imp.entries||[]).forEach(e=>{ byBase[e.base]=(byBase[e.base]||0)+(Number(e.valor)||0); const k=String(e.pacote||'').trim(); if(k) keys.push(k); });
+  WEEK_BASELINES[wk]={order,importDate:imp.importDate,time:fmtClockMins(mainImportClockMinutes(imp)),fileName:imp.fileName||'',srcId:imp.id||'',byBase,keys};
+  return true;
+}
+function seedWeekBaselines(){ let changed=false; IMPORTS.forEach(imp=>{ if(rememberWeekBaseline(imp)) changed=true; }); if(changed) persistWeekBaselines(); }
+function dropWeekBaselinesWhere(pred){ let changed=false; Object.keys(WEEK_BASELINES).forEach(k=>{ if(pred(WEEK_BASELINES[k],k)){ delete WEEK_BASELINES[k]; changed=true; } }); if(changed) persistWeekBaselines(); }
 function finishImportMain(entries,fileName,importDate,turno,fileTime){
   if(!entries||!entries.length)throw new Error('Não encontrei registros dos regionais reconhecidos nesta planilha.');
+  /* Antes de substituir qualquer planilha do mesmo dia/turno, guarda a base da meta da semana. */
+  seedWeekBaselines();
+  rememberWeekBaseline({importDate,turno,fileName,fileTime:fileTime||extractFileTime(fileName)||null,savedAt:new Date().toISOString(),entries,id:''}); persistWeekBaselines();
   const matches=IMPORTS.filter(imp=>imp.importDate===importDate&&imp.turno===turno);
   const previous=matches.slice().sort((a,b)=>compareMainImports(b,a))[0]||null;
   IMPORTS=IMPORTS.filter(imp=>!(imp.importDate===importDate&&imp.turno===turno));
   const novoId=previous?.id||('imp-'+Date.now()+'-'+Math.random().toString(36).slice(2,8));
   IMPORTS.push({id:novoId,importDate,turno,fileName,fileTime:fileTime||extractFileTime(fileName)||null,savedAt:new Date().toISOString(),entries});
+  seedWeekBaselines(); /* amarra o id da planilha à base da semana (para apagar junto se for excluída) */
   return {replaced:matches.length>0};
 }
 function readMainImportFile(file){
@@ -2310,13 +2336,21 @@ function regMetaSince(){ try{ return localStorage.getItem('spot_dashboard_meta_s
    a primeira planilha a partir do dia da ativação. A meta vale até sexta. */
 function regMetaBaseline(activeImp){
   const pct=regMetaPct(); if(!pct||!activeImp||!activeImp.importDate) return null;
-  const D=activeImp.importDate, wd=new Date(D+'T00:00:00').getDay();
-  const monday=isoShift(D,wd===0?-6:1-wd);
-  /* Sempre a primeira planilha da semana (segunda ou, se não houver, a primeira que existir). */
-  const startDay=monday;
-  const seq=IMPORTS.filter(i=>i.importDate>=startDay&&i.importDate<=D).slice().sort((a,b)=>revImportTimestamp(a)-revImportTimestamp(b));
-  const first=seq[0]; if(!first) return null;
-  const byBase={}, firstKeys=new Set(); (first.entries||[]).forEach(e=>{byBase[e.base]=(byBase[e.base]||0)+(Number(e.valor)||0); const k=String(e.pacote||'').trim(); if(k) firstKeys.add(k);});
+  const D=activeImp.importDate, monday=weekMondayOf(D);
+  /* Reconhecida automaticamente: a PRIMEIRA planilha da semana (segunda-feira ou, se não houver planilha de
+     segunda, a primeira que existir depois), pelo horário do arquivo. Vale mesmo colando vários arquivos de uma vez. */
+  const seq=IMPORTS.filter(i=>i.importDate>=monday&&i.importDate<=D).slice().sort(compareMainImports);
+  const first=seq[0];
+  const stored=WEEK_BASELINES[monday];
+  const useStored=!!stored&&stored.importDate<=D&&(!first||stored.order<=weekOrderKey(first));
+  if(!useStored&&!first) return null;
+  let byBase={}, firstKeys=new Set(), startDay, startTime, startFile;
+  if(useStored){
+    byBase={...stored.byBase}; firstKeys=new Set(stored.keys||[]); startDay=stored.importDate; startTime=stored.time; startFile=stored.fileName;
+  } else {
+    (first.entries||[]).forEach(e=>{byBase[e.base]=(byBase[e.base]||0)+(Number(e.valor)||0); const k=String(e.pacote||'').trim(); if(k) firstKeys.add(k);});
+    startDay=first.importDate; startTime=fmtClockMins(mainImportClockMinutes(first)); startFile=first.fileName||'';
+  }
   /* Valor atual e carência de 24h (pacote novo na semana não conta), iguais ao Valor Revertido. */
   const currentByBase={}, graceByBase={}, activeTs=revImportTimestamp(activeImp), firstSeen=revFirstSeenMap(D,activeImp);
   (activeImp.entries||[]).forEach(e=>{
@@ -2324,8 +2358,9 @@ function regMetaBaseline(activeImp){
     const k=String(e.pacote||'').trim(), fs=firstSeen.get(k);
     if(k&&!firstKeys.has(k)&&fs&&(activeTs-fs.timestamp)/3600000<24) graceByBase[e.base]=(graceByBase[e.base]||0)+v;
   });
-  return {pct,byBase,startDay,currentByBase,graceByBase};
+  return {pct,byBase,startDay,startTime,startFile,currentByBase,graceByBase};
 }
+function metaBaselineLabel(bl){ if(!bl||!bl.startDay) return ''; return bl.startDay.slice(8,10)+'/'+bl.startDay.slice(5,7)+(bl.startTime?' · '+bl.startTime:''); }
 function regMetaLine(bl,filterFn,label){
   if(!bl) return '';
   let base=0, atual=0;
@@ -2335,7 +2370,7 @@ function regMetaLine(bl,filterFn,label){
   const row=(l,v,c,x)=>'<span class=\"reg-meta-row'+(x?' reg-meta-extra':'')+'\"><span class=\"reg-meta-lbl\">'+l+'</span><strong class=\"'+(c||'')+'\">'+v+'</strong></span>';
   const reduziu=delta>0.005?row('REDUZIU',fmtBRL(delta),'meta-ok',1):(delta<-0.005?row('Aumentou','+'+fmtBRL(-delta),'meta-pending',1):row('REDUZIU',fmtBRL(0),'',1));
   const faltaRow=falta<=0.005?row('Falta reduzir',fmtBRL(0)+' ✔','meta-ok',1):row('Falta reduzir',fmtBRL(falta),'meta-pending',1);
-  return '<div class=\"reg-meta\" title=\"Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(base)+' do início da semana, válida até sexta\">'+row((label||'META'),fmtBRL(meta),'')+reduziu+faltaRow+'</div>';
+  return '<div class=\"reg-meta\" title=\"Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(base)+' da primeira planilha da semana ('+metaBaselineLabel(bl)+(bl.startFile?' · '+escHtml(bl.startFile):'')+'), válida até sexta\">'+row((label||'META'),fmtBRL(meta),'')+reduziu+faltaRow+'</div>';
 }
 function regMetaToggleHtml(){
   if(!regMetaPct()) return '';
@@ -2710,12 +2745,10 @@ const REV_PRAZO_PACOTE_HORAS=24;
 const REV_META_CARENCIA_HORAS=24;
 function revPrazoHoras(packageMode){ return packageMode?REV_PRAZO_PACOTE_HORAS:REV_PRAZO_VALOR_HORAS; }
 function revAddBusinessDay(timestamp, horas=REV_PRAZO_PACOTE_HORAS){ return new Date(timestamp).getTime() + horas*60*60*1000; }
-function revImportMins(imp){
-  if(imp.savedAt){const d=new Date(imp.savedAt);if(!isNaN(d)) return d.getHours()*60+d.getMinutes();}
-  const t=extractFileTime(imp.fileName);
-  if(t) return Number(t.slice(0,2))*60+Number(t.slice(3,5));
-  return imp.turno==='Tarde'?15*60:9*60;
-}
+/* Horário da planilha = horário gravado no NOME DO ARQUIVO (ex.: ..._0912.csv = 09:12). Só se o nome não tiver
+   horário é que cai para a hora em que foi colada. Antes era o contrário, e ao colar vários arquivos de uma vez
+   todos ficavam com a mesma hora (a da colagem), bagunçando a "primeira planilha da semana" e a carência de 24h. */
+function revImportMins(imp){ return mainImportClockMinutes(imp); }
 function revImportTimestamp(imp){
   const day=String(imp.importDate||'').slice(0,10); if(!day)return NaN;
   return new Date(day+'T00:00:00').getTime()+revImportMins(imp)*60000;
@@ -2944,7 +2977,9 @@ function renderRevertido(){
        os valores são somados pacote a pacote. A base mantém uma única situação. */
     const valueReverted=packageMode?0:(r.reverted||0);
     const valueNonReverted=packageMode?0:(riskValueByBase[r.base]||0);
-    const graceValue=Math.min(baseCurrent,graceByBase[r.base]||0), metaCurrent=Math.max(0,baseCurrent-graceValue);
+    /* Com meta ativa, a carência de 24h usa a MESMA base da meta (1ª planilha da semana), não o início do intervalo escolhido. */
+    const graceSrc=metaBL?metaBL.graceByBase:graceByBase;
+    const graceValue=Math.min(baseCurrent,graceSrc[r.base]||0), metaCurrent=Math.max(0,baseCurrent-graceValue);
     const metaBase=metaBaseOf(r.base);
     const reducedForMeta=Math.max(0,metaBase-metaCurrent);
     const targetForMeta=metaBase*configuredMetaPct/100;
@@ -3070,7 +3105,7 @@ function renderRevertido(){
       : '';
     const metaCell=(metaPct>0
       ? '<td class="rev-meta-column"><div class="meta-box">'
-        +metaLinha('Início da semana'+(metaBL&&metaBL.startDay?' ('+metaBL.startDay.slice(8,10)+'/'+metaBL.startDay.slice(5,7)+')':''),fmtBRL(metaBaseV),'')
+        +metaLinha('Início da semana'+(metaBL&&metaBL.startDay?' ('+metaBaselineLabel(metaBL)+')':''),fmtBRL(metaBaseV),'')
         +metaLinha('META',fmtBRL(metaReduction),'meta-alvo')
         +metaJaReduziu+metaFalta
         +'<span class="meta-badge '+(metaHit?'meta-badge-ok':'meta-badge-pending')+'">'+(metaHit?'Meta atingida':'Meta não atingida')+'</span>'
@@ -3275,6 +3310,7 @@ window.__spotRun(async function init(){
   if(savedDrv && savedDrv.map && Object.keys(savedDrv.map).length){ DRIVER_MAP=savedDrv.map; driverFileName=savedDrv.fileName; driverSavedAt=savedDrv.savedAt; driverRows=savedDrv.rows||Object.keys(savedDrv.map).length; }
   offendersBucket=loadOffendersBucket();
   IMPORTS=await loadPersistedImports();
+  seedWeekBaselines();
   RETURN_SHEETS=await loadPersistedReturnSheets();
   rebuildJustificationIndex();
   if(ROUTE_ONLY_MODE){ LOST_ROUTES=loadPersistedRoutePackages(); } else { LOST_ROUTES_ALL=loadPersistedLostRoutesAll(); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); }
