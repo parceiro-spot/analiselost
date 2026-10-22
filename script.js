@@ -3009,7 +3009,7 @@ function renderRevertido(){
     const gb=document.querySelector('#revLegend [data-status="green"]'), rb=document.querySelector('#revLegend [data-status="red"]');
     if(gb) gb.innerHTML='<i class="rev-dot green"></i> '+(hideRev?'Atingiu':'Revertido');
     if(rb) rb.innerHTML='<i class="rev-dot red"></i> '+(hideRev?'Não atingiu':'Não revertido'); }
-  document.getElementById('revColMeta')?.classList.toggle('rev-value-hidden',packageMode);
+  document.getElementById('revColMeta')?.classList.toggle('rev-value-hidden',!(configuredMetaPct>0));
   document.getElementById('revColNaoRevertido').textContent=packageMode?'% Não Revertido':'Pacote em risco';
   document.getElementById('revColNaoRevertido').hidden=false;
   ['revColNaoRevertido','revColDentro','revColEmRisco'].forEach(id=>document.getElementById(id)?.classList.toggle('rev-value-hidden',!packageMode));
@@ -3054,7 +3054,7 @@ function renderRevertido(){
     const metaGraceTxt=(b.graceValue||0)>0.005
       ? '<small class="meta-line-grace">'+fmtBRL(b.graceValue)+' do valor atual são de pacotes que entraram há menos de 24h. Eles ainda estão no prazo de tratamento e por isso não contam na meta.</small>'
       : '';
-    const metaCell=packageMode?'<td class="rev-meta-column rev-value-hidden"></td>':(metaPct>0
+    const metaCell=(metaPct>0
       ? '<td class="rev-meta-column"><div class="meta-box">'
         +metaLinha('Início da semana'+(metaBL&&metaBL.startDay?' ('+metaBL.startDay.slice(8,10)+'/'+metaBL.startDay.slice(5,7)+')':''),fmtBRL(metaBaseV),'')
         +metaLinha('Meta (reduzir)',fmtBRL(metaReduction),'')
