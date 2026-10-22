@@ -1282,3 +1282,9 @@ img,svg,canvas,video{max-width:100%}
 .rev-meta-column .meta-row-val{white-space:nowrap}
 .rev-meta-column small.meta-line-grace{overflow-wrap:break-word}
 .rev-meta-column .meta-badge{white-space:nowrap}
+
+.reg-meta{display:flex;flex-direction:column;gap:2px;font-weight:600}
+.reg-meta-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.reg-meta-lbl{color:var(--text-secondary);font-size:11px;white-space:nowrap}
+.reg-meta .meta-ok{color:#16a34a}.reg-meta .meta-pending{color:#dc2626}
+.reg-meta strong{white-space:nowrap}

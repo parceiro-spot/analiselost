@@ -2310,18 +2310,31 @@ function regMetaSince(){ try{ return localStorage.getItem('spot_dashboard_meta_s
 function regMetaBaseline(activeImp){
   const pct=regMetaPct(); if(!pct||!activeImp||!activeImp.importDate) return null;
   const D=activeImp.importDate, wd=new Date(D+'T00:00:00').getDay();
-  const monday=isoShift(D,wd===0?-6:1-wd), since=regMetaSince();
-  const startDay=(since&&since>monday&&since<=D)?since:monday;
+  const monday=isoShift(D,wd===0?-6:1-wd);
+  /* Sempre a primeira planilha da semana (segunda ou, se não houver, a primeira que existir). */
+  const startDay=monday;
   const seq=IMPORTS.filter(i=>i.importDate>=startDay&&i.importDate<=D).slice().sort((a,b)=>revImportTimestamp(a)-revImportTimestamp(b));
   const first=seq[0]; if(!first) return null;
-  const byBase={}; (first.entries||[]).forEach(e=>{byBase[e.base]=(byBase[e.base]||0)+(Number(e.valor)||0);});
-  return {pct,byBase,startDay};
+  const byBase={}, firstKeys=new Set(); (first.entries||[]).forEach(e=>{byBase[e.base]=(byBase[e.base]||0)+(Number(e.valor)||0); const k=String(e.pacote||'').trim(); if(k) firstKeys.add(k);});
+  /* Valor atual e carência de 24h (pacote novo na semana não conta), iguais ao Valor Revertido. */
+  const currentByBase={}, graceByBase={}, activeTs=revImportTimestamp(activeImp), firstSeen=revFirstSeenMap(D,activeImp);
+  (activeImp.entries||[]).forEach(e=>{
+    const v=Number(e.valor)||0; currentByBase[e.base]=(currentByBase[e.base]||0)+v;
+    const k=String(e.pacote||'').trim(), fs=firstSeen.get(k);
+    if(k&&!firstKeys.has(k)&&fs&&(activeTs-fs.timestamp)/3600000<24) graceByBase[e.base]=(graceByBase[e.base]||0)+v;
+  });
+  return {pct,byBase,startDay,currentByBase,graceByBase};
 }
 function regMetaLine(bl,filterFn,label){
   if(!bl) return '';
-  let total=0; Object.keys(bl.byBase).forEach(b=>{ if(filterFn(b)) total+=bl.byBase[b]; });
-  if(!(total>0)) return '';
-  return '<div class="reg-meta" title="Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(total)+' do início da semana">'+(label||'Meta')+': '+fmtBRL(total*bl.pct/100)+' até sexta</div>';
+  let base=0, atual=0;
+  Object.keys(bl.byBase).forEach(b=>{ if(!filterFn(b)) return; const cur=bl.currentByBase[b]||0, gr=Math.min(cur,bl.graceByBase[b]||0); base+=bl.byBase[b]; atual+=Math.max(0,cur-gr); });
+  if(!(base>0)) return '';
+  const meta=base*bl.pct/100, delta=base-atual, falta=Math.max(0,atual-(base-meta));
+  const row=(l,v,c)=>'<span class=\"reg-meta-row\"><span class=\"reg-meta-lbl\">'+l+'</span><strong class=\"'+(c||'')+'\">'+v+'</strong></span>';
+  const reduziu=delta>0.005?row('Já reduziu',fmtBRL(delta),'meta-ok'):(delta<-0.005?row('Aumentou','+'+fmtBRL(-delta),'meta-pending'):row('Já reduziu',fmtBRL(0),''));
+  const faltaRow=falta<=0.005?row('Falta reduzir',fmtBRL(0)+' ✔','meta-ok'):row('Falta reduzir',fmtBRL(falta),'meta-pending');
+  return '<div class=\"reg-meta\" title=\"Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(base)+' do início da semana, válida até sexta\">'+row((label||'META'),fmtBRL(meta),'')+reduziu+faltaRow+'</div>';
 }
 function regMetaToggleHtml(){
   if(!regMetaPct()) return '';
@@ -3057,7 +3070,7 @@ function renderRevertido(){
     const metaCell=(metaPct>0
       ? '<td class="rev-meta-column"><div class="meta-box">'
         +metaLinha('Início da semana'+(metaBL&&metaBL.startDay?' ('+metaBL.startDay.slice(8,10)+'/'+metaBL.startDay.slice(5,7)+')':''),fmtBRL(metaBaseV),'')
-        +metaLinha('Meta (reduzir)',fmtBRL(metaReduction),'')
+        +metaLinha('META',fmtBRL(metaReduction),'meta-alvo')
         +metaJaReduziu+metaFalta
         +'<span class="meta-badge '+(metaHit?'meta-badge-ok':'meta-badge-pending')+'">'+(metaHit?'Meta atingida':'Meta não atingida')+'</span>'
         +metaGraceTxt+'</div></td>'
