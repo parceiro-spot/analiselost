@@ -1152,6 +1152,8 @@ function prepareCaptureClone(doc){
       '.offenders-row .obar-fill{height:8px!important;border-radius:999px!important;background:var(--spot-green)!important}'+
       '.offenders-row .oval{flex:0 0 auto!important}';
     doc.head.appendChild(st);
+    /* A planilha ativa não aparece na imagem capturada (só na tela). */
+    doc.querySelectorAll('.dashboard-planilha-toolbar,.active-planilha-controls,.active-planilha-badge').forEach(n=>n.remove());
     if(!regMetaCaptureOn()) doc.querySelectorAll('.reg-meta').forEach(n=>n.remove());
     else doc.querySelectorAll('.reg-meta-extra').forEach(n=>n.remove());
     doc.querySelectorAll('.offenders-row').forEach(row=>{
@@ -1171,6 +1173,7 @@ function prepareCaptureClone(doc){
     });
   }catch(err){console.warn('Ajuste da captura ignorado:',err);}
 }
+const CAPTURE_LAYOUT_WIDTH=1600;
 async function captureDashboardElement(selector,filename){
   const alvo=document.querySelector(selector); if(!alvo)return;
   if(typeof html2canvas!=='function'){alert('A biblioteca de captura não carregou. Atualize a página e tente novamente.');return;}
@@ -1185,11 +1188,17 @@ async function captureDashboardElement(selector,filename){
     const scrollWidth=Math.ceil(Math.max(alvo.scrollWidth,alvo.offsetWidth,alvo.getBoundingClientRect().width));
     const scrollHeight=Math.ceil(Math.max(alvo.scrollHeight,alvo.offsetHeight,alvo.getBoundingClientRect().height));
     if(!scrollWidth||!scrollHeight)throw new Error('A área da tela não tem dimensões para captura.');
-    const baseScale=safeCaptureScale(scrollWidth,scrollHeight,isHome,window.devicePixelRatio), scales=Array.from(new Set([baseScale,Math.min(baseScale,1),Math.min(baseScale,.7)]));
+    /* Páginas inteiras são desenhadas num layout fixo de computador (4 colunas), igual em qualquer janela ou zoom.
+       Nesse modo NÃO se informa largura/altura: o html2canvas usa o tamanho real da cópia, então nada sai cortado.
+       Pequenos trechos (ex.: nomes das bases guardadas) continuam usando a medida da tela. */
+    const fixedLayout=selector!=='#revOfmNames';
+    const captureWindowWidth=fixedLayout?Math.max(CAPTURE_LAYOUT_WIDTH,scrollWidth+120):Math.max(scrollWidth,document.documentElement.clientWidth);
+    const estWidth=fixedLayout?captureWindowWidth:scrollWidth, estHeight=fixedLayout?scrollHeight*Math.max(1,captureWindowWidth/Math.max(1,scrollWidth)):scrollHeight; /* só para limitar a resolução */
+    const baseScale=safeCaptureScale(estWidth,estHeight,isHome,window.devicePixelRatio), scales=Array.from(new Set([baseScale,Math.min(baseScale,1),Math.min(baseScale,.7)]));
     let blob=null,lastError=null;
     for(const scale of scales){
       try{
-        const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale,useCORS:true,logging:false,allowTaint:false,width:scrollWidth,height:scrollHeight,windowWidth:Math.max(scrollWidth,document.documentElement.clientWidth),windowHeight:Math.max(scrollHeight,window.innerHeight),scrollX:0,scrollY:0,onclone:prepareCaptureClone});
+        const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale,useCORS:true,logging:false,allowTaint:false,...(fixedLayout?{}:{width:scrollWidth,height:scrollHeight}),windowWidth:captureWindowWidth,windowHeight:Math.max(scrollHeight,window.innerHeight),scrollX:0,scrollY:0,onclone:prepareCaptureClone});
         blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
         if(!blob)throw new Error('O navegador não conseguiu gerar a imagem PNG.');
         break;
