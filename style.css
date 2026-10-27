@@ -1286,5 +1286,7 @@ img,svg,canvas,video{max-width:100%}
 .reg-meta{display:flex;flex-direction:column;gap:2px;font-weight:600}
 .reg-meta-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .reg-meta-lbl{color:var(--text-secondary);font-size:11px;white-space:nowrap}
-.reg-meta .meta-ok{color:#16a34a}.reg-meta .meta-pending{color:#dc2626}
+.reg-meta .meta-ok{color:#16a34a}.reg-meta .meta-pending{color:#dc2626}.reg-meta .meta-grace{color:#d97706}
 .reg-meta strong{white-space:nowrap}
+
+.reg-meta-badge{align-self:flex-end;margin-top:3px;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.3px;white-space:nowrap}.reg-meta-badge.ok{background:rgba(22,163,74,.15);color:#16a34a}.reg-meta-badge.pending{background:rgba(220,38,38,.15);color:#dc2626}

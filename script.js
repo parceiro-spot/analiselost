@@ -2372,14 +2372,19 @@ function regMetaBaseline(activeImp){
 function metaBaselineLabel(bl){ if(!bl||!bl.startDay) return ''; return bl.startDay.slice(8,10)+'/'+bl.startDay.slice(5,7)+(bl.startTime?' · '+bl.startTime:''); }
 function regMetaLine(bl,filterFn,label){
   if(!bl) return '';
-  let base=0, atual=0;
-  Object.keys(bl.byBase).forEach(b=>{ if(!filterFn(b)) return; const cur=bl.currentByBase[b]||0, gr=Math.min(cur,bl.graceByBase[b]||0); base+=bl.byBase[b]; atual+=Math.max(0,cur-gr); });
+  let base=0, atual=0, grace=0, cheio=0;
+  Object.keys(bl.byBase).forEach(b=>{ if(!filterFn(b)) return; const cur=bl.currentByBase[b]||0, gr=Math.min(cur,bl.graceByBase[b]||0); base+=bl.byBase[b]; atual+=Math.max(0,cur-gr); grace+=gr; cheio+=cur; });
   if(!(base>0)) return '';
   const meta=base*bl.pct/100, delta=base-atual, falta=Math.max(0,atual-(base-meta));
   const row=(l,v,c,x)=>'<span class=\"reg-meta-row'+(x?' reg-meta-extra':'')+'\"><span class=\"reg-meta-lbl\">'+l+'</span><strong class=\"'+(c||'')+'\">'+v+'</strong></span>';
   const reduziu=delta>0.005?row('REDUZIU',fmtBRL(delta),'meta-ok',1):(delta<-0.005?row('Aumentou','+'+fmtBRL(-delta),'meta-pending',1):row('REDUZIU',fmtBRL(0),'',1));
-  const faltaRow=falta<=0.005?row('Falta reduzir',fmtBRL(0)+' ✔','meta-ok',1):row('Falta reduzir',fmtBRL(falta),'meta-pending',1);
-  return '<div class=\"reg-meta\" title=\"Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(base)+' da primeira planilha da semana ('+metaBaselineLabel(bl)+(bl.startFile?' · '+escHtml(bl.startFile):'')+'), válida até sexta\">'+row((label||'META'),fmtBRL(meta),'')+reduziu+faltaRow+'</div>';
+  const batida=falta<=0.005;
+  const faltaRow=batida?row('Falta reduzir',fmtBRL(0)+' ✔','meta-ok',1):row('Falta reduzir',fmtBRL(falta),'meta-pending',1);
+  /* Pacote sem 24h = valor que conta na meta; Pacote 24h = pacotes que entraram há menos de 24h (não contam). */
+  const semRow=row('Pacote sem 24h',fmtBRL(atual),'',1);
+  const grRow=row('Pacote 24h',fmtBRL(grace),grace>0.005?'meta-pending':'',1);
+  const badge='<span class=\"reg-meta-badge '+(batida?'ok':'pending')+'\">'+(batida?'META BATIDA':'META NÃO BATIDA')+'</span>';
+  return '<div class=\"reg-meta\" title=\"Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(base)+' da primeira planilha da semana ('+metaBaselineLabel(bl)+(bl.startFile?' · '+escHtml(bl.startFile):'')+'), válida até sexta. Pacote 24h: entrou há menos de 24h (fora da 1ª planilha da semana) e não conta na meta. Pacote sem 24h: valor que conta na meta.\">'+row((label||'META'),fmtBRL(meta),'')+reduziu+semRow+grRow+faltaRow+badge+'</div>';
 }
 function regMetaToggleHtml(){
   if(!regMetaPct()) return '';
