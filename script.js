@@ -3004,10 +3004,16 @@ function renderRevertido(){
           : (baseRiskValue>0?'red':((basePackageReverted[r.base]||0)>0?'green':((basePackageRemoved[r.base]||0)>0?'removed':'orange'))));
     const rB=redBefore[r.base]||0, rC=redCurrent[r.base]||0;
     const reconciledCurrent=Math.max(0,baseBefore-(r.reverted||0)); return {...r,graceValue,metaCurrent,status,baseBefore,metaBase,baseCurrent,baseDelta,reconciledCurrent,removedUnconfirmed:removedValueByBase[r.base]||0,nonRevertedValue:packageMode?(status==='red'?(riskValueByBase[r.base]||0):0):valueNonReverted,valueReverted:valueReverted,valueNonReverted:valueNonReverted,treatmentValue:withinValueByBase[r.base]||0,baseWithin:baseWithinValue,baseRisk:status==='red'?baseRiskValue:0,packageTotal:basePackageTotals[r.base]||0,packageReverted:basePackageReverted[r.base]||0,redBefore:rB,redCurrent:rC};
-  }).sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
+  })
+  /* Ofensores da manhã: só ficam as bases que AINDA NÃO bateram a meta (quem já atingiu sai da listagem). */
+  .filter(r=>!ofmAtivo||r.status!=='green')
+  .sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
   /* No Valor Revertido, cada base pertence a uma única situação.
      Como o risco vencido tem prioridade, uma base mista fica somente em
      Não revertido e não aparece também no filtro Revertido. */
+  revOfmPend=ofmAtivo?new Set(rows.map(r=>r.base)):null;
+  revOfmRenderNames(ofmSaved);
+  if(ofmAtivo&&revStatusFilter==='green')revStatusFilter='TODOS';
   const categoryRows=revStatusFilter==='TODOS' ? rows
     : revStatusFilter==='green' ? rows.filter(r=>r.status==='green')
     : revStatusFilter==='red' ? rows.filter(r=>r.status==='red')
@@ -3071,6 +3077,7 @@ function renderRevertido(){
   { const hideRev=!packageMode&&configuredMetaPct>0; document.getElementById('revColRevertido')?.classList.toggle('rev-value-hidden',hideRev); document.getElementById('revValor')?.closest('.rev-kpi')?.classList.toggle('rev-value-hidden',hideRev);
     const gb=document.querySelector('#revLegend [data-status="green"]'), rb=document.querySelector('#revLegend [data-status="red"]');
     if(gb) gb.innerHTML='<i class="rev-dot green"></i> '+(hideRev?'Atingiu':'Revertido');
+    if(gb) gb.style.display=ofmAtivo?'none':'';
     if(rb) rb.innerHTML='<i class="rev-dot red"></i> '+(hideRev?'Não atingiu':'Não revertido'); }
   document.getElementById('revColMeta')?.classList.toggle('rev-value-hidden',!(configuredMetaPct>0));
   document.getElementById('revColNaoRevertido').textContent=packageMode?'% Não Revertido':'Pacote em risco';
@@ -3188,13 +3195,17 @@ function revOfmSet(day,val){
   }
   try{localStorage.setItem(REV_OFM_KEY,JSON.stringify(m));return true;}catch(e){return false;}
 }
-function revOfmRenderNames(sv){
+let revOfmPend=null; /* bases da lista da manhã que ainda NÃO atingiram a meta (só preenchido com a origem "Ofensores da manhã") */
+function revOfmRenderNames(sv0){
   const box=document.getElementById('revOfmNames'); if(!box)return;
-  if(!sv||!sv.bases||!sv.bases.length){box.hidden=true;box.innerHTML='';return;}
+  if(!sv0||!sv0.bases||!sv0.bases.length){box.hidden=true;box.innerHTML='';return;}
+  const ativo=document.getElementById('revOrigem')?.value==='OFENSORES_MANHA'&&revOfmPend;
+  const sv=ativo?Object.assign({},sv0,{bases:sv0.bases.filter(b=>revOfmPend.has(b))}):sv0;
+  if(ativo&&!sv.bases.length){box.innerHTML='<div class="rev-sel-names-title">Ofensores da manhã · todas as '+sv0.bases.length+' bases já atingiram a meta ✔</div>';box.hidden=false;return;}
   const order=REGIONAL_ORDER.slice(); sv.bases.forEach(b=>{const r=regionalFromBasePrefix(b);if(r&&!order.includes(r))order.push(r);});
   const groups=order.map(r=>[r,sv.bases.filter(b=>regionalFromBasePrefix(b)===r).sort((x,y)=>x.localeCompare(y,'pt-BR',{numeric:true}))]).filter(g=>g[1].length);
   const semReg=sv.bases.filter(b=>!order.includes(regionalFromBasePrefix(b))).sort((x,y)=>x.localeCompare(y,'pt-BR',{numeric:true})); if(semReg.length)groups.push(['OUTROS',semReg]);
-  box.innerHTML='<div class="rev-sel-names-title">Ofensores da manhã ('+sv.bases.length+' bases · valor ≥ '+fmtBRL(sv.valor)+')</div>'+groups.map(g=>'<div class="rev-sel-names-row"><b>'+escHtml(REGIONAL_LABELS[g[0]]||g[0])+'</b><span>'+g[1].map(escHtml).join(' · ')+'</span></div>').join('');
+  box.innerHTML='<div class="rev-sel-names-title">Ofensores da manhã ('+sv.bases.length+(ativo?' de '+sv0.bases.length+' bases ainda não atingiram a meta':' bases')+' · valor ≥ '+fmtBRL(sv.valor)+')</div>'+groups.map(g=>'<div class="rev-sel-names-row"><b>'+escHtml(REGIONAL_LABELS[g[0]]||g[0])+'</b><span>'+g[1].map(escHtml).join(' · ')+'</span></div>').join('');
   box.hidden=false;
 }
 function revOfmRefreshUI(day,origem){
@@ -3204,7 +3215,7 @@ function revOfmRefreshUI(day,origem){
   document.getElementById('revOfmClear').hidden=!sv;
   if(useBtn){useBtn.classList.toggle('active',ativo);useBtn.textContent=ativo?'Voltar para todas as bases':'Puxar ofensores da manhã (valor atual)';}
   if(sv){
-    st.textContent='Lista guardada de '+String(sv.day||day).split('-').reverse().join('/')+': '+sv.bases.length+' base(s) com valor ≥ '+fmtBRL(sv.valor)+' ('+sv.label+')'+(ativo?' — mostrando essas bases com o valor atual de cada uma':'');
+    st.textContent='Lista guardada de '+String(sv.day||day).split('-').reverse().join('/')+': '+sv.bases.length+' base(s) com valor ≥ '+fmtBRL(sv.valor)+' ('+sv.label+')'+(ativo?' — mostrando só as que ainda não atingiram a meta, com o valor atual de cada uma':'');
     if(inp&&document.activeElement!==inp&&!inp.value)inp.value=String(sv.valor).replace('.',',');
   }else{
     st.textContent=ativo?'Nenhuma lista guardada em '+day.split('-').reverse().join('/')+'. Na planilha da manhã, digite o valor e clique em “Classificar como ofensores”.':'Manhã: digite o valor e clique em “Classificar como ofensores”. Tarde: não precisa digitar nada, clique em “Puxar ofensores da manhã (valor atual)”.';
