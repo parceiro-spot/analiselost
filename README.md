@@ -2,14 +2,6 @@
 
 Site estático pronto para publicação no GitHub Pages.
 
-## Estrutura
-
-- `index.html`: estrutura da página (HTML).
-- `style.css`: todos os estilos (CSS).
-- `script.js`: toda a lógica do dashboard (JavaScript).
-
-Os três arquivos precisam ficar na mesma pasta.
-
 ## Como usar
 
 - Abra `index.html` para acessar a tela inicial.
@@ -28,20 +20,8 @@ A lista suspensa da planilha é gerada a partir das mesmas 13 opções coloridas
 
 ## Aba Análise Base (corrigida)
 
-A aba estava em branco porque o `index.html` não tinha a lógica nem o CSS dessa aba (ela existia só no `script.js`, que a página não carrega). Agora a lógica está no `script.js` e o CSS no `style.css`: filtro por regional e base, calendário De/Até, atalhos de 3/6/12 meses, resumo por mês e, ao clicar no mês, o valor de cada dia. Os dados vêm das planilhas já importadas (arquivos antigos salvos no navegador).
+A aba estava em branco porque o `index.html` não tinha a lógica nem o CSS dessa aba (ela existia só no `script.js`, que a página não carrega). Agora tudo está dentro do `index.html`: filtro por regional e base, calendário De/Até, atalhos de 3/6/12 meses, resumo por mês e, ao clicar no mês, o valor de cada dia. Os dados vêm das planilhas já importadas (arquivos antigos salvos no navegador).
 
 ## Regra de Valor Revertido
 
-A configuração oficial do prazo fica no JavaScript do dashboard (`script.js`): na aba **Valor Revertido**, o valor é calculado pacote a pacote: pacote que desaparece até 48 horas entra como **Valor revertido**; pacote que continua presente após 48 horas entra como **Valor não revertido/ofensor**. O **Valor atual** mostra o total real atual. A aba **Pacote Revertido** usa a mesma regra própria de 48 horas.
-
-## Valor Revertido: Ofensores da manhã
-
-O antigo bloco "Selecionar bases / Escolha as regionais" foi removido. No lugar, a aba **Valor Revertido** tem **Ofensores da manhã**:
-
-1. De manhã, com a planilha da manhã aberta, digite o valor (ex.: 10.000) e clique **Classificar como ofensores**. As bases com valor igual ou acima ficam guardadas para aquele dia.
-2. À tarde, não digite nada: clique em **Puxar ofensores da manhã (valor atual)**. A tela mostra essas bases com o valor atual de cada uma. Clique de novo (**Voltar para todas as bases**) para sair do filtro.
-3. **Limpar lista** apaga a lista do dia. A câmera captura só o nome das bases guardadas.
-
-## Meta semanal (igual em Regional e Base e em Valor Revertido)
-
-As duas abas calculam a meta sobre o valor da **primeira planilha da semana** (segunda-feira) ou, se a meta foi ativada no meio da semana, da primeira planilha a partir do dia da ativação. Na coluna **Meta da semana** do Valor Revertido aparecem: valor no início da semana, meta (quanto reduzir), quanto já reduziu e quanto falta. Pacotes que entraram há menos de 24h não contam na meta.
+O arquivo executado pelo dashboard é o `index.html`. O `script.js` mantido na pasta é legado e não é carregado por esta página. A configuração oficial do prazo fica diretamente no JavaScript do dashboard (`index.html`): na aba **Valor Revertido**, o valor é calculado pacote a pacote: pacote que desaparece até 48 horas entra como **Valor revertido**; pacote que continua presente após 48 horas entra como **Valor não revertido/ofensor**. O **Valor atual** mostra o total real atual. A aba **Pacote Revertido** usa a mesma regra própria de 48 horas.
