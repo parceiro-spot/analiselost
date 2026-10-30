@@ -467,8 +467,8 @@ function buildExportCache(){
   const idx=sheets.map(sheet=>{const pkg=new Map(),route=new Map();(sheet.rows||[]).forEach(row=>{push(pkg,normalizePackageKey(row.pacote),row);push(route,normalizePackageKey(row.rota||row.route),row);});return {pkg,route};});
   return {risk,idx};
 }
-function returnRecordFast(entry,key,routeKey){
-  const C=EXPORT_CACHE; let empty=null;
+function returnRecordFast(entry,key,routeKey,cache){
+  const C=cache||EXPORT_CACHE; let empty=null;
   for(const x of C.idx){ const best=chooseReturnRow(key?(x.pkg.get(key)||[]):[],entry); if(best&&returnRowHasContent(best)) return best; if(best&&!empty) empty=best; }
   const baseE=normalizeBaseCode(entry.base);
   for(const x of C.idx){ const m=routeKey?(x.route.get(routeKey)||[]).filter(row=>!row.base||normalizeBaseCode(row.base)===baseE):[]; const exact=m.find(returnRowHasContent)||m[0]; if(exact) return exact; }
@@ -477,7 +477,16 @@ function returnRecordFast(entry,key,routeKey){
 }
 function showExportBusy(msg){ let el=document.getElementById('exportBusyToast'); if(!el){el=document.createElement('div');el.id='exportBusyToast';el.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f1f1f;color:#fff;padding:12px 20px;border-radius:10px;font:600 13px sans-serif;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,.4)';document.body.appendChild(el);} el.textContent=msg; }
 function hideExportBusy(){ document.getElementById('exportBusyToast')?.remove(); }
-function lostRouteMatchesRisk(e){ if(EXPORT_CACHE) return EXPORT_CACHE.risk.get(normalizePackageKey(e.pacote))||null; return IMPORTS.flatMap(i=>i.entries||[]).find(r=>normalizePackageKey(r.pacote)===normalizePackageKey(e.pacote))||null;}
+var RISK_INDEX_CACHE=null;
+function riskIndexSignature(){ let n=0,t=''; for(const i of IMPORTS){ n+=(i.entries||[]).length; t+=(i.id||'')+(i.savedAt||'')+';'; } return IMPORTS.length+':'+n+':'+t; }
+function getRiskIndex(){
+  const sig=riskIndexSignature();
+  if(RISK_INDEX_CACHE&&RISK_INDEX_CACHE.sig===sig) return RISK_INDEX_CACHE.map;
+  const map=new Map();
+  IMPORTS.forEach(i=>(i.entries||[]).forEach(r=>{const k=normalizePackageKey(r.pacote); if(!map.has(k)) map.set(k,r);}));
+  RISK_INDEX_CACHE={sig,map}; return map;
+}
+function lostRouteMatchesRisk(e){ if(EXPORT_CACHE) return EXPORT_CACHE.risk.get(normalizePackageKey(e.pacote))||null; return getRiskIndex().get(normalizePackageKey(e.pacote))||null;}
 function motivoExibicaoLost(e){ const risk=lostRouteMatchesRisk(e); const raw=String(e?.motivo||'').trim(); const candidate=raw&&raw!=='Perdido em rota'?raw:String(risk?.motivo||'').trim(); if(!candidate||candidate==='Perdido em rota') return 'Perdido em rota'; return friendlyReason(candidate); }
 function lostRouteArrow(e){const risk=e.riskBase||lostRouteMatchesRisk(e)?.base||''; const lost=e.base||e.origem||e.destino||''; if(!risk||!lost||risk===lost)return ''; return `↔ pode estar em ${baseInfoText(risk)} (Risco LM) ou ${baseInfoText(lost)} (Perdido em rota)`;}
 
@@ -512,8 +521,19 @@ function openImportsDB(){
   importsDbPromise=new Promise((resolve,reject)=>{ if(!window.indexedDB){reject(new Error('IndexedDB indisponível'));return;} const req=indexedDB.open(IMPORTS_DB_NAME,1); req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('app'))req.result.createObjectStore('app',{keyPath:'key'});}; req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error); });
   return importsDbPromise;
 }
-async function persistImports(){
-  const payload=serializeImports();
+let persistImportsTimer=null, persistImportsWaiters=[];
+function persistImports(){
+  return new Promise(resolve=>{ persistImportsWaiters.push(resolve); clearTimeout(persistImportsTimer); persistImportsTimer=setTimeout(flushPersistImports,200); });
+}
+async function flushPersistImports(){
+  clearTimeout(persistImportsTimer); persistImportsTimer=null;
+  const waiters=persistImportsWaiters; persistImportsWaiters=[];
+  try{ await persistImportsNow(); }finally{ waiters.forEach(r=>r()); }
+}
+window.addEventListener('pagehide',()=>{ if(persistImportsTimer) flushPersistImports(); });
+async function persistImportsNow(){
+  /* O IndexedDB e o JSON já tratam Date; não precisa copiar cada linha antes de gravar. */
+  const payload=IMPORTS;
   try{ const db=await openImportsDB(); await new Promise((resolve,reject)=>{const tx=db.transaction('app','readwrite');tx.objectStore('app').put({key:'imports',payload});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);}); }
   catch(err){ try{localStorage.setItem(IMPORTS_KEY,JSON.stringify(payload));}catch(fallbackErr){console.warn('Planilhas mantidas nesta sessão; armazenamento local cheio.',fallbackErr);} }
 }
@@ -535,7 +555,7 @@ function rebuildJustificationIndex(){
   JUSTIFICATION_INDEX={packages,routes};
 }
 async function persistReturnSheets(){
-  JUSTIFICATION_INDEX=null;
+  JUSTIFICATION_INDEX=null; RETURN_INDEX_CACHE=null;
   const payload=serializeReturnSheets();
   try{ const db=await openImportsDB(); await new Promise((resolve,reject)=>{const tx=db.transaction('app','readwrite');tx.objectStore('app').put({key:'returnSheets',payload});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);}); }
   catch(err){ try{ localStorage.setItem('spot_dashboard_return_sheets_v1',JSON.stringify(payload)); }catch(e){ console.warn('Observações mantidas nesta sessão; armazenamento cheio.',e); } }
@@ -562,12 +582,26 @@ function chooseReturnRow(rows,entry){
     return score(b)-score(a);
   })[0];
 }
+var RETURN_INDEX_CACHE=null;
+function getReturnIndex(){
+  const selectedDay=getSelectedImport()?.importDate||document.getElementById('impDia')?.value||'';
+  let rows=0,last=''; for(const sh of RETURN_SHEETS){ rows+=(sh.rows||[]).length; if(String(sh.savedAt||'')>last) last=String(sh.savedAt||''); }
+  const sig=selectedDay+'|'+RETURN_SHEETS.length+'|'+rows+'|'+last;
+  if(RETURN_INDEX_CACHE&&RETURN_INDEX_CACHE.sig===sig) return RETURN_INDEX_CACHE.value;
+  const selected=returnSheetForDate(selectedDay);
+  const sheets=[...(selected?[selected]:[]),...RETURN_SHEETS.filter(sheet=>!selected||sheet.id!==selected.id).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))];
+  const push=(m,k,row)=>{ if(!k) return; let l=m.get(k); if(!l){l=[];m.set(k,l);} l.push(row); };
+  const idx=sheets.map(sheet=>{const pkg=new Map(),route=new Map();(sheet.rows||[]).forEach(row=>{push(pkg,normalizePackageKey(row.pacote),row);push(route,normalizePackageKey(row.rota||row.route),row);});return {pkg,route};});
+  const value={idx}; RETURN_INDEX_CACHE={sig,value}; return value;
+}
 function returnRecordForEntry(entry){
   const key=normalizePackageKey(entry.pacote);
   const routeKey=normalizePackageKey(entry.rota);
   const driverKey=normalizePackageKey(entry.driverId);
   if(!key&&!routeKey) return null;
   if(EXPORT_CACHE) return returnRecordFast(entry,key,routeKey);
+  /* Índice por pacote/rota refeito só quando as observações mudam (antes varria todas as linhas a cada pacote). */
+  return returnRecordFast(entry,key,routeKey,getReturnIndex());
   const selectedDay=getSelectedImport()?.importDate||document.getElementById('impDia')?.value||'';
   const selected=returnSheetForDate(selectedDay);
   const sheets=[...(selected?[selected]:[]),...RETURN_SHEETS.filter(sheet=>!selected||sheet.id!==selected.id).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')))];
@@ -924,6 +958,7 @@ document.getElementById('btnConfirmImport').addEventListener('click',async funct
   try{
     for(let i=0;i<items.length;i++){
       const item=items[i];this.textContent='Lendo '+(i+1)+'/'+items.length+'…';
+      await new Promise(r=>setTimeout(r,30)); /* deixa o "Lendo…" aparecer antes de ler o arquivo */
       try{const entries=await readMainImportFile(item.file);const result=finishImportMain(entries,item.file.name,item.importDate,item.turno,item.fileTime);imported++;if(result.replaced)replaced++;}
       catch(err){console.error('Erro ao importar '+item.file.name,err);errors.push(item.file.name+': '+(err.message||'erro de leitura'));}
     }
@@ -931,6 +966,7 @@ document.getElementById('btnConfirmImport').addEventListener('click',async funct
   }finally{
     importDateManuallySet=false;pendingImportFiles=[];renderMainImportBatchSummary([]);this.disabled=true;this.textContent='OK';
   }
+  await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0))); /* mostra a tela atualizada antes do aviso */
   const resultText=imported+' arquivo(s) importado(s)'+(replaced?' · '+replaced+' importação(ões) anterior(es) substituída(s)':'')+'.';
   alert(resultText+(errors.length?'\n\nNão foi possível importar:\n'+errors.join('\n'):'') );
 });
@@ -962,13 +998,15 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
     /* Mescla em vez de substituir: preserva observação/foto já salvas (ex.: adicionadas direto no dash)
        quando a planilha reimportada não traz um valor novo para aquele pacote. Assim, anexar a planilha de
        novo não apaga o que já foi anexado/escrito no dash — só atualiza o que a planilha realmente trouxer. */
+    const legacyByPackage=new Map();
+    RETURN_SHEETS.forEach(sheet=>(sheet.rows||[]).forEach(item=>{ const k=normalizePackageKey(item.pacote); let l=legacyByPackage.get(k); if(!l){l=[];legacyByPackage.set(k,l);} l.push(item); }));
     const mergedRowsMap=new Map();
     (previous?.rows||[]).forEach(row=>{ const key=normalizePackageKey(row.pacote)+'|'+normalizeBaseCode(row.base||''); mergedRowsMap.set(key,{...row}); });
     normalizedRows.forEach(row=>{
       const packageKey=normalizePackageKey(row.pacote);
       const key=packageKey+'|'+normalizeBaseCode(row.base||'');
       const current=mergedRowsMap.get(key);
-      const legacyMatches=RETURN_SHEETS.flatMap(sheet=>sheet.rows||[]).filter(item=>normalizePackageKey(item.pacote)===packageKey);
+      const legacyMatches=legacyByPackage.get(packageKey)||[];
       const legacyWithPhoto=legacyMatches.find(item=>item.photo);
       const old=current?.photo?current:(legacyWithPhoto||current||legacyMatches[0]);
       if(!old){ mergedRowsMap.set(key,row); return; }
@@ -1006,6 +1044,7 @@ document.getElementById('btnConfirmDrivers').addEventListener('click',function()
 });
 
 /* ===== NAVEGAÇÃO ===== */
+let setPageToken=0;
 function setPage(page){
   if(PUBLIC_VIEW_MODE && page!=='geral' && page!=='regional') page='geral';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
@@ -1013,18 +1052,23 @@ function setPage(page){
     const el=document.getElementById('page-'+p); if(el) el.classList.toggle('active', p===page);
   });
   const subtabs=document.getElementById('subtabsBar'); if(subtabs) subtabs.style.display = page==='geral' ? 'block' : 'none';
-  try {
-    if(page==='ofensores') renderOffenders();
-    if(page==='regional'){ regionalNav={level:'list',regional:null}; renderRegionalPage(); }
-    if(page==='lostroutes'){ lostRouteNav={level:'list',regional:null}; renderLostRoutesPage(); }
-    if(page==='diaria') renderDiaria();
-    if(page==='analise') renderAnalise();
-    if(page==='analisebase') renderAnaliseBase();
-    if(page==='revertido') renderRevertido();
-  } catch(err) {
-    console.error('Falha ao abrir a aba '+page,err);
-    const target=document.getElementById('page-'+page); if(target) target.insertAdjacentHTML('afterbegin','<div class="history-empty nav-error">Não foi possível carregar esta aba. Tente novamente.</div>');
-  }
+  const token=++setPageToken;
+  const run=()=>{
+    if(token!==setPageToken) return; /* o usuário já foi para outra aba */
+    try {
+      if(page==='ofensores') renderOffenders();
+      if(page==='regional'){ regionalNav={level:'list',regional:null}; renderRegionalPage(); }
+      if(page==='lostroutes'){ lostRouteNav={level:'list',regional:null}; renderLostRoutesPage(); }
+      if(page==='diaria') renderDiaria();
+      if(page==='analise') renderAnalise();
+      if(page==='analisebase') renderAnaliseBase();
+      if(page==='revertido') renderRevertido();
+    } catch(err) {
+      console.error('Falha ao abrir a aba '+page,err);
+      const target=document.getElementById('page-'+page); if(target) target.insertAdjacentHTML('afterbegin','<div class="history-empty nav-error">Não foi possível carregar esta aba. Tente novamente.</div>');
+    }
+  };
+  if(page==='geral'||page==='importados') run(); else requestAnimationFrame(()=>setTimeout(run,0)); /* o clique responde na hora, o conteúdo desenha em seguida */
 }
 document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click', ()=>setPage(btn.dataset.page)));
 document.getElementById('dashboardImportSelect')?.addEventListener('change',function(){ if(!this.value)return; selectedImportId=this.value; saveSelectedImport(); currentTab='TODOS'; currentBaseFilter='TODAS'; document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS')); updateImportUI(); renderAll(); });
@@ -1154,6 +1198,8 @@ function prepareCaptureClone(doc){
     doc.head.appendChild(st);
     /* A planilha ativa não aparece na imagem capturada (só na tela). */
     doc.querySelectorAll('.dashboard-planilha-toolbar,.active-planilha-controls,.active-planilha-badge').forEach(n=>n.remove());
+    /* O botão Copiar print não aparece na imagem (a câmera continua como antes). */
+    doc.querySelectorAll('.copy-print-btn').forEach(n=>n.remove());
     if(!regMetaCaptureOn()) doc.querySelectorAll('.reg-meta').forEach(n=>n.remove());
     else doc.querySelectorAll('.reg-meta-extra').forEach(n=>n.remove());
     doc.querySelectorAll('.offenders-row').forEach(row=>{
@@ -1174,9 +1220,26 @@ function prepareCaptureClone(doc){
   }catch(err){console.warn('Ajuste da captura ignorado:',err);}
 }
 const CAPTURE_LAYOUT_WIDTH=1600;
+/* Modo "copiar print": o botão Copiar liga este marcador e dispara o clique da câmera ao lado.
+   A captura é a mesma; só muda o destino (área de transferência em vez de arquivo). */
+let captureCopyMode=false;
+function showCaptureToast(msg,ms){ showExportBusy(msg); if(ms) setTimeout(hideExportBusy,ms); }
 async function captureDashboardElement(selector,filename){
+  const copyMode=captureCopyMode; captureCopyMode=false;
   const alvo=document.querySelector(selector); if(!alvo)return;
   if(typeof html2canvas!=='function'){alert('A biblioteca de captura não carregou. Atualize a página e tente novamente.');return;}
+  /* Copiar precisa começar dentro do clique (exigência dos navegadores): entrega-se uma promessa do PNG ao clipboard. */
+  let copyDeferred=null;
+  if(copyMode){
+    if(!(navigator.clipboard&&window.ClipboardItem&&window.isSecureContext)){
+      alert('Seu navegador não permite copiar imagem aqui. Use a câmera para salvar o print (copiar funciona em https e em navegadores atuais).');return;
+    }
+    let res,rej; const promise=new Promise((a,b)=>{res=a;rej=b;});
+    copyDeferred={promise,res,rej};
+    copyDeferred.written=navigator.clipboard.write([new ClipboardItem({'image/png':promise})]);
+    copyDeferred.written.catch(()=>{});
+    showCaptureToast('Gerando print para copiar…');
+  }
   const previous={overflow:alvo.style.overflow,height:alvo.style.height,maxHeight:alvo.style.maxHeight,display:alvo.style.display,position:alvo.style.position,padding:alvo.style.padding,boxSizing:alvo.style.boxSizing,background:alvo.style.background};
   const isHome=selector==='#page-geral';
   try{
@@ -1205,9 +1268,19 @@ async function captureDashboardElement(selector,filename){
       }catch(err){lastError=err;}
     }
     if(!blob)throw lastError||new Error('Não foi possível gerar a captura.');
-    const a=document.createElement('a'), url=URL.createObjectURL(blob);
-    a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=url; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),10000);
-  }catch(err){console.error('Erro ao capturar '+filename+':',err);alert('Não foi possível capturar a tela. Tente novamente; a captura agora ajusta a resolução automaticamente.');}
+    if(copyDeferred){
+      copyDeferred.res(blob);
+      await copyDeferred.written;
+      showCaptureToast('Print copiado! É só colar (Ctrl+V).',2500);
+    }else{
+      const a=document.createElement('a'), url=URL.createObjectURL(blob);
+      a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=url; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),10000);
+    }
+  }catch(err){
+    console.error('Erro ao capturar '+filename+':',err);
+    if(copyDeferred){copyDeferred.rej(err);hideExportBusy();alert('Não foi possível copiar o print. Tente novamente ou use a câmera para salvar.');}
+    else alert('Não foi possível capturar a tela. Tente novamente; a captura agora ajusta a resolução automaticamente.');
+  }
   finally{alvo.style.overflow=previous.overflow;alvo.style.height=previous.height;alvo.style.maxHeight=previous.maxHeight;alvo.style.display=previous.display;alvo.style.position=previous.position;alvo.style.padding=previous.padding;alvo.style.boxSizing=previous.boxSizing;alvo.style.background=previous.background;}
 }
 function renderAll(){
@@ -1594,8 +1667,9 @@ function renderOverlayDriverDetail(driverId, faixa){
 document.getElementById('overlayBody').addEventListener('change', function(e){ if(e.target?.dataset?.justPhoto){ attachJustificationPhoto(e.target); return; } if(e.target?.dataset?.situationPacote) updateSituation(e.target); });
 async function updateSituation(select){ const scroll=captureOverlayScroll(); const pacote=select.dataset.situationPacote||'',base=select.dataset.situationBase||'',value=SITUATION_BY_LABEL[select.value]?select.value:''; select.className='situation-select '+situationClass(value); const sheet=ensureReturnSheetForActiveDate(); let row=findReturnRow(pacote,base); if(!row){row={pacote:normalizePackageKey(pacote),base:normalizeBaseCode(base||''),justificativa:'',situacao:'',photo:null};sheet.rows.push(row);} row.situacao=value; row.manualEditedAt=new Date().toISOString(); row.updatedAt=new Date().toISOString(); await persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI(); }
 
+const renderOverlayBodyDebounced=debounceFn(()=>renderOverlayBody(),160);
 document.getElementById('overlayBody').addEventListener('input', function(e){
-  if(e.target && e.target.id==='overlaySearch'){ overlayCtx.search=e.target.value; renderOverlayBody(); }
+  if(e.target && e.target.id==='overlaySearch'){ overlayCtx.search=e.target.value; renderOverlayBodyDebounced(); }
 });
 function findReturnRow(pacote,base){ const sheet=ensureReturnSheetForActiveDate(); const key=normalizePackageKey(pacote); return (sheet.rows||[]).find(row=>normalizePackageKey(row.pacote)===key && (!base||!row.base||normalizeBaseCode(row.base)===normalizeBaseCode(base))); }
 function captureOverlayScroll(){ const el=document.querySelector('#overlayTable .table-scroll')||document.getElementById('overlayBody'); return el?{top:el.scrollTop,left:el.scrollLeft}:null; }
@@ -1863,7 +1937,9 @@ function renderOffenders(){
   if(!algum) html='<div class="history-empty" style="padding:30px 0 10px;">Nenhuma base atende aos filtros atuais. Use "Limpar todos os filtros" para voltar.</div>';
   container.innerHTML=html;
 }
-document.getElementById('offendersSearch').addEventListener('input', function(e){ offendersSearch=e.target.value; renderOffenders(); });
+const renderOffendersDebounced=debounceFn(()=>renderOffenders(),160);
+document.getElementById('offendersSearch').addEventListener('input', function(e){ offendersSearch=e.target.value; renderOffendersDebounced(); });
+function debounceFn(fn,ms){ let t=null; return function(...a){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a),ms); }; }
 function setOffendersThreshold(v){
   offendersThreshold=(isNaN(v)||v<0)?0:v;
   document.querySelectorAll('#thresholdPresets .preset-btn').forEach(b=>b.classList.toggle('active', Number(b.dataset.val)===offendersThreshold));
@@ -2255,6 +2331,7 @@ function lostComplementBases(e){ const p=lostPrimaryBase(e); return lostAllBases
 function lostRouteRegion(e){ return regionalFromBasePrefix(lostPrimaryBase(e))||lostAllBases(e).map(regionalFromBasePrefix).find(Boolean)||'OUTROS'; }
 function lostRouteEntriesForRegion(region){ return LOST_ROUTES.filter(e=>region==='TODOS'||lostRouteRegion(e)===region); }
 function restoreSearchFocus(id,position){ const input=document.getElementById(id); if(!input)return; input.focus(); try{input.setSelectionRange(position,position);}catch(e){} }
+const renderLostSearchDebounced=debounceFn(()=>{renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',lostRouteSearch.length);},160);
 function renderLostRoutesPage(){
   const content=document.getElementById('lostRoutesContent'); if(!content)return;
   const query=lostRouteSearch.trim().toUpperCase();
@@ -2274,7 +2351,7 @@ function renderLostRoutesPage(){
     content.innerHTML='<div class="aging-strip lost-routes-aging" id="lostRoutesAging"></div>'+html+'</div>';
     renderAgingStrip('lostRoutesAging',rows,()=>{});
     document.getElementById('btnDownloadLostRoutes')?.addEventListener('click',()=>abrirModalOcultarDias(rows,'Pacotes em rota',true));
-    document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);});
+    document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;renderLostSearchDebounced();});
     document.getElementById('btnCapturaLostRoutes')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-regionais'));
     content.querySelectorAll('[data-lost-region]').forEach(card=>card.addEventListener('click',()=>{lostRouteNav={level:'bases',regional:card.dataset.lostRegion};renderLostRoutesPage();}));
     return;
@@ -2294,7 +2371,7 @@ function renderLostRoutesPage(){
   });
   content.innerHTML=html+'</div>';
   document.getElementById('btnDownloadLostBases')?.addEventListener('click',()=>abrirModalOcultarDias(entries,'Pacotes em rota',true));
-  document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);});
+  document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;renderLostSearchDebounced();});
   document.getElementById('btnCapturaLostBases')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-bases'));
   content.querySelectorAll('[data-lost-base]').forEach(card=>card.addEventListener('click',()=>{const b=card.dataset.lostBase; openLostRoutesOverlay(b,byBase[b]||[],'');}));
   content.querySelectorAll('[data-lost-comp]').forEach(chip=>chip.addEventListener('click',ev=>{ev.stopPropagation();const c=chip.dataset.lostComp,p=chip.dataset.lostParent; openLostRoutesOverlay(c,ownByBase[c]||[],'');}));
@@ -2401,6 +2478,7 @@ function bindRegMetaToggle(){
     const box=b.querySelector('.meta-capture-box'); if(box) box.textContent=on?'✓':'';
   });
 }
+const renderRegionalSearchDebounced=debounceFn(()=>{renderRegionalPage();restoreSearchFocus('regionalSearch',regionalSearch.length);},160);
 function renderRegionalPage(){
   const crumb=document.getElementById('regionalBreadcrumb'); const content=document.getElementById('regionalContent');
   const activeImp=getSelectedImport();
@@ -2423,7 +2501,7 @@ function renderRegionalPage(){
     html+='</div>';
     content.innerHTML=html+renderRegionalHistoricalMatches(query,activeEntries);
     content.querySelectorAll('[data-regional-age]').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();regionalAgeFilter=btn.dataset.regionalAge;renderRegionalPage();}));
-    const searchInput=document.getElementById('regionalSearch'); if(searchInput){searchInput.addEventListener('input',()=>{regionalSearch=searchInput.value;const pos=regionalSearch.length;renderRegionalPage();restoreSearchFocus('regionalSearch',pos);});}
+    const searchInput=document.getElementById('regionalSearch'); if(searchInput){searchInput.addEventListener('input',()=>{regionalSearch=searchInput.value;renderRegionalSearchDebounced();});}
     content.querySelectorAll('.regional-justified-btn').forEach(btn=>btn.addEventListener('click',ev=>{ev.stopPropagation();const r=btn.dataset.regJust;const entries=r==='TODAS'?visibleEntries:(activeData[r]?.entries||[]);const label=r==='TODAS'?'Todas as bases':(REGIONAL_LABELS[r]||r);openOverlayEntries('Justificados · '+label,'',entries,'TODOS');overlayCtx.period='JUSTIFICADOS';renderOverlayBody();}));
     content.querySelectorAll('.regional-card').forEach(c=>c.addEventListener('click', ()=>{ regionalNav={level:'bases',regional:c.dataset.r}; renderRegionalPage(); }));
   } else {
@@ -2521,6 +2599,32 @@ document.getElementById('diariaOrigem').addEventListener('change', renderDiaria)
 document.getElementById('diariaOrdem').addEventListener('change', renderDiaria);
 document.getElementById('diariaTipoToggle').addEventListener('click', function(e){ const btn=e.target.closest('.toggle-btn'); if(!btn) return; document.querySelectorAll('#diariaTipoToggle .toggle-btn').forEach(b=>b.classList.toggle('active',b===btn)); renderDiaria(); });
 [['btnCapturaGeral','#page-geral','pagina-inicial'],['btnCapturaOfensores','#page-ofensores','ofensores-por-regional'],['btnCapturaDiaria','#page-diaria','visao-diaria'],['btnCapturaAnalise','#page-analise','analise'],['btnCapturaAnaliseTopo','#page-analise','analise'],['btnCapturaRevertido','#page-revertido','pacote-revertido']].forEach(([id,selector,name])=>document.getElementById(id)?.addEventListener('click',()=>captureDashboardElement(selector,name)));
+
+/* ===== Botão COPIAR PRINT ao lado de cada botão de câmera (mesma captura, sem salvar) ===== */
+(function(){
+  const COPY_ICON='<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
+  function addCopyButtons(root){
+    (root||document).querySelectorAll('.mini-camera,.capture-btn').forEach(cam=>{
+      if(cam.classList.contains('copy-print-btn')||cam.nextElementSibling?.classList.contains('copy-print-btn'))return;
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className=cam.classList.contains('capture-btn')?'capture-btn copy-print-btn':'mini-camera copy-print-btn';
+      btn.title='Copiar print (sem salvar)'; btn.setAttribute('aria-label','Copiar print');
+      btn.innerHTML=COPY_ICON+(cam.classList.contains('capture-btn')?' Copiar print':'');
+      cam.insertAdjacentElement('afterend',btn);
+    });
+  }
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('.copy-print-btn'); if(!btn)return;
+    const cam=btn.previousElementSibling; if(!cam)return;
+    e.preventDefault(); e.stopPropagation();
+    captureCopyMode=true; cam.click(); captureCopyMode=false;
+  },true);
+  addCopyButtons();
+  let pending=false;
+  const mo=new MutationObserver(()=>{ if(pending)return; pending=true; requestAnimationFrame(()=>{pending=false;addCopyButtons();}); });
+  ['regionalBreadcrumb','lostRoutesBreadcrumb'].forEach(id=>{ const el=document.getElementById(id); if(el) mo.observe(el,{childList:true}); });
+})();
 
 /* ===== ANÁLISE DE PACOTE DIÁRIO ===== */
 function availableImportDates(){ return Array.from(new Set(IMPORTS.map(i=>i.importDate).filter(Boolean))).sort(); }
