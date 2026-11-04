@@ -420,9 +420,31 @@ function rebuildRouteOnlyImports(){
   selectedImportId=IMPORTS.length?IMPORTS[IMPORTS.length-1].id:null;
   if(IMPORTS.length) lostRouteDay=IMPORTS[IMPORTS.length-1].importDate;
 }
+function setupConfigurationPage(){
+  const body=document.getElementById('configRevertidoBody');
+  const ofm=document.getElementById('revOfm'), bar=ofm?.querySelector('.rev-ofm-bar'), status=document.getElementById('revOfmStatus'), range=document.querySelector('.rev-value-range');
+  if(body&&ofm&&bar&&status&&range&&!body.dataset.ready){
+    body.dataset.ready='1';
+    const card=document.createElement('div'); card.className='config-edit-card';
+    card.appendChild(bar); card.appendChild(status); card.appendChild(range); body.appendChild(card);
+    ofm.classList.add('rev-ofm-summary');
+  }
+  document.querySelectorAll('#configTabs [data-config-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===btn));
+    const rev=btn.dataset.configTab==='revertido';
+    document.getElementById('configRevertidoPanel').hidden=!rev;
+    document.getElementById('configGeralPanel').hidden=rev;
+    if(!rev){
+      const title=document.querySelector('#configGeralPanel h3');
+      const help=document.querySelector('#configGeralPanel .filter-help');
+      if(title) title.textContent='Configuração de '+btn.textContent.trim();
+      if(help) help.textContent='As configurações editáveis desta aba ficarão organizadas aqui, sem alterar os dados importados. A regra de meta permanece a mesma do dashboard LOST.';
+    }
+  }));
+}
 function configureRouteOnlyUI(){
   document.body.classList.add('route-only-dashboard');
-  ['fileInput','fileInputReturn'].forEach(id=>document.getElementById(id)?.closest('.import-card')?.classList.add('route-only-hide'));
+  ['fileInput'].forEach(id=>document.getElementById(id)?.closest('.import-card')?.classList.add('route-only-hide'));
   const routeInput=document.getElementById('fileInputLost');
   const routeCard=routeInput?.closest('.import-card');
   const importGrid=routeCard?.parentElement;
@@ -1054,7 +1076,7 @@ document.getElementById('fileInputLost').addEventListener('change',function(e){c
 document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}const lostDay=document.getElementById('lostDia')?.value||todayStr(); const lostTurno=document.getElementById('lostTurno')?.value||'Manhã';
 const novosRota=dedupeRouteImportRows(rows.map(e=>({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'})));
 if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); } else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); }
-if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();updateImportUI();}else{persistLostRoutes();updateImportUI();renderLostRoutesPage();}lostDateManuallySet=false;};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const delim=detectDelimiter(text);finish(buildLostRoutesFromRawRows(parseDelimitedText(text,delim)));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){rows=buildLostRoutesFromRawRows(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true}));if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
+if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();updateImportUI();}else{persistLostRoutes();updateImportUI();renderLostRoutesPage();}lostDateManuallySet=false;};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const delim=detectDelimiter(text);const parsed=parseDelimitedText(text,delim);finish(buildLostRoutesFromRawRows(parsed)||(ROUTE_ONLY_MODE?buildEntriesFromRawRows(parsed):null));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true});rows=buildLostRoutesFromRawRows(sheetRows)||(ROUTE_ONLY_MODE?buildEntriesFromRawRows(sheetRows):null);if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
 document.getElementById('fileInputDrivers').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingDriverFile=file; document.getElementById('btnConfirmDrivers').disabled=false; document.getElementById('btnConfirmDrivers').textContent='OK'; e.target.value='';
 });
@@ -1070,7 +1092,7 @@ let setPageToken=0;
 function setPage(page){
   if(PUBLIC_VIEW_MODE && page!=='geral' && page!=='regional') page='geral';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
-  ['geral','ofensores','regional','lostroutes','diaria','analise','analisebase','revertido','importados'].forEach(p=>{
+  ['geral','ofensores','regional','lostroutes','diaria','analise','analisebase','revertido','configuracao','importados'].forEach(p=>{
     const el=document.getElementById('page-'+p); if(el) el.classList.toggle('active', p===page);
   });
   const subtabs=document.getElementById('subtabsBar'); if(subtabs) subtabs.style.display = page==='geral' ? 'block' : 'none';
@@ -3457,6 +3479,7 @@ document.getElementById('impDia').value=todayStr(); { const ld=document.getEleme
 /* ===== INICIALIZAÇÃO ===== */
 window.__spotRun(async function init(){
   initThemePicker();
+  setupConfigurationPage();
   if(PUBLIC_VIEW_MODE) setPage('geral');
   const savedDrv=loadPersistedDriverMap();
   if(savedDrv && savedDrv.map && Object.keys(savedDrv.map).length){ DRIVER_MAP=savedDrv.map; driverFileName=savedDrv.fileName; driverSavedAt=savedDrv.savedAt; driverRows=savedDrv.rows||Object.keys(savedDrv.map).length; }

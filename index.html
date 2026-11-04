@@ -178,6 +178,7 @@ document.addEventListener('DOMContentLoaded',function(){
     <button class="nav-btn" data-page="lostroutes"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/><path d="m16 16 4 4M20 16l-4 4"/></svg> Perdidos em rota</button>
     <button class="nav-btn" data-page="diaria"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><rect x="7" y="13" width="5" height="4" rx="1"/></svg> Visão Diária</button>
     <button class="nav-btn" data-page="analise"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/><path d="M9 13v-2M11.5 13V9M14 13v-3"/></svg> Análise</button>
+    <button class="nav-btn" data-page="configuracao"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg> Configuração</button>
     <button class="nav-btn" data-page="importados"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14h6M12.5 11.5 15 14l-2.5 2.5"/></svg> Importados</button>
     <span class="public-mode-badge">Visualização pública</span>
   </div>
@@ -401,6 +402,17 @@ document.addEventListener('DOMContentLoaded',function(){
     <p class="rev-note">A meta semanal calcula a redução esperada por base: por exemplo, 5% de R$ 20.000 significa reduzir R$ 1.000 e terminar em até R$ 19.000. A coluna Meta da semana mostra quanto a base precisa reduzir, quanto já reduziu e quanto ainda falta. Pacotes que entraram há menos de 24h ainda estão no prazo de tratamento e não contam na meta. Cada pacote é contado uma única vez no período. Na visão Valor Revertido, o valor é calculado pacote a pacote: pacote que desaparece até 24 horas é revertido; pacote que continua presente após 24 horas é não revertido/ofensor. Na visão Pacote Revertido, cada pacote segue a mesma regra de 24 horas. O Valor atual mostra o total real da base na planilha final, sem limitar o total ao status selecionado.</p>
   </div>
 
+  <!-- ===================== CONFIGURAÇÃO ===================== -->
+  <div class="page" id="page-configuracao">
+    <div class="section-title"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg> Configuração</div>
+    <div class="config-tabs" id="configTabs"><button type="button" class="config-tab active" data-config-tab="revertido">Valor Revertido</button><button type="button" class="config-tab" data-config-tab="geral">Visão Geral</button><button type="button" class="config-tab" data-config-tab="ofensores">Ofensores por Regional</button><button type="button" class="config-tab" data-config-tab="regional">Regional e Base</button><button type="button" class="config-tab" data-config-tab="rota">Pacotes em Rota</button><button type="button" class="config-tab" data-config-tab="diaria">Visão Diária</button><button type="button" class="config-tab" data-config-tab="analise">Análise</button></div>
+    <div class="config-panel" id="configRevertidoPanel">
+      <h3>Configuração do Valor Revertido</h3>
+      <p class="filter-help">Edite diariamente a meta semanal e a lista de ofensores da manhã. A lista exibida no Valor Revertido mostra somente as bases que ainda não atingiram a meta.</p>
+      <div id="configRevertidoBody"></div>
+    </div>
+    <div class="config-panel" id="configGeralPanel" hidden><h3>Configurações gerais</h3><p class="filter-help">As configurações das demais abas serão organizadas aqui sem alterar os dados importados.</p></div>
+  </div>
   <!-- ===================== IMPORTADOS ===================== -->
   <div class="page" id="page-importados">
     <div class="import-grid">
