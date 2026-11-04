@@ -1317,3 +1317,4 @@ body.route-only-dashboard .import-grid > .import-card:first-child .imp-meta-box 
 .config-edit-card .rev-value-range{margin:0;border:0;background:transparent;padding:0}
 .rev-ofm-summary{margin-top:12px}
 .rev-ofm-summary .rev-sel-names{border-top:0;margin-top:0;padding-top:0}
+body.route-only-dashboard .lost-import-card::before{content:'Aceita planilha própria de Pacotes em Rota ou planilha LOST';display:block;margin:-4px 0 12px;color:var(--spot-green);font-size:12px;font-weight:800}

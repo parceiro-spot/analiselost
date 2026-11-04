@@ -430,8 +430,14 @@ function setupConfigurationPage(){
     ofm.classList.add('rev-ofm-summary');
   }
   document.querySelectorAll('#configTabs [data-config-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+    const tab=btn.dataset.configTab;
+    if(tab==='importados'){
+      document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===btn));
+      setPage('importados');
+      return;
+    }
     document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===btn));
-    const rev=btn.dataset.configTab==='revertido';
+    const rev=tab==='revertido';
     document.getElementById('configRevertidoPanel').hidden=!rev;
     document.getElementById('configGeralPanel').hidden=rev;
     if(!rev){
@@ -453,9 +459,12 @@ function configureRouteOnlyUI(){
   const metaBox=document.getElementById('impMetaBox');
   if(metaBox&&routeCard&&!routeCard.contains(metaBox)) routeCard.insertBefore(metaBox,routeCard.firstChild);
   const routeTitle=routeCard?.querySelector('h3');
-  if(routeTitle&&!routeTitle.textContent.includes('Pacotes em Rota')) routeTitle.textContent='Pacotes em Rota · 1) Importação';
-  const routeHint=routeCard?.querySelector('.hint');
-  if(routeHint) routeHint.innerHTML='<strong>Planilha de Pacotes em Rota.</strong> Use a planilha própria de pacotes em rota com pacote, transportador, motivo, estado atual, origem, valor, atraso, entrada no LOR, horas no estado, semáforo, destino, rota e estado da rota.';
+  if(routeTitle) routeTitle.textContent='Pacotes em Rota · 1) Planilha de rota ou LOST';
+  const routeHints=routeCard?.querySelectorAll('.hint');
+  if(routeHints?.[0]) routeHints[0].innerHTML='<strong>Você pode anexar a planilha própria de Pacotes em Rota ou a planilha do LOST.</strong> A planilha LOST será convertida e usada aqui como Pacotes em Rota. O LOST original não será alterado.';
+  if(routeHints?.[1]) routeHints[1].innerHTML='<strong>Formato aceito:</strong> planilha de Pacotes em Rota ou planilha LOST com pacote, transportador/motorista, motivo, estado atual, origem, valor, atraso, entrada no LOR, horas no estado, semáforo, destino, rota e estado da rota.';
+  const routeUpload=routeCard?.querySelector('label.upload-btn');
+  if(routeUpload){ const input=routeUpload.querySelector('input'); routeUpload.childNodes.forEach(n=>{if(n.nodeType===3&&n.textContent.includes('Anexar')) n.textContent=' Anexar planilha LOST ou de Pacotes em Rota';}); if(input) input.setAttribute('aria-label','Anexar planilha LOST ou de Pacotes em Rota'); }
   const driverTitle=document.getElementById('fileInputDrivers')?.closest('.import-card')?.querySelector('h3');
   if(driverTitle) driverTitle.textContent='Pacotes em Rota · 2) Nomes de motoristas (DS)';
   const navRoute=document.querySelector('.nav-btn[data-page="lostroutes"]');
@@ -1096,6 +1105,12 @@ function setPage(page){
     const el=document.getElementById('page-'+p); if(el) el.classList.toggle('active', p===page);
   });
   const subtabs=document.getElementById('subtabsBar'); if(subtabs) subtabs.style.display = page==='geral' ? 'block' : 'none';
+  if(page==='configuracao'){
+    const first=document.querySelector('#configTabs [data-config-tab="revertido"]');
+    document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===first));
+    document.getElementById('configRevertidoPanel')?.removeAttribute('hidden');
+    document.getElementById('configGeralPanel')?.setAttribute('hidden','');
+  }
   const token=++setPageToken;
   const run=()=>{
     if(token!==setPageToken) return; /* o usuário já foi para outra aba */
