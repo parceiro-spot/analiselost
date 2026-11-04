@@ -412,6 +412,7 @@ document.addEventListener('DOMContentLoaded',function(){
       <div id="configRevertidoBody"></div>
     </div>
     <div class="config-panel" id="configGeralPanel" hidden><h3>Configurações gerais</h3><p class="filter-help">As configurações das demais abas serão organizadas aqui sem alterar os dados importados.</p></div>
+    <div class="config-panel config-import-panel" id="configImportadosPanel" hidden><h3>Importados</h3><p class="filter-help">Anexe aqui a planilha LOST, a planilha de Pacotes em Rota, a planilha de retorno e a planilha de motoristas.</p><div id="configImportadosBody"></div></div>
   </div>
   <!-- ===================== IMPORTADOS ===================== -->
   <div class="page" id="page-importados">
@@ -451,7 +452,11 @@ document.addEventListener('DOMContentLoaded',function(){
           <div class="form-row" style="margin-bottom:0;"><label>Dia do arquivo</label><input type="date" id="lostDia"></div>
           <div class="form-row" style="margin-bottom:0;"><label>Turno</label><select id="lostTurno"><option value="Manhã">Manhã</option><option value="Tarde">Tarde</option></select></div>
         </div>
-        <div class="import-confirm-line" style="margin-top:18px;"><label class="upload-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg> Anexar perdidos em rota<input type="file" id="fileInputLost" accept=".xlsx,.xls,.csv"></label><button type="button" class="import-ok-btn" id="btnConfirmLost" disabled>OK</button></div>
+                <div class="route-upload-options">
+          <div class="route-upload-option"><strong>Planilha de Pacotes em Rota</strong><label class="upload-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg> Anexar planilha de Pacotes em Rota<input type="file" id="fileInputLost" accept=".xlsx,.xls,.csv"></label></div>
+          <div class="route-upload-option lost-risco-upload"><strong>Planilha LOST / Risco LM</strong><label class="upload-btn"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg> Anexar planilha LOST<input type="file" id="fileInputLostRisco" accept=".xlsx,.xls,.csv"></label></div>
+        </div>
+        <div class="import-confirm-line" style="margin-top:18px;"><button type="button" class="import-ok-btn" id="btnConfirmLost" disabled>Importar para Pacotes em Rota</button></div>
       </div>
       <div class="import-card">
         <h3>4) Planilha de retorno</h3>

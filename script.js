@@ -422,6 +422,10 @@ function rebuildRouteOnlyImports(){
 }
 function setupConfigurationPage(){
   const body=document.getElementById('configRevertidoBody');
+  const importsBody=document.getElementById('configImportadosBody'), importsPage=document.getElementById('page-importados');
+  if(importsBody&&importsPage&&!importsBody.dataset.ready){
+    importsBody.dataset.ready='1'; importsBody.appendChild(importsPage); importsPage.classList.add('active','config-embedded-imports');
+  }
   const ofm=document.getElementById('revOfm'), bar=ofm?.querySelector('.rev-ofm-bar'), status=document.getElementById('revOfmStatus'), range=document.querySelector('.rev-value-range');
   if(body&&ofm&&bar&&status&&range&&!body.dataset.ready){
     body.dataset.ready='1';
@@ -431,12 +435,15 @@ function setupConfigurationPage(){
   }
   document.querySelectorAll('#configTabs [data-config-tab]').forEach(btn=>btn.addEventListener('click',()=>{
     const tab=btn.dataset.configTab;
+    document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===btn));
     if(tab==='importados'){
-      document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===btn));
-      setPage('importados');
+      setPage('configuracao');
+      document.getElementById('configRevertidoPanel').hidden=true;
+      document.getElementById('configGeralPanel').hidden=true;
+      document.getElementById('configImportadosPanel').hidden=false;
       return;
     }
-    document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===btn));
+    document.getElementById('configImportadosPanel').hidden=true;
     const rev=tab==='revertido';
     document.getElementById('configRevertidoPanel').hidden=!rev;
     document.getElementById('configGeralPanel').hidden=rev;
@@ -464,7 +471,8 @@ function configureRouteOnlyUI(){
   if(routeHints?.[0]) routeHints[0].innerHTML='<strong>Você pode anexar a planilha própria de Pacotes em Rota ou a planilha do LOST.</strong> A planilha LOST será convertida e usada aqui como Pacotes em Rota. O LOST original não será alterado.';
   if(routeHints?.[1]) routeHints[1].innerHTML='<strong>Formato aceito:</strong> planilha de Pacotes em Rota ou planilha LOST com pacote, transportador/motorista, motivo, estado atual, origem, valor, atraso, entrada no LOR, horas no estado, semáforo, destino, rota e estado da rota.';
   const routeUpload=routeCard?.querySelector('label.upload-btn');
-  if(routeUpload){ const input=routeUpload.querySelector('input'); routeUpload.childNodes.forEach(n=>{if(n.nodeType===3&&n.textContent.includes('Anexar')) n.textContent=' Anexar planilha LOST ou de Pacotes em Rota';}); if(input) input.setAttribute('aria-label','Anexar planilha LOST ou de Pacotes em Rota'); }
+  if(routeUpload){ const input=routeUpload.querySelector('input'); if(input) input.setAttribute('aria-label','Anexar planilha de Pacotes em Rota'); }
+  routeCard?.querySelector('.lost-risco-upload')?.style.setProperty('display','flex');
   const driverTitle=document.getElementById('fileInputDrivers')?.closest('.import-card')?.querySelector('h3');
   if(driverTitle) driverTitle.textContent='Pacotes em Rota · 2) Nomes de motoristas (DS)';
   const navRoute=document.querySelector('.nav-btn[data-page="lostroutes"]');
@@ -1081,7 +1089,8 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   else { reader.onload=async e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=await buildReturnRowsFromWorkbook(wb,e.target.result);finish(rows,rows?'':'Não encontrei uma aba com pacote e observação');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
 });
 ['input','change'].forEach(evt=>document.getElementById('lostDia').addEventListener(evt,()=>{lostDateManuallySet=true;}));
-document.getElementById('fileInputLost').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;const dateFromName=extractFileDate(file.name);if(dateFromName&&!lostDateManuallySet)document.getElementById('lostDia').value=dateFromName;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='OK';e.target.value='';});
+function bindLostUploadInput(id){ document.getElementById(id)?.addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;const dateFromName=extractFileDate(file.name);if(dateFromName&&!lostDateManuallySet)document.getElementById('lostDia').value=dateFromName;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='Importar para Pacotes em Rota';e.target.value='';}); }
+bindLostUploadInput('fileInputLost'); bindLostUploadInput('fileInputLostRisco');
 document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}const lostDay=document.getElementById('lostDia')?.value||todayStr(); const lostTurno=document.getElementById('lostTurno')?.value||'Manhã';
 const novosRota=dedupeRouteImportRows(rows.map(e=>({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'})));
 if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); } else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); }
@@ -1099,6 +1108,8 @@ document.getElementById('btnConfirmDrivers').addEventListener('click',function()
 /* ===== NAVEGAÇÃO ===== */
 let setPageToken=0;
 function setPage(page){
+  const wantsEmbeddedImports=page==='importados';
+  if(wantsEmbeddedImports) page='configuracao';
   if(PUBLIC_VIEW_MODE && page!=='geral' && page!=='regional') page='geral';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
   ['geral','ofensores','regional','lostroutes','diaria','analise','analisebase','revertido','configuracao','importados'].forEach(p=>{
@@ -1110,6 +1121,13 @@ function setPage(page){
     document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===first));
     document.getElementById('configRevertidoPanel')?.removeAttribute('hidden');
     document.getElementById('configGeralPanel')?.setAttribute('hidden','');
+    document.getElementById('configImportadosPanel')?.setAttribute('hidden','');
+    if(wantsEmbeddedImports){
+      const importTab=document.querySelector('#configTabs [data-config-tab="importados"]');
+      document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===importTab));
+      document.getElementById('configRevertidoPanel')?.setAttribute('hidden','');
+      document.getElementById('configImportadosPanel')?.removeAttribute('hidden');
+    }
   }
   const token=++setPageToken;
   const run=()=>{
