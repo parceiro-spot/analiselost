@@ -24,7 +24,7 @@ const ROUTE_STORAGE_KEY='spot_dashboard_route_packages_v1';
 let LOST_ROUTES=[];
 let LOST_ROUTES_ALL=[];
 const LOST_ROUTES_ALL_KEY='spot_dashboard_lost_routes_all_v1';
-let pendingLostFile=null;
+let pendingLostFile=null, pendingLostFiles=[];
 let exportLostOnlyMode=false;
 const PASSWORD_CONFIRM='Mudar123';
 const PUBLIC_VIEW_MODE=new URLSearchParams(window.location.search).get('modo')==='publico';
@@ -426,13 +426,9 @@ function setupConfigurationPage(){
   if(importsBody&&importsPage&&!importsBody.dataset.ready){
     importsBody.dataset.ready='1'; importsBody.appendChild(importsPage); importsPage.classList.add('active','config-embedded-imports');
   }
-  const ofm=document.getElementById('revOfm'), bar=ofm?.querySelector('.rev-ofm-bar'), status=document.getElementById('revOfmStatus'), range=document.querySelector('.rev-value-range');
-  if(body&&ofm&&bar&&status&&range&&!body.dataset.ready){
-    body.dataset.ready='1';
-    const card=document.createElement('div'); card.className='config-edit-card';
-    card.appendChild(bar); card.appendChild(status); card.appendChild(range); body.appendChild(card);
-    ofm.classList.add('rev-ofm-summary');
-  }
+  /* Os controles de Ofensores da manhã e da meta ficam na própria tela
+     Valor Revertido. A configuração mantém somente as opções gerais, sem
+     retirar esses controles do dashboard principal. */
   document.querySelectorAll('#configTabs [data-config-tab]').forEach(btn=>btn.addEventListener('click',()=>{
     const tab=btn.dataset.configTab;
     document.querySelectorAll('#configTabs [data-config-tab]').forEach(x=>x.classList.toggle('active',x===btn));
@@ -946,7 +942,7 @@ document.getElementById('btnToggleImportsHist').addEventListener('click', functi
 function describeMainImportBatch(files){
   const inputDate=document.getElementById('impDia').value, selectedTurno=document.getElementById('impTurno').value;
   return files.map((file,index)=>{
-    const namedDate=extractFileDate(file.name), manualSingleDate=files.length===1&&importDateManuallySet&&inputDate;
+    const namedDate=extractSingleFileDate(file.name), manualSingleDate=files.length===1&&importDateManuallySet&&inputDate;
     const importDate=manualSingleDate||namedDate||inputDate||todayStr();
     const fileTime=extractFileTime(file.name), turno=extractFileTurno(file.name)||selectedTurno||'Manhã';
     return {file,index,importDate,fileTime,turno};
@@ -1001,9 +997,14 @@ function readMainImportFile(file){
     const reader=new FileReader();
     reader.onerror=()=>reject(new Error('Falha ao ler o arquivo.'));
     reader.onload=evt=>{try{
-      let entries;
-      if(/\.csv$/i.test(file.name)){const text=String(evt.target.result||'').replace(/^\uFEFF/,'');entries=buildEntriesFromRawRows(parseDelimitedText(text,detectDelimiter(text)));}
-      else{const wb=XLSX.read(new Uint8Array(evt.target.result),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];if(!ws)throw new Error('A planilha não contém abas.');entries=buildEntriesFromRawRows(XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true}));}
+      let entries,rawRows;
+      if(/\.csv$/i.test(file.name)){const text=String(evt.target.result||'').replace(/^\uFEFF/,'');rawRows=parseDelimitedText(text,detectDelimiter(text));}
+      else{const wb=XLSX.read(new Uint8Array(evt.target.result),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];if(!ws)throw new Error('A planilha não contém abas.');rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true});}
+      /* O primeiro campo do DASH LOST aceita os dois relatórios. Primeiro
+         tenta o formato LOST/Risco LM; se não casar, converte Pacotes em Rota
+         para a mesma estrutura principal do dashboard. */
+      entries=buildEntriesFromRawRows(rawRows);
+      if(!entries||!entries.length){ const routeRows=buildLostRoutesFromRawRows(rawRows); entries=routeRowsAsMainEntries(routeRows||[]); if(entries.length)entries.__routeRows=routeRows||[]; }
       if(!entries||!entries.length)throw new Error('Não reconheci registros/colunas de pacotes nesta planilha.');
       resolve(entries);
     }catch(err){reject(err);}};
@@ -1023,7 +1024,7 @@ document.getElementById('btnConfirmImport').addEventListener('click',async funct
     for(let i=0;i<items.length;i++){
       const item=items[i];this.textContent='Lendo '+(i+1)+'/'+items.length+'…';
       await new Promise(r=>setTimeout(r,30)); /* deixa o "Lendo…" aparecer antes de ler o arquivo */
-      try{const entries=await readMainImportFile(item.file);const result=finishImportMain(entries,item.file.name,item.importDate,item.turno,item.fileTime,'lost');imported++;if(result.replaced)replaced++;}
+      try{const entries=await readMainImportFile(item.file);const result=finishImportMain(entries,item.file.name,item.importDate,item.turno,item.fileTime,'lost');if(entries.__routeRows?.length)saveLostRouteImport(entries.__routeRows,item.file,item.importDate,item.turno);imported++;if(result.replaced)replaced++;}
       catch(err){console.error('Erro ao importar '+item.file.name,err);errors.push(item.file.name+': '+(err.message||'erro de leitura'));}
     }
     if(imported){const latest=IMPORTS.slice().sort((a,b)=>compareMainImports(b,a))[0];selectedImportId=latest?.id||null;saveSelectedImport();persistImports();rebuildStateData();document.getElementById('emptyState').style.display='none';currentTab='TODOS';currentBaseFilter='TODAS';topBasesMode='TODOS';document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));updateImportUI();renderAll();}
@@ -1097,7 +1098,17 @@ function extractSingleFileDate(fileName){
   const dates=name.match(/20\d{2}[-_.]\d{1,2}[-_.]\d{1,2}/g)||[];
   return dates.length===1?extractFileDate(name):null;
 }
-function bindLostUploadInput(id){ document.getElementById(id)?.addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;const dateFromName=extractSingleFileDate(file.name);if(dateFromName&&!lostDateManuallySet)document.getElementById('lostDia').value=dateFromName;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='Importar para Pacotes em Rota';e.target.value='';}); }
+function bindLostUploadInput(id){
+  const input=document.getElementById(id); if(!input)return;
+  input.addEventListener('change',function(e){
+    const files=Array.from(e.target.files||[]); if(!files.length)return;
+    pendingLostFiles=files; pendingLostFile=files[0];
+    if(files.length===1){ const dateFromName=extractSingleFileDate(files[0].name); if(dateFromName&&!lostDateManuallySet)document.getElementById('lostDia').value=dateFromName; }
+    const btn=document.getElementById('btnConfirmLost'); btn.disabled=false;
+    btn.textContent=files.length>1 ? ('Importar '+files.length+' arquivos') : 'Importar para Pacotes em Rota';
+    e.target.value='';
+  });
+}
 bindLostUploadInput('fileInputLost'); bindLostUploadInput('fileInputLostRisco');
 function routeRowsAsMainEntries(rows){
   return (rows||[]).map(e=>({base:e.base||e.origem||e.destino||'',valor:Number(e.valor)||0,date:e.date instanceof Date?e.date:new Date(),diasPlanilha:e.diasPlanilha??e.dias??null,tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC',pacote:e.pacote||'',produto:e.produto||'',driverId:e.driverId||'',rota:e.rota||'',motivo:e.motivo||'Perdido em rota'})).filter(e=>e.base||e.pacote);
@@ -1114,11 +1125,47 @@ function ensureLostDayFromRouteSheet(rows,fileName,day,turno){
   selectedImportId=promoted?.id||null; saveSelectedImport(); persistImports();
   return true;
 }
-document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}const lostDay=document.getElementById('lostDia')?.value||todayStr(); const lostTurno=document.getElementById('lostTurno')?.value||'Manhã';
-const novosRota=dedupeRouteImportRows(rows.map(e=>({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'})));
-let createdLostDayFallback=false;
-if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); } else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); createdLostDayFallback=ensureLostDayFromRouteSheet(novosRota,file.name,lostDay,lostTurno); }
-if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();updateImportUI();}else{persistLostRoutes();if(createdLostDayFallback){rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();}else{updateImportUI();renderLostRoutesPage();}}lostDateManuallySet=false;};if(/\.csv$/i.test(file.name)){reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const delim=detectDelimiter(text);const parsed=parseDelimitedText(text,delim);finish(buildLostRoutesFromRawRows(parsed)||(ROUTE_ONLY_MODE?buildEntriesFromRawRows(parsed):null));}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsText(file,'UTF-8');}else{reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true});rows=buildLostRoutesFromRawRows(sheetRows)||(ROUTE_ONLY_MODE?buildEntriesFromRawRows(sheetRows):null);if(rows)break;}finish(rows);}catch(err){finish(null);}finally{pendingLostFile=null;this.textContent='OK';}};reader.readAsArrayBuffer(file);}});
+function readLostUploadFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('Falha ao ler '+file.name+'.'));
+    const finish=rows=>rows?resolve(rows):reject(new Error('Não reconheci as colunas de pacotes em '+file.name+'.'));
+    if(/\.csv$/i.test(file.name)){
+      reader.onload=e=>{try{const text=String(e.target.result||'').replace(/^\uFEFF/,'');const parsed=parseDelimitedText(text,detectDelimiter(text));finish(buildLostRoutesFromRawRows(parsed)||(ROUTE_ONLY_MODE?buildEntriesFromRawRows(parsed):null));}catch(err){reject(err);}};
+      reader.readAsText(file,'UTF-8');
+    }else{
+      reader.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});let rows=null;for(const name of wb.SheetNames){const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true,cellDates:true});rows=buildLostRoutesFromRawRows(sheetRows)||(ROUTE_ONLY_MODE?buildEntriesFromRawRows(sheetRows):null);if(rows)break;}finish(rows);}catch(err){reject(err);}};
+      reader.readAsArrayBuffer(file);
+    }
+  });
+}
+function saveLostRouteImport(rows,file,lostDay,lostTurno){
+  const novosRota=dedupeRouteImportRows(rows.map(e=>({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'})));
+  let createdLostDayFallback=false;
+  if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); }
+  else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); createdLostDayFallback=ensureLostDayFromRouteSheet(novosRota,file.name,lostDay,lostTurno); }
+  if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();updateImportUI();}
+  else {persistLostRoutes();if(createdLostDayFallback){rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();}else{updateImportUI();renderLostRoutesPage();}}
+  return novosRota.length;
+}
+document.getElementById('btnConfirmLost').addEventListener('click',async function(){
+  const files=(pendingLostFiles.length?pendingLostFiles:(pendingLostFile?[pendingLostFile]:[])).slice(); if(!files.length)return;
+  this.disabled=true;this.textContent='Lendo...';let imported=0;const errors=[];
+  try{
+    for(let i=0;i<files.length;i++){
+      const file=files[i];this.textContent='Lendo '+(i+1)+'/'+files.length+'…';
+      try{
+        const rows=await readLostUploadFile(file);
+        const namedDate=extractSingleFileDate(file.name);
+        const day=(files.length===1&&lostDateManuallySet?document.getElementById('lostDia')?.value:'')||namedDate||document.getElementById('lostDia')?.value||todayStr();
+        const turno=extractFileTurno(file.name)||document.getElementById('lostTurno')?.value||'Manhã';
+        imported+=saveLostRouteImport(rows,file,day,turno);
+      }catch(err){console.error('Erro ao importar '+file.name,err);errors.push(file.name+': '+(err.message||'erro de leitura'));}
+    }
+    await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+    alert(files.length+' arquivo(s) processado(s), '+imported+' pacote(s) importado(s).'+(errors.length?'\n\nNão foi possível importar:\n'+errors.join('\n'):''));
+  }finally{pendingLostFile=null;pendingLostFiles=[];lostDateManuallySet=false;this.disabled=true;this.textContent='OK';}
+});
 document.getElementById('fileInputDrivers').addEventListener('change', function(e){
   const file=e.target.files[0]; if(!file)return; pendingDriverFile=file; document.getElementById('btnConfirmDrivers').disabled=false; document.getElementById('btnConfirmDrivers').textContent='OK'; e.target.value='';
 });
@@ -3429,7 +3476,9 @@ function revOfmRefreshUI(day,origem){
   revOfmRenderNames(sv);
 }
 document.getElementById('revOfmOk').addEventListener('click',()=>{
-  const day=document.getElementById('revAtual').value, imp=revSnapshotImportForDay(day);
+  const requestedDay=document.getElementById('revAtual').value;
+  const imp=revSnapshotImportForDay(requestedDay)||getSelectedImport()||IMPORTS.slice().sort((a,b)=>compareMainImports(b,a))[0]||null;
+  const day=imp?.importDate||requestedDay;
   const valor=parseBRNumber(document.getElementById('revOfmValor').value);
   if(!imp){alert('Não há planilha importada nesta data.');return;}
   if(!(valor>0)){alert('Digite o valor mínimo (ex.: 10.000) antes de clicar em “Classificar como ofensores”.');return;}

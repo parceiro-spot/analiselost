@@ -38,6 +38,10 @@ A configuração oficial do prazo fica no JavaScript do dashboard (`script.js`):
 
 Ao anexar uma planilha de **Pacotes em Rota** no painel LOST, ela continua salva e visível na aba **Pacotes em Rota**. Se ainda não existir uma planilha LOST para aquele dia, o dashboard cria automaticamente uma importação provisória com os mesmos pacotes para que ela apareça em **LOST > Todos**. Quando a planilha LOST real for anexada depois, ela substitui a importação provisória do dia. Arquivos cujo nome contém um intervalo de datas, como `2026-10-01_2026-10-31`, não alteram indevidamente o dia do arquivo: nesse caso, o dia selecionado no formulário (ou o dia atual) é usado.
 
+Os campos de planilha de Pacotes em Rota e de LOST/Risco LM aceitam vários arquivos de uma só vez. Cada arquivo é lido e salvo separadamente, respeitando o dia e o turno identificados no nome ou informados no formulário.
+
+No DASH LOST, o primeiro cartão em **Importados** é **LOST · 1) Pacotes perdidos** e reconhece automaticamente tanto o formato LOST/Risco LM quanto o formato Pacotes em Rota. Assim, quando o LOST do dia ainda não estiver disponível, basta anexar a planilha de Pacotes em Rota nesse mesmo cartão.
+
 ## Valor Revertido: Ofensores da manhã
 
 O antigo bloco "Selecionar bases / Escolha as regionais" foi removido. No lugar, a aba **Valor Revertido** tem **Ofensores da manhã**:
@@ -45,6 +49,8 @@ O antigo bloco "Selecionar bases / Escolha as regionais" foi removido. No lugar,
 1. De manhã, com a planilha da manhã aberta, digite o valor (ex.: 10.000) e clique **Classificar como ofensores**. As bases com valor igual ou acima ficam guardadas para aquele dia.
 2. À tarde, não digite nada: clique em **Puxar ofensores da manhã (valor atual)**. A tela mostra essas bases com o valor atual de cada uma. Clique de novo (**Voltar para todas as bases**) para sair do filtro.
 3. **Limpar lista** apaga a lista do dia. A câmera captura só o nome das bases guardadas.
+
+O bloco permanece na tela **Valor Revertido** do DASH LOST. Ao classificar, o sistema usa a planilha da data selecionada; se essa data não estiver disponível, usa a planilha ativa ou a importação mais recente, evitando o erro de “Não há planilha importada nesta data”.
 
 ## Meta semanal (igual em Regional e Base e em Valor Revertido)
 
