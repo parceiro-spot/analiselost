@@ -1297,3 +1297,11 @@ img,svg,canvas,video{max-width:100%}
 .capture-btn.copy-print-btn .ico{stroke:currentColor}
 .capture-btn.copy-print-btn:hover{background:var(--spot-glow);color:var(--spot-green)}
 .rev-sel-bar .mini-camera.copy-print-btn,.rev-ofm-bar .mini-camera.copy-print-btn{margin-left:6px}
+
+/* Pacotes em Rota: o card de importação assume o primeiro lugar na pasta Importados. */
+body.route-only-dashboard .import-grid > .import-card:first-child { border-color: var(--spot-green); }
+body.route-only-dashboard .import-grid > .import-card:first-child .imp-meta-head { align-items: flex-start; }
+body.route-only-dashboard .import-grid > .import-card:first-child .imp-meta-box { margin-left: auto; }
+@media (max-width: 760px) {
+  body.route-only-dashboard .import-grid > .import-card:first-child .imp-meta-box { margin-left: 0; }
+}

@@ -422,9 +422,31 @@ function rebuildRouteOnlyImports(){
 }
 function configureRouteOnlyUI(){
   document.body.classList.add('route-only-dashboard');
-  ['fileInput','fileInputReturn'].forEach(id=>document.getElementById(id)?.closest('.card')?.classList.add('route-only-hide'));
-  const lost=document.getElementById('fileInputLost');
-  if(lost){const label=lost.closest('label'); if(label) label.childNodes.forEach(n=>{if(n.nodeType===3&&n.textContent.includes('Anexar')) n.textContent=' Anexar planilha de Pacotes em Rota';});}
+  ['fileInput','fileInputReturn'].forEach(id=>document.getElementById(id)?.closest('.import-card')?.classList.add('route-only-hide'));
+  const routeInput=document.getElementById('fileInputLost');
+  const routeCard=routeInput?.closest('.import-card');
+  const importGrid=routeCard?.parentElement;
+  /* No modo rota, a importação de Pacotes em Rota é a primeira opção da pasta Importados. */
+  if(routeCard&&importGrid) importGrid.insertBefore(routeCard,importGrid.firstElementChild);
+  const metaBox=document.getElementById('impMetaBox');
+  if(metaBox&&routeCard&&!routeCard.contains(metaBox)) routeCard.insertBefore(metaBox,routeCard.firstChild);
+  const routeTitle=routeCard?.querySelector('h3');
+  if(routeTitle&&!routeTitle.textContent.includes('Pacotes em Rota')) routeTitle.textContent='Pacotes em Rota · 1) Importação';
+  const routeHint=routeCard?.querySelector('.hint');
+  if(routeHint) routeHint.innerHTML='<strong>Planilha de Pacotes em Rota.</strong> Use a planilha própria de pacotes em rota com pacote, transportador, motivo, estado atual, origem, valor, atraso, entrada no LOR, horas no estado, semáforo, destino, rota e estado da rota.';
+  const driverTitle=document.getElementById('fileInputDrivers')?.closest('.import-card')?.querySelector('h3');
+  if(driverTitle) driverTitle.textContent='Pacotes em Rota · 2) Nomes de motoristas (DS)';
+  const navRoute=document.querySelector('.nav-btn[data-page="lostroutes"]');
+  if(navRoute){ navRoute.lastChild.textContent=' Pacotes em Rota'; }
+  const navImports=document.querySelector('.nav-btn[data-page="importados"]');
+  const navInner=navImports?.parentElement;
+  if(navImports&&navInner) navInner.insertBefore(navImports,navInner.firstElementChild);
+  const historyTitle=document.getElementById('routeHistTitle');
+  if(historyTitle) historyTitle.textContent='Pacotes em Rota importados';
+  const routeLabel=document.querySelector('#page-lostroutes .section-title');
+  if(routeLabel) routeLabel.textContent='Pacotes em Rota';
+  /* O modo rota tem sua própria linha de base e meta semanal. */
+  seedWeekBaselines();
   setPage('geral');
 }
 
@@ -901,7 +923,7 @@ function renderMainImportBatchSummary(files){
 /* ===== Base da meta semanal: guarda SEMPRE a primeira planilha da semana (por horário do ARQUIVO) =====
    Uma planilha nova do mesmo dia/turno substitui a antiga em IMPORTS; sem este registro a primeira
    planilha da semana (ex.: segunda 07:00) se perdia quando outra do mesmo turno (segunda 09:12) entrava. */
-const WEEK_BASELINE_KEY='spot_dashboard_week_baselines_v1';
+const WEEK_BASELINE_KEY='spot_dashboard_week_baselines_v1'+MODE_SUFFIX;
 let WEEK_BASELINES={};
 try{ WEEK_BASELINES=JSON.parse(localStorage.getItem(WEEK_BASELINE_KEY)||'{}')||{}; }catch(e){ WEEK_BASELINES={}; }
 function persistWeekBaselines(){ try{ localStorage.setItem(WEEK_BASELINE_KEY,JSON.stringify(WEEK_BASELINES)); }catch(e){} }
@@ -2333,6 +2355,7 @@ function lostRouteEntriesForRegion(region){ return LOST_ROUTES.filter(e=>region=
 function restoreSearchFocus(id,position){ const input=document.getElementById(id); if(!input)return; input.focus(); try{input.setSelectionRange(position,position);}catch(e){} }
 const renderLostSearchDebounced=debounceFn(()=>{renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',lostRouteSearch.length);},160);
 function renderLostRoutesPage(){
+  const routePageLabel=ROUTE_ONLY_MODE?'Pacotes em Rota':'Perdidos em rota';
   const content=document.getElementById('lostRoutesContent'); if(!content)return;
   const query=lostRouteSearch.trim().toUpperCase();
   const matchesSearch=e=>!query||[e.pacote,e.driverId,getDriverName(e.driverId),e.rota,e.base,lostPrimaryBase(e),e.origem,e.destino,e.produto,e.motivo].some(value=>String(value||'').toUpperCase().includes(query));
@@ -2341,7 +2364,7 @@ function renderLostRoutesPage(){
   const crumb=document.getElementById('lostRoutesBreadcrumb');
   const dateBox=ROUTE_ONLY_MODE?'<label class="lost-day-filter"><span>Dia</span><input id="lostRouteDay" type="date" value="'+escHtml(lostRouteDay)+'" title="Filtrar por dia"><button type="button" class="clear-date-filter" id="clearLostRouteDay" title="Mostrar todos os dias" aria-label="Limpar filtro de dia">×</button></label>':'';
   const searchBox='<label class="regional-search-box lost-search-box"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="lostRouteSearch" type="search" value="'+escHtml(lostRouteSearch)+'" placeholder="Buscar pacote, motorista, rota ou base..." autocomplete="off"></label>';
-  if(!rows.length){ crumb.innerHTML='<strong>Perdidos em rota</strong>'+dateBox+searchBox; content.innerHTML='<div class="history-empty" style="padding:40px 0;">'+(LOST_ROUTES.length?'Nenhum pacote encontrado para esta busca.':'Anexe a planilha de Perdidos em rota em Importados para visualizar os pacotes.')+'</div>'; const input=document.getElementById('lostRouteSearch'); input?.addEventListener('input',()=>{lostRouteSearch=input.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);}); return; }
+  if(!rows.length){ crumb.innerHTML='<strong>'+routePageLabel+'</strong>'+dateBox+searchBox; content.innerHTML='<div class="history-empty" style="padding:40px 0;">'+(LOST_ROUTES.length?'Nenhum pacote encontrado para esta busca.':'Anexe a planilha de Pacotes em Rota em Importados para visualizar os pacotes.')+'</div>'; const input=document.getElementById('lostRouteSearch'); input?.addEventListener('input',()=>{lostRouteSearch=input.value;const pos=lostRouteSearch.length;renderLostRoutesPage();restoreSearchFocus('lostRouteSearch',pos);}); return; }
   const byRegion={}; rows.forEach(e=>{const r=lostRouteRegion(e);(byRegion[r]=byRegion[r]||[]).push(e);});
   if(lostRouteNav.level==='list'){
     crumb.innerHTML='<strong>Todas as regionais</strong>'+dateBox+searchBox+'<span class="lost-count">'+fmtInt(rows.length)+' pacote(s)</span><button type="button" class="dl-btn lost-download-btn" id="btnDownloadLostRoutes" title="Baixar pacotes em rota"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button><button type="button" class="mini-camera" id="btnCapturaLostRoutes" title="Capturar regionais de perdidos em rota"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M8 5l1-2h6l1 2"/></svg></button>';
@@ -2352,7 +2375,7 @@ function renderLostRoutesPage(){
     renderAgingStrip('lostRoutesAging',rows,()=>{});
     document.getElementById('btnDownloadLostRoutes')?.addEventListener('click',()=>abrirModalOcultarDias(rows,'Pacotes em rota',true));
     document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;renderLostSearchDebounced();});
-    document.getElementById('btnCapturaLostRoutes')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-regionais'));
+    document.getElementById('btnCapturaLostRoutes')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage',(ROUTE_ONLY_MODE?'pacotes-em-rota-regionais':'perdidos-em-rota-regionais')));
     content.querySelectorAll('[data-lost-region]').forEach(card=>card.addEventListener('click',()=>{lostRouteNav={level:'bases',regional:card.dataset.lostRegion};renderLostRoutesPage();}));
     return;
   }
@@ -2372,7 +2395,7 @@ function renderLostRoutesPage(){
   content.innerHTML=html+'</div>';
   document.getElementById('btnDownloadLostBases')?.addEventListener('click',()=>abrirModalOcultarDias(entries,'Pacotes em rota',true));
   document.getElementById('lostRouteSearch')?.addEventListener('input',e=>{lostRouteSearch=e.target.value;renderLostSearchDebounced();});
-  document.getElementById('btnCapturaLostBases')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage','perdidos-em-rota-bases'));
+  document.getElementById('btnCapturaLostBases')?.addEventListener('click',()=>captureDashboardElement('#lostRoutesPage',(ROUTE_ONLY_MODE?'pacotes-em-rota-bases':'perdidos-em-rota-bases')));
   content.querySelectorAll('[data-lost-base]').forEach(card=>card.addEventListener('click',()=>{const b=card.dataset.lostBase; openLostRoutesOverlay(b,byBase[b]||[],'');}));
   content.querySelectorAll('[data-lost-comp]').forEach(chip=>chip.addEventListener('click',ev=>{ev.stopPropagation();const c=chip.dataset.lostComp,p=chip.dataset.lostParent; openLostRoutesOverlay(c,ownByBase[c]||[],'');}));
   crumb.querySelector('[data-lost-back="list"]').addEventListener('click',()=>{lostRouteNav={level:'list',regional:null};renderLostRoutesPage();});
@@ -2381,7 +2404,7 @@ document.addEventListener('change',e=>{if(e.target?.id==='lostRouteDay'){lostRou
 document.addEventListener('click',e=>{if(e.target?.id==='clearLostRouteDay'){lostRouteDay='';renderLostRoutesPage();}});
 function openLostRoutesOverlay(base,rows,parent){
   const mapped=rows.map(e=>{const p=lostPrimaryBase(e)||e.base||e.origem||base; return {...e,base:p,tipo:classifyBaseCode(p,regionalFromBasePrefix(p))||'SVC',motivo:motivoExibicaoLost(e),valor:Number(e.valor||0),driverId:e.driverId||lostRouteMatchesRisk(e)?.driverId||''};});
-  mapped.forEach(e=>{e.isLost=true;}); openOverlayEntries('Perdidos em rota · '+baseInfoText(base)+(parent&&parent!==base?' · complementar de '+parent:''),'',mapped,'TODOS');
+  mapped.forEach(e=>{e.isLost=true;}); openOverlayEntries((ROUTE_ONLY_MODE?'Pacotes em Rota':'Perdidos em rota')+' · '+baseInfoText(base)+(parent&&parent!==base?' · complementar de '+parent:''),'',mapped,'TODOS');
 }
 
 /* ===== REGIONAL E BASE ===== */
@@ -2414,10 +2437,10 @@ function renderRegionalHistoricalMatches(query,activeEntries){
   return '<section class="regional-history-panel"><div class="regional-history-head"><div><h3>Histórico · fora da planilha ativa</h3><p>Resultados antigos da busca, separados dos totais atuais. A opacidade indica que o pacote não está na planilha selecionada.</p></div><span class="regional-history-count">'+fmtInt(matches.length)+' registro(s)'+(matches.length>limit?' · mostrando '+limit:'')+'</span></div>'+(rows?'<div class="regional-history-scroll"><table class="regional-history-table"><thead><tr><th>ID do pacote</th><th>Motorista</th><th>Rota</th><th>Base</th><th>Produto / motivo</th><th>Encontrado em</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="regional-history-empty">Nenhum registro anterior correspondente a “'+escHtml(query)+'”.</div>')+'</section>';
 }
 /* ===== Meta semanal nas Regionais e Bases ===== */
-const META_CAPTURA_KEY='spot_dashboard_meta_captura_v1';
-function regMetaPct(){ try{ const raw=localStorage.getItem('spot_dashboard_meta_semanal_v1')||''; const n=raw?parseBRNumber(raw):0; return n>0?n:0; }catch(e){ return 0; } }
+const META_CAPTURA_KEY='spot_dashboard_meta_captura_v1'+MODE_SUFFIX;
+function regMetaPct(){ try{ const raw=localStorage.getItem('spot_dashboard_meta_semanal_v1'+MODE_SUFFIX)||''; const n=raw?parseBRNumber(raw):0; return n>0?n:0; }catch(e){ return 0; } }
 function regMetaCaptureOn(){ try{ return localStorage.getItem(META_CAPTURA_KEY)==='1'; }catch(e){ return false; } }
-function regMetaSince(){ try{ return localStorage.getItem('spot_dashboard_meta_semanal_since_v1')||''; }catch(e){ return ''; } }
+function regMetaSince(){ try{ return localStorage.getItem('spot_dashboard_meta_semanal_since_v1'+MODE_SUFFIX)||''; }catch(e){ return ''; } }
 /* Base de cálculo: primeira planilha da semana (segunda) ou, se a meta foi ativada no meio da semana,
    a primeira planilha a partir do dia da ativação. A meta vale até sexta. */
 function regMetaBaseline(activeImp){
@@ -3381,9 +3404,9 @@ document.getElementById('revPlanilha').addEventListener('change',function(){
 
 
 /* ===== Meta semanal: definida em Importados, vale também em Valor Revertido ===== */
-const META_SEMANAL_KEY='spot_dashboard_meta_semanal_v1';
+const META_SEMANAL_KEY='spot_dashboard_meta_semanal_v1'+MODE_SUFFIX;
 function loadMetaSemanal(){ try{ return localStorage.getItem(META_SEMANAL_KEY)||''; }catch(e){ return ''; } }
-function saveMetaSemanal(v){ try{ if(v){ if(!localStorage.getItem(META_SEMANAL_KEY)) localStorage.setItem('spot_dashboard_meta_semanal_since_v1',todayStr()); localStorage.setItem(META_SEMANAL_KEY,v); } else { localStorage.removeItem(META_SEMANAL_KEY); localStorage.removeItem('spot_dashboard_meta_semanal_since_v1'); } }catch(e){} }
+function saveMetaSemanal(v){ try{ if(v){ if(!localStorage.getItem(META_SEMANAL_KEY)) localStorage.setItem('spot_dashboard_meta_semanal_since_v1'+MODE_SUFFIX,todayStr()); localStorage.setItem(META_SEMANAL_KEY,v); } else { localStorage.removeItem(META_SEMANAL_KEY); localStorage.removeItem('spot_dashboard_meta_semanal_since_v1'+MODE_SUFFIX); } }catch(e){} }
 function syncMetaSemanalUI(v,skipRev){
   const revIn=document.getElementById('revMeta'), impIn=document.getElementById('impMetaInput');
   if(revIn&&!skipRev&&revIn.value!==v) revIn.value=v;
@@ -3444,7 +3467,7 @@ window.__spotRun(async function init(){
   rebuildJustificationIndex();
   if(ROUTE_ONLY_MODE){ LOST_ROUTES=loadPersistedRoutePackages(); } else { LOST_ROUTES_ALL=loadPersistedLostRoutesAll(); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); }
   if(ROUTE_ONLY_MODE&&!LOST_ROUTES.length){LOST_ROUTES=await loadInitialRoutePackages();if(LOST_ROUTES.length)persistRoutePackages();}
-  if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); } else { selectedImportId=loadSelectedImport(); }
+  if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); seedWeekBaselines(); } else { selectedImportId=loadSelectedImport(); }
   if(IMPORTS.length){ rebuildStateData(); document.getElementById('emptyState').style.display='none'; renderAll(); }
   updateImportUI();
 });
