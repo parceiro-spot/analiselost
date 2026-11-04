@@ -980,16 +980,19 @@ function rememberWeekBaseline(imp){
 }
 function seedWeekBaselines(){ let changed=false; IMPORTS.forEach(imp=>{ if(rememberWeekBaseline(imp)) changed=true; }); if(changed) persistWeekBaselines(); }
 function dropWeekBaselinesWhere(pred){ let changed=false; Object.keys(WEEK_BASELINES).forEach(k=>{ if(pred(WEEK_BASELINES[k],k)){ delete WEEK_BASELINES[k]; changed=true; } }); if(changed) persistWeekBaselines(); }
-function finishImportMain(entries,fileName,importDate,turno,fileTime){
+function finishImportMain(entries,fileName,importDate,turno,fileTime,source){
   if(!entries||!entries.length)throw new Error('Não encontrei registros dos regionais reconhecidos nesta planilha.');
   /* Antes de substituir qualquer planilha do mesmo dia/turno, guarda a base da meta da semana. */
   seedWeekBaselines();
   rememberWeekBaseline({importDate,turno,fileName,fileTime:fileTime||extractFileTime(fileName)||null,savedAt:new Date().toISOString(),entries,id:''}); persistWeekBaselines();
+  /* Quando o LOST real chega depois da promoção, ele substitui a base provisória
+     do dia inteiro, mesmo que o turno selecionado seja diferente. */
+  if(source==='lost') IMPORTS=IMPORTS.filter(imp=>!(imp.importDate===importDate&&imp.source==='route-fallback'));
   const matches=IMPORTS.filter(imp=>imp.importDate===importDate&&imp.turno===turno);
   const previous=matches.slice().sort((a,b)=>compareMainImports(b,a))[0]||null;
   IMPORTS=IMPORTS.filter(imp=>!(imp.importDate===importDate&&imp.turno===turno));
   const novoId=previous?.id||('imp-'+Date.now()+'-'+Math.random().toString(36).slice(2,8));
-  IMPORTS.push({id:novoId,importDate,turno,fileName,fileTime:fileTime||extractFileTime(fileName)||null,savedAt:new Date().toISOString(),entries});
+  IMPORTS.push({id:novoId,importDate,turno,fileName,fileTime:fileTime||extractFileTime(fileName)||null,savedAt:new Date().toISOString(),source:source||'lost',entries});
   seedWeekBaselines(); /* amarra o id da planilha à base da semana (para apagar junto se for excluída) */
   return {replaced:matches.length>0};
 }
@@ -1020,7 +1023,7 @@ document.getElementById('btnConfirmImport').addEventListener('click',async funct
     for(let i=0;i<items.length;i++){
       const item=items[i];this.textContent='Lendo '+(i+1)+'/'+items.length+'…';
       await new Promise(r=>setTimeout(r,30)); /* deixa o "Lendo…" aparecer antes de ler o arquivo */
-      try{const entries=await readMainImportFile(item.file);const result=finishImportMain(entries,item.file.name,item.importDate,item.turno,item.fileTime);imported++;if(result.replaced)replaced++;}
+      try{const entries=await readMainImportFile(item.file);const result=finishImportMain(entries,item.file.name,item.importDate,item.turno,item.fileTime,'lost');imported++;if(result.replaced)replaced++;}
       catch(err){console.error('Erro ao importar '+item.file.name,err);errors.push(item.file.name+': '+(err.message||'erro de leitura'));}
     }
     if(imported){const latest=IMPORTS.slice().sort((a,b)=>compareMainImports(b,a))[0];selectedImportId=latest?.id||null;saveSelectedImport();persistImports();rebuildStateData();document.getElementById('emptyState').style.display='none';currentTab='TODOS';currentBaseFilter='TODAS';topBasesMode='TODOS';document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));updateImportUI();renderAll();}
@@ -1089,18 +1092,26 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
   else { reader.onload=async e=>{ try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const rows=await buildReturnRowsFromWorkbook(wb,e.target.result);finish(rows,rows?'':'Não encontrei uma aba com pacote e observação');}catch(err){console.error(err);finish([],err.message||'erro de leitura do Excel');}finally{pendingReturnFile=null;this.textContent='OK';} }; reader.readAsArrayBuffer(file); }
 });
 ['input','change'].forEach(evt=>document.getElementById('lostDia').addEventListener(evt,()=>{lostDateManuallySet=true;}));
-function bindLostUploadInput(id){ document.getElementById(id)?.addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;const dateFromName=extractFileDate(file.name);if(dateFromName&&!lostDateManuallySet)document.getElementById('lostDia').value=dateFromName;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='Importar para Pacotes em Rota';e.target.value='';}); }
+function extractSingleFileDate(fileName){
+  const name=String(fileName||'');
+  const dates=name.match(/20\d{2}[-_.]\d{1,2}[-_.]\d{1,2}/g)||[];
+  return dates.length===1?extractFileDate(name):null;
+}
+function bindLostUploadInput(id){ document.getElementById(id)?.addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;pendingLostFile=file;const dateFromName=extractSingleFileDate(file.name);if(dateFromName&&!lostDateManuallySet)document.getElementById('lostDia').value=dateFromName;document.getElementById('btnConfirmLost').disabled=false;document.getElementById('btnConfirmLost').textContent='Importar para Pacotes em Rota';e.target.value='';}); }
 bindLostUploadInput('fileInputLost'); bindLostUploadInput('fileInputLostRisco');
 function routeRowsAsMainEntries(rows){
   return (rows||[]).map(e=>({base:e.base||e.origem||e.destino||'',valor:Number(e.valor)||0,date:e.date instanceof Date?e.date:new Date(),diasPlanilha:e.diasPlanilha??e.dias??null,tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC',pacote:e.pacote||'',produto:e.produto||'',driverId:e.driverId||'',rota:e.rota||'',motivo:e.motivo||'Perdido em rota'})).filter(e=>e.base||e.pacote);
 }
 function ensureLostDayFromRouteSheet(rows,fileName,day,turno){
   if(ROUTE_ONLY_MODE||!rows?.length) return false;
-  const exists=IMPORTS.some(imp=>String(imp.importDate||'').slice(0,10)===day&&String(imp.turno||'Manhã')===turno);
+  /* A existência de LOST é diária, não por turno: se já houve LOST no dia,
+     Pacotes em Rota continua somente na sua aba e não substitui o retrato do LOST. */
+  const exists=IMPORTS.some(imp=>String(imp.importDate||'').slice(0,10)===day&&imp.source!=='route-fallback');
   if(exists) return false;
   const entries=routeRowsAsMainEntries(rows); if(!entries.length) return false;
-  finishImportMain(entries,fileName,day,turno,extractFileTime(fileName));
-  selectedImportId=IMPORTS[IMPORTS.length-1]?.id||null; saveSelectedImport(); persistImports();
+  finishImportMain(entries,fileName,day,turno,extractFileTime(fileName),'route-fallback');
+  const promoted=IMPORTS.find(imp=>imp.importDate===day&&imp.turno===turno&&imp.source==='route-fallback');
+  selectedImportId=promoted?.id||null; saveSelectedImport(); persistImports();
   return true;
 }
 document.getElementById('btnConfirmLost').addEventListener('click',function(){const file=pendingLostFile;if(!file)return;this.disabled=true;this.textContent='Lendo...';const reader=new FileReader();const finish=rows=>{if(!rows){alert('Não reconheci a planilha. Preciso encontrar colunas de pacote e origem/destino/rota.');return;}const lostDay=document.getElementById('lostDia')?.value||todayStr(); const lostTurno=document.getElementById('lostTurno')?.value||'Manhã';
