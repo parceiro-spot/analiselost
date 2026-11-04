@@ -1208,6 +1208,8 @@ img,svg,canvas,video{max-width:100%}
 #revOfmUse.active{background:var(--spot-green);color:#fff;border-color:var(--spot-green)}
 
 .rev-ofm{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;color:var(--text-primary);font-size:12px}.rev-ofm label{display:inline-flex;align-items:center;gap:6px}.rev-ofm input{width:110px;padding:7px 9px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-inset);color:var(--text-primary);font:inherit}
+#page-revertido #revOfm{display:flex!important;visibility:visible!important;opacity:1!important}
+#page-revertido #revOfmValor{display:inline-block!important;visibility:visible!important;opacity:1!important}
 
 .analysis-base-open{margin-left:auto}.analysis-base-back{margin-right:auto}.rev-value-trend{font-weight:900}.rev-value-trend.up{color:var(--svc-danger)}.rev-value-trend.down{color:var(--spot-green)}.rev-kpi .val.rev-value-up{color:var(--svc-danger)!important}.rev-kpi .val.rev-value-down{color:var(--spot-green)!important}.rev-inner-tabs{display:flex;gap:8px;margin:0 0 10px}.rev-inner-tabs .tab-btn{padding:8px 14px;font-weight:800}.rev-view-help{font-size:12px;color:var(--text-secondary);margin:0 0 14px}.rev-mes-opcoes{margin-top:6px}.rev-mes-opcoes[hidden]{display:none}.rev-controls .preset-btn.active{background:var(--spot-primary);color:#000}
 .rev-hoje-btn{margin-top:6px;padding:6px 12px;font-size:11.5px}

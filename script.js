@@ -997,14 +997,24 @@ function readMainImportFile(file){
     const reader=new FileReader();
     reader.onerror=()=>reject(new Error('Falha ao ler o arquivo.'));
     reader.onload=evt=>{try{
-      let entries,rawRows;
-      if(/\.csv$/i.test(file.name)){const text=String(evt.target.result||'').replace(/^\uFEFF/,'');rawRows=parseDelimitedText(text,detectDelimiter(text));}
+      let entries,rawRows,routeRows=null;
+      if(/\.csv$/i.test(file.name)){
+        const text=String(evt.target.result||'').replace(/^\uFEFF/,'');
+        const delimiters=Array.from(new Set([detectDelimiter(text),',',';','\t']));
+        for(const delim of delimiters){
+          const candidate=parseDelimitedText(text,delim);
+          const riskEntries=buildEntriesFromRawRows(candidate);
+          if(riskEntries?.length){entries=riskEntries;rawRows=candidate;break;}
+          const candidateRoutes=buildLostRoutesFromRawRows(candidate);
+          if(candidateRoutes?.length){routeRows=candidateRoutes;rawRows=candidate;break;}
+        }
+      }
       else{const wb=XLSX.read(new Uint8Array(evt.target.result),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];if(!ws)throw new Error('A planilha não contém abas.');rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,cellDates:true});}
       /* O primeiro campo do DASH LOST aceita os dois relatórios. Primeiro
          tenta o formato LOST/Risco LM; se não casar, converte Pacotes em Rota
          para a mesma estrutura principal do dashboard. */
-      entries=buildEntriesFromRawRows(rawRows);
-      if(!entries||!entries.length){ const routeRows=buildLostRoutesFromRawRows(rawRows); entries=routeRowsAsMainEntries(routeRows||[]); if(entries.length)entries.__routeRows=routeRows||[]; }
+      entries=entries||buildEntriesFromRawRows(rawRows);
+      if(!entries||!entries.length){ routeRows=routeRows||buildLostRoutesFromRawRows(rawRows); entries=routeRowsAsMainEntries(routeRows||[]); if(entries.length)entries.__routeRows=routeRows||[]; }
       if(!entries||!entries.length)throw new Error('Não reconheci registros/colunas de pacotes nesta planilha.');
       resolve(entries);
     }catch(err){reject(err);}};
@@ -1014,7 +1024,7 @@ function readMainImportFile(file){
 ['input','change'].forEach(evt=>document.getElementById('impDia').addEventListener(evt,()=>{importDateManuallySet=true;}));
 document.getElementById('fileInput').addEventListener('change', function(e){
   const files=Array.from(e.target.files||[]);if(!files.length)return;pendingImportFiles=files;
-  if(files.length===1){const file=files[0],dateFromName=extractFileDate(file.name),turnoFromName=extractFileTurno(file.name);if(dateFromName&&!importDateManuallySet)document.getElementById('impDia').value=dateFromName;if(turnoFromName)document.getElementById('impTurno').value=turnoFromName;}
+  if(files.length===1){const file=files[0],dateFromName=extractSingleFileDate(file.name),turnoFromName=extractFileTurno(file.name);if(dateFromName&&!importDateManuallySet)document.getElementById('impDia').value=dateFromName;if(turnoFromName)document.getElementById('impTurno').value=turnoFromName;}
   const button=document.getElementById('btnConfirmImport');button.disabled=false;button.textContent=files.length>1?'Importar '+files.length:'OK';renderMainImportBatchSummary(files);
   e.target.value='';
 });
