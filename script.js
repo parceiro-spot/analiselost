@@ -1303,7 +1303,7 @@ function getActiveEntries(){
      Manhã - Tarde aparece somente como indicador auxiliar, nunca como o
      valor principal da planilha ativa. */
   const imp=getSelectedImport();
-  return imp ? (imp.entries||[]).slice() : [];
+  return imp ? (imp.entries||[]).map(normalizeLostEntryRouting) : [];
 }
 function getActiveDataByRegional(){
   const data={};
@@ -1325,7 +1325,7 @@ function scopedEntriesFromImport(imp){
   if(!imp) return [];
   return scopedEntriesFromList(imp.entries);
 }
-function sumMetrics(list){ let svc=0,xpt=0; const bases=new Set(); list.forEach(e=>{ if(e.tipo==='SVC') svc+=e.valor; else xpt+=e.valor; bases.add(e.base); }); return {svc,xpt,total:svc+xpt,pacotes:list.length,baseCount:bases.size}; }
+function sumMetrics(list){ let svc=0,xpt=0,svcCount=0,xptCount=0; const bases=new Set(); list.forEach(e=>{ if(e.tipo==='SVC'){svc+=e.valor;svcCount++;} else {xpt+=e.valor;xptCount++;} bases.add(e.base); }); return {svc,xpt,total:svc+xpt,pacotes:list.length,svcCount,xptCount,baseCount:bases.size}; }
 /* Une manhã + tarde SEM contar duas vezes o mesmo pacote: um pacote que já estava
    parado de manhã e continua parado à tarde é a mesma unidade de valor perdido —
    só entra como "a mais" o que é realmente novo na tarde (pacote não visto de manhã). */
@@ -1510,7 +1510,7 @@ function renderAll(){
   document.getElementById('kpiPacotes').textContent=fmtInt(activeMetrics.pacotes);
   const justificados=justifiedCount(getActiveEntries()); const justEl=document.getElementById('kpiJustificados'); if(justEl) justEl.textContent='Justificado '+String(justificados).padStart(2,'0')+' / '+fmtInt(activeMetrics.pacotes);
   document.getElementById('kpiSvcSub').textContent='Manhã '+(manhaImp?fmtBRL(manha.svc):'—');
-  document.getElementById('kpiXptSub').textContent='Manhã '+(manhaImp?fmtBRL(manha.xpt):'—');
+  document.getElementById('kpiXptSub').textContent=fmtInt(activeMetrics.xptCount||0)+' pacote(s) · Manhã '+(manhaImp?fmtBRL(manha.xpt):'—');
   document.getElementById('kpiTotalSub').textContent=(manhaImp?'Manhã: '+fmtBRL(manha.total):'Manhã: —')+' · '+(tardeImp?'Tarde: '+fmtBRL(tarde.total):'Tarde: —');
   document.getElementById('kpiTotalSoma').textContent='';
   const deltaEl=document.getElementById('kpiTotalDelta');
@@ -2877,7 +2877,7 @@ enableNativeDatePickers();
 function analysisMetricsBetween(start,end,reg,tipo){
   if(!start||!end||start>end) return null;
   const days=availableImportDates().filter(d=>d>=start&&d<=end); if(!days.length) return null;
-  const entries=days.flatMap(d=>snapshotEntriesForDay(d)).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(tipo==='TODOS'||e.tipo===tipo));
+  const entries=days.flatMap(d=>snapshotEntriesForDay(d).map(normalizeLostEntryRouting)).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(tipo==='TODOS'||e.tipo===tipo));
   return {pacotes:entries.length,valor:entries.reduce((s,e)=>s+(Number(e.valor)||0),0)};
 }
 function analysisDeltaHtml(current,previous,format,unit){
@@ -2915,7 +2915,7 @@ function renderAnalise(){
   function analysisEntriesForImport(imp){
     const reg=document.getElementById('analiseRegional').value;
     const tipo=document.querySelector('#analiseTipoToggle .toggle-btn.active')?.dataset.mode||'TODOS';
-    return (imp?.entries||[]).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(tipo==='TODOS'||e.tipo===tipo));
+    return (imp?.entries||[]).map(normalizeLostEntryRouting).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(tipo==='TODOS'||e.tipo===tipo));
   }
   const dailyTurnos=rows.map(r=>{
     const manha=sumMetrics(analysisEntriesForImport(findTurnoImport(r.day,'Manhã'))).total;
