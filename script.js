@@ -162,6 +162,13 @@ function classifyBaseCode(code, originRegional){
   if(/^E(ES|MG|RJ|BA)/.test(code)) return 'XPT';
   return null;
 }
+/* Ordem visual da aba Regional e Base: primeiro todas as bases XPT, depois SVC.
+   O tipo salvo na entrada tem prioridade para também corrigir dados antigos cujo
+   código não esteja na tabela local de XPT_BASES. */
+function baseTypeForOrdering(base, entries){
+  if((entries||[]).some(e=>norm(e.tipo)==='XPT')) return 'XPT';
+  return classifyBaseCode(normalizeBaseCode(base),regionalFromBasePrefix(normalizeBaseCode(base)))||'SVC';
+}
 function findRegionalByBase(baseName){ for(const r of REGIONAL_ORDER){ if(!STATE_DATA[r]) continue; if(STATE_DATA[r].entries.some(e=>e.base===baseName)) return r; } return null; }
 /* Relação SVC -> XPT conforme a planilha BSC Delivery Success (colunas SVC e XPT). O inverso é gerado abaixo. */
 const SVC_TO_XPT={SES1:['EES8'],SES3:['EBA32','EES3','EES6','EES9'],SMG3:['EMG40'],SMG7:['EMG17'],SMG9:['EMG40'],SMG13:['EMG8','EMG25'],SMG14:['EMG39'],SMG18:['EMG21','EMG39','EMG31'],SRJ2:['ERJ8'],SRJ3:['ERJ2','ERJ10'],SRJ8:['ERJ6','ERJ11']};
@@ -2740,7 +2747,7 @@ function renderRegionalPage(){
     const filteredEntries=bucketFilterEntries(d.entries, regionalBaseBucket);
     const baseMap={};
     filteredEntries.forEach(e=>{ if(!baseMap[e.base]) baseMap[e.base]={base:e.base,valor:0,entries:[]}; baseMap[e.base].valor+=e.valor; baseMap[e.base].entries.push(e); });
-    const bases=Object.values(baseMap).sort((a,b)=>{const ta=classifyBaseCode(a.base,regionalFromBasePrefix(a.base))||'SVC',tb=classifyBaseCode(b.base,regionalFromBasePrefix(b.base))||'SVC';return (ta===tb?0:ta==='XPT'?-1:1)||b.valor-a.valor||a.base.localeCompare(b.base);});
+    const bases=Object.values(baseMap).sort((a,b)=>{const ta=baseTypeForOrdering(a.base,a.entries),tb=baseTypeForOrdering(b.base,b.entries);return (ta===tb?0:ta==='XPT'?-1:1)||b.valor-a.valor||a.base.localeCompare(b.base,'pt-BR',{numeric:true});});
     const max=bases.length?bases[0].valor:1;
     const counts=computeAgingCounts(d.entries);
     const regMetaHead=regMetaLine(metaBL,bs=>isAllBases||(regionalFromBasePrefix(bs)||'OUTROS')===r,isAllBases?'Meta de todas as bases':'Meta '+(REGIONAL_LABELS[r]||r)).replace('class="reg-meta"','class="reg-meta reg-meta-head"');
