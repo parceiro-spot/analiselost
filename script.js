@@ -42,6 +42,14 @@ let topBasesMode='TODOS';
 let offendersSearch=''; let offendersThreshold=0;
 let offendersBucket='TODOS';
 const offendersCollapsedRegionals=new Set();
+const OFFENDERS_HIDDEN_KEY='spot_offenders_hidden_bases_v1'+MODE_SUFFIX;
+const OFFENDERS_CONFIRMED_KEY='spot_offenders_confirmed_bases_v1'+MODE_SUFFIX;
+let offendersHiddenBases=new Set();
+let offendersConfirmedBases=null;
+let selectedOffenderAnalysisBase='';
+let selectedOffenderAnalysisWeek='';
+let offendersHiddenPanelOpen=false;
+let chartOffendersWeekly=null;
 let regionalNav={level:'list', regional:null};
 let lostRouteNav={level:'list', regional:null};
 let lostRouteSearch='';
@@ -92,7 +100,7 @@ function applyTheme(theme){
   if(theme!=='dark') document.documentElement.classList.add('theme-'+theme);
   try{ localStorage.setItem(THEME_KEY,theme); }catch(e){}
   document.querySelectorAll('.theme-option').forEach(btn=>btn.classList.toggle('active',btn.dataset.theme===theme));
-  [chartAnaliseDia,chartAnaliseRegional,chartAnaliseOfensoras].forEach(chart=>{ if(chart) chart.update(); });
+  [chartAnaliseDia,chartAnaliseRegional,chartAnaliseOfensoras,chartOffendersWeekly].forEach(chart=>{ if(chart) chart.update(); });
 }
 function cssColor(name,fallback){ const value=getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return value||fallback; }
 function initThemePicker(){
@@ -750,6 +758,12 @@ function persistDriverMap(){ try{ localStorage.setItem(DRIVER_MAP_KEY, JSON.stri
 function loadPersistedDriverMap(){ try{ const raw=localStorage.getItem(DRIVER_MAP_KEY); return raw?JSON.parse(raw):null; }catch(err){ return null; } }
 function saveOffendersBucket(){ try{ localStorage.setItem(OFF_BUCKET_KEY, offendersBucket); }catch(e){} }
 function loadOffendersBucket(){ try{ return localStorage.getItem(OFF_BUCKET_KEY)||'TODOS'; }catch(e){ return 'TODOS'; } }
+function offenderBaseKey(base){ return String(base||'').trim().toUpperCase(); }
+function loadOffendersHiddenBases(){ try{ const v=JSON.parse(localStorage.getItem(OFFENDERS_HIDDEN_KEY)||'[]'); return new Set(Array.isArray(v)?v.map(offenderBaseKey).filter(Boolean):[]); }catch(e){ return new Set(); } }
+function saveOffendersHiddenBases(){ try{ localStorage.setItem(OFFENDERS_HIDDEN_KEY,JSON.stringify(Array.from(offendersHiddenBases).sort())); }catch(e){} }
+function loadConfirmedOffendersBases(){ try{ const raw=localStorage.getItem(OFFENDERS_CONFIRMED_KEY); if(!raw)return null; const v=JSON.parse(raw); return Array.isArray(v)?Array.from(new Map(v.map(x=>[offenderBaseKey(x),String(x||'').trim()]).filter(x=>x[0]&&x[1])).values()):null; }catch(e){ return null; } }
+function saveConfirmedOffendersBases(){ try{ if(Array.isArray(offendersConfirmedBases))localStorage.setItem(OFFENDERS_CONFIRMED_KEY,JSON.stringify(offendersConfirmedBases)); else localStorage.removeItem(OFFENDERS_CONFIRMED_KEY); }catch(e){} }
+function clearOffenderConfirmation(){ offendersConfirmedBases=null; selectedOffenderAnalysisBase=''; selectedOffenderAnalysisWeek=''; saveConfirmedOffendersBases(); }
 function saveSelectedImport(){ try{ if(selectedImportId) localStorage.setItem(SELECTED_IMPORT_KEY, selectedImportId); else localStorage.removeItem(SELECTED_IMPORT_KEY); }catch(e){} }
 function loadSelectedImport(){ try{ return localStorage.getItem(SELECTED_IMPORT_KEY)||null; }catch(e){ return null; } }
 /* Tenta ler o horário de corte embutido no nome do arquivo (ex.: ..._1005.csv -> 10:05).
@@ -2099,6 +2113,7 @@ function visibleBasesFor(reg){
     const entries=bucketFilterEntries(b.entries,bucket);
     return {base:b.base, entries, valor:entries.reduce((a,e)=>a+e.valor,0)};
   }).filter(b=>{
+    if(offendersHiddenBases.has(offenderBaseKey(b.base))) return false;
     if(!b.entries.length) return false;
     if(offendersThreshold>0 && b.valor<offendersThreshold) return false;
     return matchesOffenderSearch(b.base,b.entries);
@@ -2112,11 +2127,77 @@ function renderOffendersAgingBar(){
   const items=[['TODOS','Todos',todas.length],['ATE2','Até 2',counts.ATE2.cnt],['3A6','3 a 6',counts['3A6'].cnt],['7A10','7 a 10',counts['7A10'].cnt],['MAIS11','+11',counts.MAIS11.cnt]];
   bar.innerHTML=items.map(([k,l,n])=>`<button type="button" class="preset-btn aging-preset ${sel===k?'active':''}" data-bucket="${k}">${l} (${fmtInt(n)})</button>`).join('');
 }
+function offenderValueBand(value){
+  const n=Number(value)||0;
+  if(n<=1000) return {key:'green',label:'Tranquilo · até R$ 1.000',color:'#8dc63f'};
+  if(n<=5000) return {key:'yellow',label:'Atenção · R$ 1.001 a R$ 5.000',color:'#c99c00'};
+  if(n<10000) return {key:'orange',label:'Alerta · acima de R$ 5.000 e abaixo de R$ 10.000',color:'#ff9800'};
+  return {key:'red',label:'Crítico · R$ 10.000 ou mais',color:'#ff5252'};
+}
+function getOffenderSelectionCandidates(data){ return (data||computeOffendersData()).flatMap(reg=>visibleBasesFor(reg)); }
+function renderOffenderConfirmBar(candidates,hasData){
+  const confirmed=Array.isArray(offendersConfirmedBases);
+  const status=document.getElementById('offenderSelectionStatus'), count=document.getElementById('offenderSelectionCount');
+  const confirm=document.getElementById('btnConfirmOffenders'), edit=document.getElementById('btnEditOffenders');
+  if(!status||!count||!confirm||!edit) return;
+  status.textContent=confirmed
+    ? 'Lista confirmada. Clique em uma base abaixo para abrir a análise semanal; use “Editar seleção” para alterar.'
+    : hasData?'Bases exibidas após os filtros atuais entram na seleção; use “Ocultar” nas que devem ficar de fora.':'Importe uma planilha para selecionar as bases.';
+  count.textContent=confirmed?fmtInt(offendersConfirmedBases.length)+' base(s) confirmada(s)':fmtInt(candidates.length)+' base(s) na seleção';
+  confirm.hidden=confirmed;
+  confirm.disabled=!candidates.length||!hasData;
+  edit.hidden=!confirmed;
+}
+function renderHiddenOffendersPanel(data){
+  const hidden=(data||[]).flatMap(reg=>reg.bases.filter(b=>offendersHiddenBases.has(offenderBaseKey(b.base))).map(b=>({base:b.base,regional:reg.regional,valor:b.valor}))).sort((a,b)=>a.base.localeCompare(b.base));
+  if(!hidden.length) return '';
+  return `<section class="offender-hidden-panel"><button type="button" class="offender-hidden-toggle" data-toggle-offender-hidden aria-expanded="${String(offendersHiddenPanelOpen)}">Bases ocultadas (${fmtInt(hidden.length)}) · ${offendersHiddenPanelOpen?'recolher':'mostrar'}</button><div class="offender-hidden-list" style="display:${offendersHiddenPanelOpen?'flex':'none'}">${hidden.map(b=>`<div class="offender-hidden-row"><strong>${escHtml(b.base)}</strong><span>${escHtml(REGIONAL_LABELS[b.regional]||b.regional)}</span><span>${fmtBRL(b.valor)}</span><button type="button" class="offender-restore-btn" data-restore-offender="${escHtml(b.base)}">Mostrar novamente</button></div>`).join('')}</div></section>`;
+}
+function renderConfirmedOffenders(){
+  const panel=document.getElementById('offenderConfirmedPanel'), basesEl=document.getElementById('offenderConfirmedBases'), detail=document.getElementById('offenderWeeklyDetail');
+  if(!panel||!basesEl||!detail) return;
+  if(chartOffendersWeekly){chartOffendersWeekly.destroy();chartOffendersWeekly=null;}
+  if(!Array.isArray(offendersConfirmedBases)||!offendersConfirmedBases.length){panel.hidden=true;detail.hidden=true;detail.innerHTML='';return;}
+  panel.hidden=false;
+  const selectedKey=offenderBaseKey(selectedOffenderAnalysisBase);
+  const currentValues=new Map(); computeOffendersData().forEach(reg=>reg.bases.forEach(base=>currentValues.set(offenderBaseKey(base.base),base.valor)));
+  basesEl.innerHTML=offendersConfirmedBases.map(base=>{const value=currentValues.get(offenderBaseKey(base)),band=value===undefined?null:offenderValueBand(value);return `<button type="button" class="offender-confirmed-chip ${band?'band-'+band.key:''} ${selectedKey===offenderBaseKey(base)?'active':''}" data-offender-analysis-base="${escHtml(base)}"><b>${escHtml(base)}</b><span>${value===undefined?'Sem valor atual':fmtBRL(value)}</span></button>`;}).join('');
+  if(!selectedKey){detail.hidden=true;detail.innerHTML='';return;}
+  const dates=availableImportDates();
+  const weeks=Array.from(new Set(dates.map(weekMondayOf))).sort();
+  if(!weeks.length){detail.hidden=false;detail.innerHTML='<div class="history-empty">Não há planilhas importadas para montar a análise semanal desta base.</div>';return;}
+  if(!weeks.includes(selectedOffenderAnalysisWeek)) selectedOffenderAnalysisWeek=weeks[weeks.length-1];
+  const start=selectedOffenderAnalysisWeek, end=isoShift(start,6), importedDays=new Set(dates.filter(day=>day>=start&&day<=end));
+  const weekRows=Array.from({length:7},(_,i)=>{
+    const day=isoShift(start,i), hasImport=importedDays.has(day);
+    const value=hasImport?snapshotEntriesForDay(day).filter(e=>offenderBaseKey(e.base)===selectedKey).reduce((sum,e)=>sum+(Number(e.valor)||0),0):null;
+    return {day,value,hasImport};
+  });
+  const measured=weekRows.filter(row=>row.hasImport), first=measured[0], last=measured[measured.length-1];
+  const peak=measured.reduce((best,row)=>row.value>best.value?row:best,measured[0]);
+  const band=offenderValueBand(last.value), delta=last.value-first.value;
+  const deltaLabel=delta>0.005?'+ '+fmtBRL(delta):delta<-.005?'− '+fmtBRL(Math.abs(delta)):fmtBRL(0);
+  const deltaSub=first.value>0?'desde '+fmtDateShort(new Date(first.day+'T00:00:00'))+' ('+((delta/first.value)*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%)':'desde o primeiro dia importado';
+  const weekOptions=weeks.map(w=>`<option value="${w}" ${w===start?'selected':''}>Semana ${w.split('-').reverse().join('/')} a ${isoShift(w,6).split('-').reverse().join('/')}</option>`).join('');
+  const labels=weekRows.map(row=>{const d=new Date(row.day+'T00:00:00');return WEEKDAY_ABBR[d.getDay()]+' '+fmtDateShort(d);});
+  detail.hidden=false;
+  detail.innerHTML=`<div class="offender-weekly-head"><div><h4>Análise semanal · ${escHtml(selectedOffenderAnalysisBase)}</h4><p>Valor por dia nas planilhas importadas, de segunda a domingo.</p></div><label class="offender-week-select">Semana<select id="offenderAnalysisWeek">${weekOptions}</select></label></div>
+    <div class="offender-weekly-kpis"><div class="offender-weekly-kpi band-${band.key}"><div class="lbl">Último valor importado</div><div class="val">${fmtBRL(last.value)}</div><div class="sub">${fmtDateFullBR(last.day)} · ${band.label}</div></div><div class="offender-weekly-kpi"><div class="lbl">Variação no período</div><div class="val">${deltaLabel}</div><div class="sub">${deltaSub}</div></div><div class="offender-weekly-kpi"><div class="lbl">Maior valor na semana</div><div class="val">${fmtBRL(peak.value)}</div><div class="sub">${fmtDateFullBR(peak.day)} · ${offenderValueBand(peak.value).label}</div></div></div>
+    <div class="offender-band-legend"><span><i style="background:#8dc63f"></i>R$ 0–1.000 · tranquilo</span><span><i style="background:#c99c00"></i>R$ 1.001–5.000 · amarelo</span><span><i style="background:#ff9800"></i>Acima de R$ 5.000 e abaixo de R$ 10.000 · laranja</span><span><i style="background:#ff5252"></i>R$ 10.000 ou mais · vermelho</span></div>
+    <div class="offender-weekly-chart"><canvas id="chartOffenderWeekly" role="img" aria-label="Gráfico semanal do valor da base ${escHtml(selectedOffenderAnalysisBase)}"></canvas></div><p class="offender-weekly-note">Os pontos representam o valor total da base em cada planilha diária importada. Dias sem planilha ficam sem ponto; os valores diários não são somados entre si.</p>`;
+  const canvas=document.getElementById('chartOffenderWeekly');
+  if(canvas&&typeof Chart!=='undefined'){
+    chartOffendersWeekly=new Chart(canvas,{type:'line',data:{labels,datasets:[{label:'Valor em risco',data:weekRows.map(row=>row.value),borderColor:'#8dc63f',segment:{borderColor:ctx=>offenderValueBand(Number(ctx.p1.parsed.y)||0).color},backgroundColor:'rgba(141,198,63,.10)',fill:true,tension:.32,spanGaps:false,borderWidth:3,pointRadius:5,pointHoverRadius:7,pointBorderWidth:2,pointBorderColor:'#111',pointBackgroundColor:weekRows.map(row=>row.value===null?'#737373':offenderValueBand(row.value).color)}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw===null?'Sem planilha importada':fmtBRL(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{color:cssColor('--text-secondary','#a3a3a3'),font:{size:10}}},y:{beginAtZero:true,grid:{color:'rgba(127,127,127,.13)'},ticks:{color:cssColor('--text-secondary','#a3a3a3'),callback:value=>fmtBRL(value)}}}}});
+  }
+  document.getElementById('offenderAnalysisWeek')?.addEventListener('change',function(){selectedOffenderAnalysisWeek=this.value;renderConfirmedOffenders();});
+}
 function renderOffenders(){
   const container=document.getElementById('offendersList');
   const info=document.getElementById('offendersFiltersInfo');
   const data=computeOffendersData();
+  const candidates=getOffenderSelectionCandidates(data);
   renderOffendersAgingBar();
+  renderOffenderConfirmBar(candidates,data.length>0);
   const bucket=getOffendersBucket();
   const partes=[];
   if(bucket!=='TODOS') partes.push(BUCKET_LABELS[bucket]);
@@ -2124,7 +2205,7 @@ function renderOffenders(){
   if(offendersSearch.trim()) partes.push('busca "'+offendersSearch.trim()+'"');
   info.textContent = partes.length ? 'Filtros ativos: '+partes.join(' · ') : 'Sem filtros ativos';
 
-  if(!data.length){ container.innerHTML='<div class="history-empty" style="padding:40px 0;">Importe uma planilha para ver os ofensores.</div>'; return; }
+  if(!data.length){ container.innerHTML='<div class="history-empty" style="padding:40px 0;">Importe uma planilha para ver os ofensores.</div>'; renderConfirmedOffenders(); return; }
 
   let html=''; let algum=false;
   data.forEach(reg=>{
@@ -2136,10 +2217,10 @@ function renderOffenders(){
     const regTotal=visible.reduce((a,b)=>a+b.valor,0);
     const regPac=visible.reduce((a,b)=>a+b.entries.length,0);
     const body='<div class="offender-base-list">'+visible.map(b=>{
-      return `<div class="offender-base-row"><div class="offender-base-head" data-open-base="${escHtml(b.base)}"><svg class="ico offender-caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg><span class="offender-base-code">${escHtml(b.base)}</span><span class="offender-base-valor">${fmtBRL(b.valor)}</span><span class="offender-base-pacotes">${fmtInt(b.entries.length)} pacote(s)</span></div></div>`;
+      return `<div class="offender-base-row"><div class="offender-base-head" data-open-base="${escHtml(b.base)}" role="button" tabindex="0" aria-haspopup="dialog" aria-label="Abrir detalhes da base ${escHtml(b.base)}"><svg class="ico offender-caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 5 7 7-7 7"/></svg><span class="offender-base-code">${escHtml(b.base)}</span><span class="offender-base-valor">${fmtBRL(b.valor)}</span><span class="offender-base-pacotes">${fmtInt(b.entries.length)} pacote(s)</span></div><button type="button" class="offender-hide-btn" data-hide-offender="${escHtml(b.base)}" aria-label="Ocultar base ${escHtml(b.base)}">Ocultar</button></div>`;
     }).join('')+'</div>';
     html+=`<div class="offender-card" style="border-left-color:${color};">
-      <div class="offender-card-head" data-regional-toggle="${escHtml(reg.regional)}">
+      <div class="offender-card-head" data-regional-toggle="${escHtml(reg.regional)}" role="button" tabindex="0" aria-expanded="${String(!isCollapsed)}" aria-label="Expandir ou recolher regional ${escHtml(REGIONAL_LABELS[reg.regional]||reg.regional)}">
         <svg class="ico offender-card-caret ${isCollapsed?'collapsed':''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5 9 7 7 7-7"/></svg>
         <span class="offender-regional-dot" style="background:${color};"></span>
         <h3>${escHtml(REGIONAL_LABELS[reg.regional]||reg.regional)}</h3>
@@ -2149,8 +2230,10 @@ function renderOffenders(){
       <div style="display:${isCollapsed?'none':'block'};">${body}</div>
     </div>`;
   });
-  if(!algum) html='<div class="history-empty" style="padding:30px 0 10px;">Nenhuma base atende aos filtros atuais. Use "Limpar todos os filtros" para voltar.</div>';
+  if(!algum) html='<div class="history-empty" style="padding:30px 0 10px;">Nenhuma base atende aos filtros atuais ou todas foram ocultadas. Ajuste os filtros ou mostre novamente uma base.</div>';
+  html+=renderHiddenOffendersPanel(data);
   container.innerHTML=html;
+  renderConfirmedOffenders();
 }
 const renderOffendersDebounced=debounceFn(()=>renderOffenders(),160);
 document.getElementById('offendersSearch').addEventListener('input', function(e){ offendersSearch=e.target.value; renderOffendersDebounced(); });
@@ -2182,10 +2265,35 @@ document.getElementById('btnResetOffenders').addEventListener('click', function(
   setOffendersThreshold(0);
 });
 document.getElementById('offendersList').addEventListener('click', function(e){
+  const hide=e.target.closest('[data-hide-offender]');
+  if(hide){ offendersHiddenBases.add(offenderBaseKey(hide.dataset.hideOffender)); saveOffendersHiddenBases(); clearOffenderConfirmation(); renderOffenders(); return; }
+  const restore=e.target.closest('[data-restore-offender]');
+  if(restore){ offendersHiddenBases.delete(offenderBaseKey(restore.dataset.restoreOffender)); saveOffendersHiddenBases(); clearOffenderConfirmation(); renderOffenders(); return; }
+  const hiddenToggle=e.target.closest('[data-toggle-offender-hidden]');
+  if(hiddenToggle){ offendersHiddenPanelOpen=!offendersHiddenPanelOpen; renderOffenders(); return; }
   const baseHead=e.target.closest('[data-open-base]');
   if(baseHead){ openBaseOverlay(baseHead.dataset.openBase); return; }
   const regHead=e.target.closest('[data-regional-toggle]');
   if(regHead){ const key=regHead.dataset.regionalToggle; if(offendersCollapsedRegionals.has(key)) offendersCollapsedRegionals.delete(key); else offendersCollapsedRegionals.add(key); renderOffenders(); return; }
+});
+document.getElementById('offendersList').addEventListener('keydown',function(e){
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const baseHead=e.target.closest('[data-open-base]');
+  if(baseHead){e.preventDefault();openBaseOverlay(baseHead.dataset.openBase);return;}
+  const regHead=e.target.closest('[data-regional-toggle]');
+  if(regHead){e.preventDefault();const key=regHead.dataset.regionalToggle;if(offendersCollapsedRegionals.has(key))offendersCollapsedRegionals.delete(key);else offendersCollapsedRegionals.add(key);renderOffenders();}
+});
+document.getElementById('btnConfirmOffenders').addEventListener('click',function(){
+  const candidates=getOffenderSelectionCandidates(computeOffendersData());
+  const unique=new Map(); candidates.forEach(base=>{const key=offenderBaseKey(base.base);if(key&&!unique.has(key))unique.set(key,String(base.base).trim());});
+  if(!unique.size)return;
+  offendersConfirmedBases=Array.from(unique.values()); saveConfirmedOffendersBases(); selectedOffenderAnalysisBase=''; selectedOffenderAnalysisWeek=''; renderOffenders();
+});
+document.getElementById('btnEditOffenders').addEventListener('click',function(){clearOffenderConfirmation();renderOffenders();});
+document.getElementById('offenderConfirmedBases').addEventListener('click',function(e){
+  const button=e.target.closest('[data-offender-analysis-base]'); if(!button)return;
+  selectedOffenderAnalysisBase=button.dataset.offenderAnalysisBase||''; selectedOffenderAnalysisWeek=''; renderConfirmedOffenders();
+  document.getElementById('offenderWeeklyDetail')?.scrollIntoView({behavior:'smooth',block:'nearest'});
 });
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
@@ -3672,6 +3780,8 @@ window.__spotRun(async function init(){
   const savedDrv=loadPersistedDriverMap();
   if(savedDrv && savedDrv.map && Object.keys(savedDrv.map).length){ DRIVER_MAP=savedDrv.map; driverFileName=savedDrv.fileName; driverSavedAt=savedDrv.savedAt; driverRows=savedDrv.rows||Object.keys(savedDrv.map).length; }
   offendersBucket=loadOffendersBucket();
+  offendersHiddenBases=loadOffendersHiddenBases();
+  offendersConfirmedBases=loadConfirmedOffendersBases();
   IMPORTS=await loadPersistedImports();
   seedWeekBaselines();
   RETURN_SHEETS=await loadPersistedReturnSheets();

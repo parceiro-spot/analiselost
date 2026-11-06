@@ -52,6 +52,12 @@ O antigo bloco "Selecionar bases / Escolha as regionais" foi removido. No lugar,
 
 O bloco permanece na tela **Valor Revertido** do DASH LOST. Ao classificar, o sistema usa a planilha da data selecionada; se essa data não estiver disponível, usa a planilha ativa ou a importação mais recente, evitando o erro de “Não há planilha importada nesta data”.
 
+## Ofensores por regionais: ocultar, confirmar e analisar
+
+Na tela **Ofensores por Regionais**, use **Ocultar** na base que não deve participar da seleção. As bases ocultadas ficam guardadas no navegador e podem ser restauradas em **Bases ocultadas** com **Mostrar novamente**. Depois de ajustar os filtros e ocultar o que não deseja, clique em **Confirmar ofensores**: a lista confirmada contém as bases ainda visíveis. A confirmação também é salva no navegador; **Editar seleção** reabre a escolha.
+
+Na lista confirmada, clique em uma base para ver o gráfico com o valor diário de cada planilha importada na semana escolhida (segunda a domingo), além da variação entre o primeiro e o último dia e do maior valor da semana. As faixas são: até R$ 1.000 (verde/tranquilo), acima de R$ 1.000 até R$ 5.000 (amarelo), acima de R$ 5.000 e abaixo de R$ 10.000 (laranja) e R$ 10.000 ou mais (vermelho). Dias sem planilha aparecem sem ponto; os valores diários não são somados entre si.
+
 ## Meta semanal (igual em Regional e Base e em Valor Revertido)
 
 As duas abas calculam a meta sobre o valor da **primeira planilha da semana** (segunda-feira) ou, se a meta foi ativada no meio da semana, da primeira planilha a partir do dia da ativação. Na coluna **Meta da semana** do Valor Revertido aparecem: valor no início da semana, meta (quanto reduzir), quanto já reduziu e quanto falta. Pacotes que entraram há menos de 24h não contam na meta.

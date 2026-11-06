@@ -262,7 +262,25 @@ document.addEventListener('DOMContentLoaded',function(){
       <button class="btn-reset" id="btnResetOffenders"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v4h4"/></svg> Limpar todos os filtros</button>
       <span class="filters-info" id="offendersFiltersInfo"></span>
     </div>
+    <div class="offender-confirm-bar" id="offenderConfirmBar">
+      <div class="offender-confirm-copy">
+        <strong>Seleção dos ofensores</strong>
+        <span id="offenderSelectionStatus">Oculte as bases que não devem entrar e confirme a lista.</span>
+      </div>
+      <div class="offender-confirm-actions">
+        <span class="offender-selection-count" id="offenderSelectionCount">0 bases na seleção</span>
+        <button type="button" class="offender-confirm-btn" id="btnConfirmOffenders">Confirmar ofensores</button>
+        <button type="button" class="offender-edit-btn" id="btnEditOffenders" hidden>Editar seleção</button>
+      </div>
+    </div>
     <div id="offendersList"></div>
+    <section class="offender-confirmed-panel" id="offenderConfirmedPanel" hidden>
+      <div class="offender-confirmed-head">
+        <div><h3>Ofensores confirmados</h3><p>Clique em uma base para ver a evolução diária do valor na semana.</p></div>
+      </div>
+      <div class="offender-confirmed-bases" id="offenderConfirmedBases"></div>
+      <div class="offender-weekly-detail" id="offenderWeeklyDetail" hidden></div>
+    </section>
   </div>
 
   <!-- ===================== REGIONAL E BASE ===================== -->
