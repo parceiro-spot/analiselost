@@ -1410,3 +1410,240 @@ body.is-importing .import-ok-btn{cursor:wait;opacity:.75}
 #page-geral .active-planilha-select-label{font-size:8px;letter-spacing:.25px}
 #page-geral .active-planilha-select{width:clamp(180px,27vw,360px);height:26px;padding:0 23px 0 7px;border-radius:6px;font-size:10px}
 @media(max-width:700px){#page-geral .dashboard-planilha-toolbar{padding:4px 6px}#page-geral .active-planilha-controls{padding:2px 0}#page-geral .active-planilha-select{width:auto;height:28px}}
+
+
+/* ===== Ajuste final: controles discretos e planilha ativa compacta ===== */
+/* O Valor Revertido usa uma faixa de filtros leve, não um painel chamativo. */
+#page-revertido .rev-controls{
+  display:flex;
+  align-items:center;
+  gap:7px 12px;
+  padding:7px 0;
+  margin:0 0 7px;
+  background:transparent;
+  border:0;
+  border-bottom:1px solid color-mix(in srgb,var(--border-color) 70%,transparent);
+  border-radius:0;
+  box-shadow:none;
+}
+#page-revertido .rev-controls .grp{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-height:27px;
+}
+#page-revertido .rev-controls .grp label{
+  display:inline-block;
+  margin:0;
+  color:var(--text-muted);
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.25px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+#page-revertido .rev-controls input,
+#page-revertido .rev-controls select{
+  height:27px;
+  padding:4px 7px;
+  border:1px solid color-mix(in srgb,var(--border-color) 80%,transparent);
+  border-radius:5px;
+  background:transparent;
+  color:var(--text-primary);
+  font-size:10px;
+  font-weight:600;
+  box-shadow:none;
+}
+#page-revertido .rev-controls input:focus,
+#page-revertido .rev-controls select:focus{
+  border-color:var(--spot-green);
+  outline:1px solid color-mix(in srgb,var(--spot-green) 35%,transparent);
+  box-shadow:none;
+}
+#page-revertido .rev-controls .grp:nth-child(1) input,
+#page-revertido .rev-controls .grp:nth-child(2) input{width:104px}
+#page-revertido #revPlanilha{width:clamp(170px,22vw,300px);max-width:100%;text-overflow:ellipsis}
+#page-revertido #revRegional{width:86px}
+#page-revertido #revBase{width:112px}
+#page-revertido #revOrigem{width:148px}
+#page-revertido .rev-controls .presets{display:inline-flex;gap:4px;flex-wrap:nowrap}
+#page-revertido .rev-controls .preset-btn{
+  height:27px;
+  padding:4px 7px;
+  border:1px solid color-mix(in srgb,var(--border-color) 80%,transparent);
+  border-radius:5px;
+  background:transparent;
+  color:var(--text-secondary);
+  font-size:9px;
+  font-weight:600;
+}
+#page-revertido .rev-controls .preset-btn:hover{
+  background:var(--spot-glow);
+  border-color:var(--spot-green);
+  color:var(--text-primary);
+}
+#page-revertido .rev-controls .preset-btn.active{
+  background:color-mix(in srgb,var(--spot-green) 14%,transparent);
+  border-color:var(--spot-green);
+  color:var(--spot-green);
+}
+#page-revertido .rev-controls .filter-help{
+  display:none;
+}
+#page-revertido .rev-hoje-btn{margin:0!important}
+
+/* Ofensores da manhã: mesma linguagem visual, sem cartão verde chamativo. */
+#page-revertido #revOfm{
+  display:block;
+  margin:0 0 7px;
+  padding:6px 0;
+  background:transparent;
+  border:0;
+  border-bottom:1px solid color-mix(in srgb,var(--border-color) 55%,transparent);
+  border-radius:0;
+  box-shadow:none;
+  color:var(--text-secondary);
+  font-size:10px;
+}
+#page-revertido #revOfm .rev-ofm-bar{
+  display:flex;
+  align-items:center;
+  gap:5px 7px;
+  margin:0;
+}
+#page-revertido #revOfm strong{
+  color:var(--text-primary);
+  font-size:10px;
+  font-weight:700;
+}
+#page-revertido #revOfm label{
+  gap:4px;
+  color:var(--text-muted);
+  font-size:9px;
+  font-weight:600;
+}
+#page-revertido #revOfm .rev-ofm-bar label input{
+  width:82px;
+  height:25px;
+  margin:0;
+  padding:4px 6px;
+  border:1px solid color-mix(in srgb,var(--border-color) 80%,transparent);
+  border-radius:5px;
+  background:transparent;
+  font-size:10px;
+}
+#page-revertido #revOfm .preset-btn{
+  height:25px;
+  padding:4px 7px;
+  border-radius:5px;
+  background:transparent;
+  border-color:color-mix(in srgb,var(--border-color) 80%,transparent);
+  color:var(--text-secondary);
+  font-size:9px;
+}
+#page-revertido #revOfm .rev-sel-ok{
+  background:transparent;
+  border-color:color-mix(in srgb,var(--spot-green) 70%,var(--border-color));
+  color:var(--spot-green);
+}
+#page-revertido #revOfm .rev-sel-ok:hover,
+#page-revertido #revOfm #revOfmUse.active{
+  background:var(--spot-glow);
+  color:var(--spot-green);
+}
+#page-revertido #revOfm .mini-camera{
+  width:25px;
+  height:25px;
+  margin-left:0;
+  border-radius:5px;
+}
+#page-revertido #revOfm .rev-sel-status{
+  display:block;
+  margin-top:3px;
+  color:var(--text-muted);
+  font-size:9px;
+  line-height:1.2;
+}
+#page-revertido #revOfmNames{
+  max-width:500px;
+  margin-top:5px;
+  padding:6px 8px;
+  border:1px solid color-mix(in srgb,var(--border-color) 70%,transparent);
+  border-radius:6px;
+  background:transparent;
+}
+
+/* Campos de valor mínimo/meta: linha informativa, sem caixa grande. */
+#page-revertido .rev-value-range{
+  gap:5px 7px;
+  margin:0 0 7px;
+  padding:5px 0;
+  background:transparent;
+  border:0;
+  border-bottom:1px solid color-mix(in srgb,var(--border-color) 55%,transparent);
+  border-radius:0;
+  font-size:9px;
+}
+#page-revertido .rev-value-range>strong{font-size:9px;color:var(--text-secondary)}
+#page-revertido .rev-value-range label{gap:3px;font-size:9px}
+#page-revertido .rev-value-range input{width:76px;height:25px;padding:4px 6px;border-radius:5px;background:transparent;font-size:10px}
+#page-revertido .rev-value-range>span{font-size:9px}
+#page-revertido .rev-value-range strong[style]{margin-left:5px!important}
+
+/* Visão geral: seletor reduzido ao mínimo e sem moldura própria. */
+#page-geral .dashboard-planilha-toolbar{
+  justify-content:flex-end;
+  gap:5px;
+  min-height:27px;
+  margin:0 0 6px;
+  padding:0;
+  background:transparent;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+}
+#page-geral .active-planilha-controls{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  flex:0 1 auto;
+  padding:0;
+  background:transparent;
+  border:0;
+}
+#page-geral .active-planilha-select-label{
+  padding:0;
+  color:var(--text-muted);
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.2px;
+}
+#page-geral .active-planilha-select{
+  width:clamp(165px,24vw,320px);
+  height:25px;
+  padding:0 20px 0 6px;
+  border:1px solid color-mix(in srgb,var(--border-color) 75%,transparent);
+  border-radius:5px;
+  background:transparent;
+  color:var(--text-secondary);
+  font-size:9px;
+  font-weight:600;
+  box-shadow:none;
+}
+#page-geral .dashboard-planilha-toolbar>.mini-camera{
+  width:25px;
+  height:25px;
+  margin-left:1px;
+  border-radius:5px;
+}
+@media(max-width:900px){
+  #page-revertido .rev-controls{align-items:flex-start}
+  #page-revertido .rev-controls .grp{flex-wrap:wrap}
+}
+@media(max-width:700px){
+  #page-geral .dashboard-planilha-toolbar{justify-content:flex-start}
+  #page-geral .active-planilha-controls{width:auto;max-width:calc(100% - 32px)}
+  #page-geral .active-planilha-select{width:auto;min-width:0;flex:1}
+  #page-revertido .rev-controls .grp{width:auto}
+  #page-revertido #revPlanilha{width:min(260px,100%)}
+}
