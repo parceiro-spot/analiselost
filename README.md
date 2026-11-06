@@ -55,3 +55,25 @@ O bloco permanece na tela **Valor Revertido** do DASH LOST. Ao classificar, o si
 ## Meta semanal (igual em Regional e Base e em Valor Revertido)
 
 As duas abas calculam a meta sobre o valor da **primeira planilha da semana** (segunda-feira) ou, se a meta foi ativada no meio da semana, da primeira planilha a partir do dia da ativação. Na coluna **Meta da semana** do Valor Revertido aparecem: valor no início da semana, meta (quanto reduzir), quanto já reduziu e quanto falta. Pacotes que entraram há menos de 24h não contam na meta.
+
+## REPORT LOST: reconhecimento de XPT
+
+A planilha REPORT LOST (`report_lost_on_route_*.csv`) é a única necessária para Pacotes em Rota / LOST. Ela não tem coluna "XPT": a base XPT vem em **Centro de destino** (códigos iniciados por `E`, ex.: EMG40, ERJ2). Regra aplicada na importação:
+
+- Centro de destino com código `E...` → o pacote entra na **base XPT** (tipo XPT); o SVC de origem continua no campo Origem (ex.: SMG3 → EMG40: "EMG40 XPT de SMG3").
+- Destino vazio, `BRN...` ou `BRD...` → o pacote fica na **base SVC** de origem.
+- Bahia e São Paulo não têm XPT e ficam sempre em SVC.
+- Dados já salvos no navegador antes desta regra são corrigidos automaticamente ao abrir o dash.
+
+A tabela SVC ↔ XPT usada nos rótulos ("SVC de ...") vem da planilha BSC Delivery Success (`SVC_TO_XPT` no `script.js`). Se surgir um XPT novo, basta incluir a linha nessa tabela.
+
+A coluna **Produto** não existe no REPORT LOST; ela só é preenchida quando o mesmo pacote já foi importado em outra planilha que traga o item (SHP_ITEM_DESC).
+
+
+## Planilhas necessárias
+- **REPORT LOST** (`report_lost_on_route_*.csv`): obrigatório e suficiente para o Análise Lost/Pacotes em rota.
+- **REPORT DRIVER** (`report_driver_*.xlsx`): opcional; serve apenas para trocar o ID do transportador pelo nome do motorista. O arquivo enviado contém somente a lista de IDs, então não acrescenta nomes.
+- **Planilha de retorno**: opcional; só é necessária para registrar situação, justificativa ou foto.
+
+## Distribuição SVC/XPT
+No REPORT LOST, se `Centro de destino` começar com `E` (por exemplo `EMG40`, `ERJ2`, `EES8`), o pacote é contado na base de destino como **XPT**. Se o destino estiver vazio ou for `BRN/BRD`, o pacote permanece na base `Centro de origem` como **SVC**.

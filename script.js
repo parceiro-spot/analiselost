@@ -150,7 +150,7 @@ function regionalFromBasePrefix(base){
   return null;
 }
 const SVC_BASES=new Set(['SES1','SES2','SES3','SMG1','SMG2','SMG3','SMG5','SMG6','SMG8','SMG11','SMG12','SMG13','SMG14','SMG15','SRJ1','SRJ2','SRJ3','SRJ4','SRJ5','SRJ6','SRJ7','SRJ8','SRJ10','SRJ12','SRJ13']);
-const XPT_BASES=new Set(['EBA32','EES3','EES6','EES8','EMG8','EMG17','EMG21','EMG25','EMG39','EMG40','ERJ2','ERJ6']);
+const XPT_BASES=new Set(['EBA32','EES3','EES6','EES8','EES9','EMG8','EMG17','EMG21','EMG25','EMG31','EMG39','EMG40','ERJ2','ERJ6','ERJ8','ERJ10','ERJ11']);
 function normalizeBaseCode(codeRaw){ const code=norm(codeRaw); if(!code) return ''; if(/^BR[A-Z]/.test(code)) return ''; return code; }
 function classifyBaseCode(code, originRegional){
   if(!code) return null;
@@ -162,7 +162,38 @@ function classifyBaseCode(code, originRegional){
   return null;
 }
 function findRegionalByBase(baseName){ for(const r of REGIONAL_ORDER){ if(!STATE_DATA[r]) continue; if(STATE_DATA[r].entries.some(e=>e.base===baseName)) return r; } return null; }
-const BASE_RELATIONS={SMG3:['EMG40'],EMG40:['SMG3'],SMG13:['EMG8','EMG25'],EMG8:['SMG13'],EMG25:['SMG13']};
+/* Relação SVC -> XPT conforme a planilha BSC Delivery Success (colunas SVC e XPT). O inverso é gerado abaixo. */
+const SVC_TO_XPT={SES1:['EES8'],SES3:['EBA32','EES3','EES6','EES9'],SMG3:['EMG40'],SMG7:['EMG17'],SMG9:['EMG40'],SMG13:['EMG8','EMG25'],SMG14:['EMG39'],SMG18:['EMG21','EMG39','EMG31'],SRJ2:['ERJ8'],SRJ3:['ERJ2','ERJ10'],SRJ8:['ERJ6','ERJ11']};
+const BASE_RELATIONS=(function(){ const r={}; Object.keys(SVC_TO_XPT).forEach(svc=>{ r[svc]=SVC_TO_XPT[svc].slice(); SVC_TO_XPT[svc].forEach(x=>{ (r[x]=r[x]||[]); if(!r[x].includes(svc)) r[x].push(svc); }); }); return r; })();
+/* Planilha REPORT LOST: o XPT vem na coluna "Centro de destino" (código iniciado por E). Se tem destino XPT, o pacote
+   pertence à base XPT (ex.: SMG3 -> EMG40 = EMG40 é XPT, SVC de SMG3). Sem destino XPT, fica na base de origem (SVC). */
+function resolveRouteBase(origemRaw,destinoRaw,baseRaw){
+  const origem=normalizeBaseCode(origemRaw), destino=normalizeBaseCode(destinoRaw), baseInformada=normalizeBaseCode(baseRaw);
+  const originRegional=regionalFromBasePrefix(origem||baseInformada);
+  const destTipo=destino&&originRegional!=='BAHIA'&&originRegional!=='SÃO PAULO'?classifyBaseCode(destino,originRegional):null;
+  if(destTipo==='XPT') return {base:destino,tipo:'XPT',origem,destino};
+  const base=baseInformada||origem||destino;
+  return {base,tipo:classifyBaseCode(base,regionalFromBasePrefix(base))||'SVC',origem,destino};
+}
+/* Corrige linhas já salvas no navegador antes desta regra (base ficava no SVC mesmo com destino XPT). */
+function fixRouteRowXpt(e){
+  if(!e||typeof e!=='object') return e;
+  const r=resolveRouteBase(e.origem,e.destino,''); if(r.tipo!=='XPT') return e;
+  return (e.base===r.base&&e.tipo==='XPT')?e:{...e,base:r.base,tipo:'XPT'};
+}
+/* Regra única do Análise Lost: destino E... é XPT; vazio/BRN/BRD fica no SVC de origem.
+   Também corrige snapshots antigos que foram gravados como SVC mesmo tendo destino XPT. */
+function normalizeLostEntryRouting(e){
+  if(!e||typeof e!=='object') return e;
+  const origem=normalizeBaseCode(e.origem||'');
+  const destino=normalizeBaseCode(e.destino||'');
+  const regional=regionalFromBasePrefix(origem||e.base||'');
+  const destinoTipo=destino?classifyBaseCode(destino,regional):null;
+  if(destinoTipo==='XPT') return {...e,origem:origem||e.origem||'',destino,base:destino,tipo:'XPT'};
+  const base=normalizeBaseCode(e.base||origem||'');
+  if(XPT_BASES.has(base)||/^E(ES|MG|RJ|BA)/.test(base)) return {...e,origem:origem||e.origem||'',destino:destino||e.destino||'',base,tipo:'XPT'};
+  return {...e,origem:origem||e.origem||'',destino:destino||e.destino||'',base:base||e.base||origem,tipo:'SVC'};
+}
 function basePartners(base){
   const code=normalizeBaseCode(base); if(BASE_RELATIONS[code]) return BASE_RELATIONS[code];
   const m=code.match(/^[SE]([A-Z]+)(\d+)$/); if(!m) return [];
@@ -391,11 +422,12 @@ function buildLostRoutesFromRawRows(rows){
   const out=[];
   for(let r=headerIndex+1;r<rows.length;r++){
     const row=rows[r]||[], pacote=normalizePackageKey(colPacote!==undefined?row[colPacote]:''); if(!pacote) continue;
-    const origem=normalizeBaseCode(colOrig!==undefined?row[colOrig]:''); const destino=normalizeBaseCode(colDest!==undefined?row[colDest]:''); const base=normalizeBaseCode(colBase!==undefined?row[colBase]:(origem||destino));
+    const origem=normalizeBaseCode(colOrig!==undefined?row[colOrig]:''); const destino=normalizeBaseCode(colDest!==undefined?row[colDest]:'');
+    const resolved=resolveRouteBase(origem,destino,colBase!==undefined?row[colBase]:''); const base=resolved.base;
     const risk=IMPORTS.flatMap(i=>i.entries||[]).find(e=>normalizePackageKey(e.pacote)===pacote);
     const parsedDias=colDias!==undefined?parsePlanilhaDias(row[colDias]):null;
     const rawMotivo=colMotivo!==undefined?String(row[colMotivo]??'').trim():'';
-    out.push({pacote,origem,destino,base:base||risk?.base||'',rota:colRota!==undefined?normalizePackageKey(row[colRota]):(risk?.rota||''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):(risk?.driverId||''),produto:colProduto!==undefined?String(row[colProduto]||'').trim():(risk?.produto||''),motivo:rawMotivo?friendlyReason(rawMotivo):(risk?.motivo||'Perdido em rota'),date:colData!==undefined?parseDateBR(row[colData]):new Date(),valor:colValor!==undefined?parseBRNumber(row[colValor]):Number(risk?.valor||0),dias:parsedDias??Number(risk?.dias||0),diasPlanilha:parsedDias,riskBase:risk?.base||'',riskDriverId:risk?.driverId||''});
+    out.push({pacote,origem,destino,tipo:resolved.tipo,base:base||risk?.base||'',rota:colRota!==undefined?normalizePackageKey(row[colRota]):(risk?.rota||''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):(risk?.driverId||''),produto:colProduto!==undefined?String(row[colProduto]||'').trim():(risk?.produto||''),motivo:rawMotivo?friendlyReason(rawMotivo):(risk?.motivo||'Perdido em rota'),date:colData!==undefined?parseDateBR(row[colData]):new Date(),valor:colValor!==undefined?parseBRNumber(row[colValor]):Number(risk?.valor||0),dias:parsedDias??Number(risk?.dias||0),diasPlanilha:parsedDias,riskBase:risk?.base||'',riskDriverId:risk?.driverId||''});
   }
   return out.length?out:null;
 }
@@ -412,8 +444,8 @@ async function loadInitialRoutePackages(){try{const el=document.getElementById('
 function persistRoutePackages(){try{localStorage.setItem(ROUTE_STORAGE_KEY,JSON.stringify(LOST_ROUTES));}catch(e){console.warn('Pacotes em rota mantidos apenas nesta sessão.',e);}}
 function rebuildRouteOnlyImports(){
   const groups={};
-  LOST_ROUTES.forEach(raw=>{
-    const day=routeDateKey(raw); const turno=raw.turno==='Tarde'?'Tarde':'Manhã'; const e={...raw,importDate:day,turno,tipo:raw.tipo||classifyBaseCode(raw.base,regionalFromBasePrefix(raw.base))||'SVC',valor:parseBRNumber(raw.valor),diasPlanilha:(raw.diasPlanilha??raw.dias??0),date:raw.date||new Date(day+'T00:00:00')};
+  LOST_ROUTES.forEach(raw0=>{
+    const raw=fixRouteRowXpt(raw0); const day=routeDateKey(raw); const turno=raw.turno==='Tarde'?'Tarde':'Manhã'; const e={...raw,importDate:day,turno,tipo:raw.tipo||classifyBaseCode(raw.base,regionalFromBasePrefix(raw.base))||'SVC',valor:parseBRNumber(raw.valor),diasPlanilha:(raw.diasPlanilha??raw.dias??0),date:raw.date||new Date(day+'T00:00:00')};
     (groups[day+'|'+turno]??=[]).push(e);
   });
   IMPORTS=Object.keys(groups).sort().map(k=>{const [day,turno]=k.split('|'); const list=groups[k]; return {id:'route-'+day+'-'+turno,importDate:day,turno,fileName:list[0]?.fileName||('Pacotes em Rota · '+day),savedAt:new Date().toISOString(),entries:list};});
@@ -595,9 +627,9 @@ async function persistImportsNow(){
   catch(err){ try{localStorage.setItem(IMPORTS_KEY,JSON.stringify(payload));}catch(fallbackErr){console.warn('Planilhas mantidas nesta sessão; armazenamento local cheio.',fallbackErr);} }
 }
 async function loadPersistedImports(){
-  try{ const db=await openImportsDB(); const record=await new Promise((resolve,reject)=>{const tx=db.transaction('app','readonly'),req=tx.objectStore('app').get('imports');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);}); if(record&&Array.isArray(record.payload)) return record.payload.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>({...e,date:new Date(e.date)}))})); }
+  try{ const db=await openImportsDB(); const record=await new Promise((resolve,reject)=>{const tx=db.transaction('app','readonly'),req=tx.objectStore('app').get('imports');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);}); if(record&&Array.isArray(record.payload)) return record.payload.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>normalizeLostEntryRouting({...e,date:new Date(e.date)}))})); }
   catch(err){ console.warn('IndexedDB indisponível; tentando armazenamento legado.',err); }
-  try{ const raw=localStorage.getItem(IMPORTS_KEY); if(!raw)return []; const parsed=JSON.parse(raw); const result=parsed.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>({...e,date:new Date(e.date)}))})); IMPORTS=result; persistImports(); return result; }catch(err){return [];}
+  try{ const raw=localStorage.getItem(IMPORTS_KEY); if(!raw)return []; const parsed=JSON.parse(raw); const result=parsed.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>normalizeLostEntryRouting({...e,date:new Date(e.date)}))})); IMPORTS=result; persistImports(); return result; }catch(err){return [];}
 }
 function serializeReturnSheets(){ return RETURN_SHEETS.map(sheet=>({...sheet,rows:(sheet.rows||[]).map(row=>({...row}))})); }
 let JUSTIFICATION_INDEX=null;
@@ -955,6 +987,11 @@ function renderMainImportBatchSummary(files){
   box.style.display='block';
   box.innerHTML='<strong>'+fmtInt(items.length)+' arquivo(s) selecionado(s)</strong><ol style="margin:6px 0 0;padding-left:20px;">'+shown.map(item=>'<li><b>'+item.importDate.split('-').reverse().join('/')+' · '+escHtml(item.fileTime||'horário não identificado')+' · '+escHtml(item.turno)+'</b> — '+escHtml(item.file.name)+'</li>').join('')+(items.length>20?'<li>… mais '+fmtInt(items.length-20)+' arquivo(s)</li>':'')+'</ol><div style="margin-top:7px;">Ao confirmar, cada arquivo substitui a versão importada do mesmo dia e turno. Manhã e Tarde são mantidas separadamente.</div>';
 }
+function setMainImportProgress(message,active){
+  const box=document.getElementById('mainImportProgress'); if(!box)return;
+  box.hidden=!active; box.textContent=active?'⏳ '+message:'';
+  document.body.classList.toggle('is-importing',Boolean(active));
+}
 /* ===== Base da meta semanal: guarda SEMPRE a primeira planilha da semana (por horário do ARQUIVO) =====
    Uma planilha nova do mesmo dia/turno substitui a antiga em IMPORTS; sem este registro a primeira
    planilha da semana (ex.: segunda 07:00) se perdia quando outra do mesmo turno (segunda 09:12) entrava. */
@@ -977,6 +1014,7 @@ function rememberWeekBaseline(imp){
 function seedWeekBaselines(){ let changed=false; IMPORTS.forEach(imp=>{ if(rememberWeekBaseline(imp)) changed=true; }); if(changed) persistWeekBaselines(); }
 function dropWeekBaselinesWhere(pred){ let changed=false; Object.keys(WEEK_BASELINES).forEach(k=>{ if(pred(WEEK_BASELINES[k],k)){ delete WEEK_BASELINES[k]; changed=true; } }); if(changed) persistWeekBaselines(); }
 function finishImportMain(entries,fileName,importDate,turno,fileTime,source){
+  if(source==='lost') entries=(entries||[]).map(normalizeLostEntryRouting);
   if(!entries||!entries.length)throw new Error('Não encontrei registros dos regionais reconhecidos nesta planilha.');
   /* Antes de substituir qualquer planilha do mesmo dia/turno, guarda a base da meta da semana. */
   seedWeekBaselines();
@@ -1030,16 +1068,18 @@ document.getElementById('fileInput').addEventListener('change', function(e){
 });
 document.getElementById('btnConfirmImport').addEventListener('click',async function(){
   if(!pendingImportFiles.length)return;const files=pendingImportFiles.slice(),items=describeMainImportBatch(files);this.disabled=true;let imported=0,replaced=0;const errors=[];
+  setMainImportProgress('Lendo a planilha de REPORT LOST / Pacote em Rota…',true);
   try{
     for(let i=0;i<items.length;i++){
       const item=items[i];this.textContent='Lendo '+(i+1)+'/'+items.length+'…';
+      setMainImportProgress('Processando '+(i+1)+' de '+items.length+': '+item.file.name,true);
       await new Promise(r=>setTimeout(r,30)); /* deixa o "Lendo…" aparecer antes de ler o arquivo */
       try{const entries=await readMainImportFile(item.file);const result=finishImportMain(entries,item.file.name,item.importDate,item.turno,item.fileTime,'lost');if(entries.__routeRows?.length)saveLostRouteImport(entries.__routeRows,item.file,item.importDate,item.turno);imported++;if(result.replaced)replaced++;}
       catch(err){console.error('Erro ao importar '+item.file.name,err);errors.push(item.file.name+': '+(err.message||'erro de leitura'));}
     }
-    if(imported){const latest=IMPORTS.slice().sort((a,b)=>compareMainImports(b,a))[0];selectedImportId=latest?.id||null;saveSelectedImport();persistImports();rebuildStateData();document.getElementById('emptyState').style.display='none';currentTab='TODOS';currentBaseFilter='TODAS';topBasesMode='TODOS';document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));updateImportUI();renderAll();}
+    if(imported){setMainImportProgress('Atualizando o Análise Lost e a distribuição SVC/XPT…',true);const latest=IMPORTS.slice().sort((a,b)=>compareMainImports(b,a))[0];selectedImportId=latest?.id||null;saveSelectedImport();persistImports();rebuildStateData();document.getElementById('emptyState').style.display='none';currentTab='TODOS';currentBaseFilter='TODAS';topBasesMode='TODOS';document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));updateImportUI();renderAll();}
   }finally{
-    importDateManuallySet=false;pendingImportFiles=[];renderMainImportBatchSummary([]);this.disabled=true;this.textContent='OK';
+    setMainImportProgress('',false);importDateManuallySet=false;pendingImportFiles=[];renderMainImportBatchSummary([]);this.disabled=true;this.textContent='OK';
   }
   await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0))); /* mostra a tela atualizada antes do aviso */
   const resultText=imported+' arquivo(s) importado(s)'+(replaced?' · '+replaced+' importação(ões) anterior(es) substituída(s)':'')+'.';
@@ -1121,7 +1161,7 @@ function bindLostUploadInput(id){
 }
 bindLostUploadInput('fileInputLost'); bindLostUploadInput('fileInputLostRisco');
 function routeRowsAsMainEntries(rows){
-  return (rows||[]).map(e=>({base:e.base||e.origem||e.destino||'',valor:Number(e.valor)||0,date:e.date instanceof Date?e.date:new Date(),diasPlanilha:e.diasPlanilha??e.dias??null,tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC',pacote:e.pacote||'',produto:e.produto||'',driverId:e.driverId||'',rota:e.rota||'',motivo:e.motivo||'Perdido em rota'})).filter(e=>e.base||e.pacote);
+  return (rows||[]).map(fixRouteRowXpt).map(e=>{const n=normalizeLostEntryRouting(e);return {base:n.base||n.origem||n.destino||'',origem:n.origem||'',destino:n.destino||'',valor:Number(n.valor)||0,date:n.date instanceof Date?n.date:new Date(),diasPlanilha:n.diasPlanilha??n.dias??null,tipo:n.tipo||'SVC',pacote:n.pacote||'',produto:n.produto||'',driverId:n.driverId||'',rota:n.rota||'',motivo:n.motivo||'Perdido em rota'};}).filter(e=>e.base||e.pacote);
 }
 function ensureLostDayFromRouteSheet(rows,fileName,day,turno){
   if(ROUTE_ONLY_MODE||!rows?.length) return false;
@@ -1150,7 +1190,7 @@ function readLostUploadFile(file){
   });
 }
 function saveLostRouteImport(rows,file,lostDay,lostTurno){
-  const novosRota=dedupeRouteImportRows(rows.map(e=>({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'})));
+  const novosRota=dedupeRouteImportRows(rows.map(e=>normalizeLostEntryRouting({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'})));
   let createdLostDayFallback=false;
   if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); }
   else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); createdLostDayFallback=ensureLostDayFromRouteSheet(novosRota,file.name,lostDay,lostTurno); }
@@ -2293,7 +2333,7 @@ function buildOriginSheetXml(list){
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+cols+'<sheetData>'+rows+'</sheetData><mergeCells count="1"><mergeCell ref="A1:'+colName(N-1)+'1"/></mergeCells></worksheet>';
 }
 function buildLostSheets(list){
-  const porBase=list.reduce((m,e)=>{const b=lostPrimaryBase(e)||e.base||e.origem||'SEM BASE';(m[b]=m[b]||[]).push({...e,valor:Number(e.valor||0),tipo:'SVC',produto:e.produto||'',motivo:motivoExibicaoLost(e)});return m;},{});
+  const porBase=list.reduce((m,e)=>{const b=lostPrimaryBase(e)||e.base||e.origem||'SEM BASE';(m[b]=m[b]||[]).push({...e,valor:Number(e.valor||0),tipo:classifyBaseCode(b,regionalFromBasePrefix(b))||'SVC',produto:e.produto||'',motivo:motivoExibicaoLost(e)});return m;},{});
   const groups=Object.entries(porBase).map(([base,linhas])=>({regional:base,linhas:linhas.map(e=>({base,e}))}));
   const ordered=[].concat(...groups.map(g=>g.linhas.map(l=>l.e)));
   return [
@@ -2568,10 +2608,25 @@ function renderRegionalHistoricalMatches(query,activeEntries){
   const rows=shown.map(e=>{
     const detail=[e.produto,e.motivo].filter(Boolean).map(v=>String(v).trim()).filter(Boolean).join(' · ')||'—';
     const date=e._historyDate?fmtDateFullBR(new Date(e._historyDate+'T00:00:00')):'—';
-    return '<tr class="regional-history-completed"><td><strong>'+escHtml(e.pacote||'—')+'</strong></td><td>'+escHtml(getDriverName(e.driverId))+'</td><td>'+escHtml(e.rota||'—')+'</td><td>'+escHtml(e.base||'—')+'</td><td class="ellipsis" title="'+escHtml(detail)+'">'+escHtml(resumo(detail,72))+'</td><td>'+date+' · '+escHtml(e._historyTurno||'')+'</td><td><span class="regional-history-status">JÁ FINALIZADO</span></td></tr>';
+    return '<tr class="regional-history-completed regional-history-clickable" data-history-package="'+escHtml(e.pacote||'')+'" title="Clique para ver os detalhes deste pacote finalizado"><td><strong>'+escHtml(e.pacote||'—')+'</strong></td><td>'+escHtml(getDriverName(e.driverId))+'</td><td>'+escHtml(e.rota||'—')+'</td><td>'+escHtml(e.base||'—')+'</td><td class="ellipsis" title="'+escHtml(detail)+'">'+escHtml(resumo(detail,72))+'</td><td>'+date+' · '+escHtml(e._historyTurno||'')+'</td><td><span class="regional-history-status">JÁ FINALIZADO</span></td></tr>';
   }).join('');
   return '<section class="regional-history-panel"><div class="regional-history-head"><div><h3>Histórico · fora da planilha ativa</h3><p>Resultados antigos da busca, separados dos totais atuais. A opacidade indica que o pacote não está na planilha selecionada.</p></div><span class="regional-history-count">'+fmtInt(matches.length)+' registro(s)'+(matches.length>limit?' · mostrando '+limit:'')+'</span></div>'+(rows?'<div class="regional-history-scroll"><table class="regional-history-table"><thead><tr><th>ID do pacote</th><th>Motorista</th><th>Rota</th><th>Base</th><th>Produto / motivo</th><th>Encontrado em</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="regional-history-empty">Nenhum registro anterior correspondente a “'+escHtml(query)+'”.</div>')+'</section>';
 }
+document.addEventListener('click',function(e){
+  const row=e.target.closest('.regional-history-clickable[data-history-package]');
+  if(!row)return;
+  const pacote=normalizePackageKey(row.dataset.historyPackage||'');
+  if(!pacote)return;
+  const found=[];
+  IMPORTS.slice().sort((a,b)=>String(b.importDate||'').localeCompare(String(a.importDate||''))||String(b.savedAt||'').localeCompare(String(a.savedAt||''))).some(imp=>{
+    const entry=(imp.entries||[]).find(item=>normalizePackageKey(item.pacote)===pacote);
+    if(entry){found.push({...entry,_historyDate:imp.importDate,_historyTurno:imp.turno,_historyFileName:imp.fileName});return true;}
+    return false;
+  });
+  if(found.length){
+    openOverlayEntries('Pacote finalizado · '+pacote,'Histórico · não faz parte da planilha ativa',found,'TODOS');
+  }
+});
 /* ===== Meta semanal nas Regionais e Bases ===== */
 const META_CAPTURA_KEY='spot_dashboard_meta_captura_v1'+MODE_SUFFIX;
 function regMetaPct(){ try{ const raw=localStorage.getItem('spot_dashboard_meta_semanal_v1'+MODE_SUFFIX)||''; const n=raw?parseBRNumber(raw):0; return n>0?n:0; }catch(e){ return 0; } }
@@ -2844,7 +2899,7 @@ function renderAnalise(){
   const rows=selectedPeriodEntries(), all=rows.flatMap(x=>x.entries);
   const total=all.reduce((s,e)=>s+e.valor,0), svc=all.filter(e=>e.tipo==='SVC').reduce((s,e)=>s+e.valor,0), xpt=all.filter(e=>e.tipo==='XPT').reduce((s,e)=>s+e.valor,0);
   document.getElementById('anPacotes').textContent=fmtInt(all.length); document.getElementById('anValor').textContent=fmtBRL(total); document.getElementById('anSvc').textContent=fmtBRL(svc); document.getElementById('anXpt').textContent=fmtBRL(xpt);
-  const de=deEl.value, ate=ateEl.value; document.getElementById('analisePeriodo').textContent='Análise de Pacote Diário · '+(de?fmtDateFullBR(new Date(de+'T00:00:00')):'—')+' a '+(ate?fmtDateFullBR(new Date(ate+'T00:00:00')):'—')+' ('+fmtInt(rows.length)+' dias com planilha)';
+  const de=deEl.value, ate=ateEl.value; document.getElementById('analisePeriodo').textContent='Análise Lost · Pacotes em rota · '+(de?fmtDateFullBR(new Date(de+'T00:00:00')):'—')+' a '+(ate?fmtDateFullBR(new Date(ate+'T00:00:00')):'—')+' ('+fmtInt(rows.length)+' dias com planilha)';
   renderAnalysisComparisons(de,ate,regEl.value,document.querySelector('#analiseTipoToggle .toggle-btn.active')?.dataset.mode||'TODOS',{pacotes:all.length,valor:total});
   const byReg={}; const byBase={}; rows.forEach(r=>r.entries.forEach(e=>{ const reg=regionalFromBasePrefix(e.base)||'OUTROS'; byReg[reg]=(byReg[reg]||0)+e.valor; byBase[e.base]=(byBase[e.base]||0)+e.valor; }));
   function analysisEntriesForImport(imp){
@@ -3604,8 +3659,8 @@ window.__spotRun(async function init(){
   seedWeekBaselines();
   RETURN_SHEETS=await loadPersistedReturnSheets();
   rebuildJustificationIndex();
-  if(ROUTE_ONLY_MODE){ LOST_ROUTES=loadPersistedRoutePackages(); } else { LOST_ROUTES_ALL=loadPersistedLostRoutesAll(); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); }
-  if(ROUTE_ONLY_MODE&&!LOST_ROUTES.length){LOST_ROUTES=await loadInitialRoutePackages();if(LOST_ROUTES.length)persistRoutePackages();}
+  if(ROUTE_ONLY_MODE){ LOST_ROUTES=loadPersistedRoutePackages().map(fixRouteRowXpt); } else { LOST_ROUTES_ALL=loadPersistedLostRoutesAll().map(fixRouteRowXpt); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); }
+  if(ROUTE_ONLY_MODE&&!LOST_ROUTES.length){LOST_ROUTES=(await loadInitialRoutePackages()).map(fixRouteRowXpt);if(LOST_ROUTES.length)persistRoutePackages();}
   if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); seedWeekBaselines(); } else { selectedImportId=loadSelectedImport(); }
   if(IMPORTS.length){ rebuildStateData(); document.getElementById('emptyState').style.display='none'; renderAll(); }
   updateImportUI();

@@ -1327,3 +1327,12 @@ body.route-only-dashboard .lost-import-card::before{content:'Aceita planilha pr�
 .route-upload-option strong{font-size:12px;color:var(--text-primary)}
 .lost-risco-upload{display:none}
 body.route-only-dashboard .lost-risco-upload{display:flex}
+
+/* O Análise Lost substitui o antigo dashboard separado de Pacotes em Rota. */
+#page-lostroutes{display:none!important}
+.route-upload-options,.route-upload-option,#btnConfirmLost{display:none!important}
+
+/* Feedback visível durante a leitura e consolidação de REPORT LOST / Pacote em Rota. */
+.import-progress{margin-top:10px;padding:10px 12px;border:1px solid rgba(141,198,63,.45);border-radius:9px;background:var(--spot-glow);color:var(--spot-green);font-size:12px;font-weight:700;line-height:1.4}
+.import-progress[hidden]{display:none}
+body.is-importing .import-ok-btn{cursor:wait;opacity:.75}
