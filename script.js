@@ -2153,6 +2153,7 @@ function renderHiddenOffendersPanel(data){
   if(!hidden.length) return '';
   return `<section class="offender-hidden-panel"><button type="button" class="offender-hidden-toggle" data-toggle-offender-hidden aria-expanded="${String(offendersHiddenPanelOpen)}">Bases ocultadas (${fmtInt(hidden.length)}) · ${offendersHiddenPanelOpen?'recolher':'mostrar'}</button><div class="offender-hidden-list" style="display:${offendersHiddenPanelOpen?'flex':'none'}">${hidden.map(b=>`<div class="offender-hidden-row"><strong>${escHtml(b.base)}</strong><span>${escHtml(REGIONAL_LABELS[b.regional]||b.regional)}</span><span>${fmtBRL(b.valor)}</span><button type="button" class="offender-restore-btn" data-restore-offender="${escHtml(b.base)}">Mostrar novamente</button></div>`).join('')}</div></section>`;
 }
+function offenderWeekEndDate(start){ const today=todayStr(); return start===weekMondayOf(today)?today:isoShift(start,6); }
 function renderConfirmedOffenders(){
   const panel=document.getElementById('offenderConfirmedPanel'), basesEl=document.getElementById('offenderConfirmedBases'), detail=document.getElementById('offenderWeeklyDetail');
   if(!panel||!basesEl||!detail) return;
@@ -2167,27 +2168,26 @@ function renderConfirmedOffenders(){
   const weeks=Array.from(new Set(dates.map(weekMondayOf))).sort();
   if(!weeks.length){detail.hidden=false;detail.innerHTML='<div class="history-empty">Não há planilhas importadas para montar a análise semanal desta base.</div>';return;}
   if(!weeks.includes(selectedOffenderAnalysisWeek)) selectedOffenderAnalysisWeek=weeks[weeks.length-1];
-  const start=selectedOffenderAnalysisWeek, end=isoShift(start,6), importedDays=new Set(dates.filter(day=>day>=start&&day<=end));
-  const weekRows=Array.from({length:7},(_,i)=>{
+  const start=selectedOffenderAnalysisWeek, end=offenderWeekEndDate(start), dayCount=Math.round((new Date(end+'T00:00:00')-new Date(start+'T00:00:00'))/86400000)+1, importedDays=new Set(dates.filter(day=>day>=start&&day<=end));
+  const weekRows=Array.from({length:dayCount},(_,i)=>{
     const day=isoShift(start,i), hasImport=importedDays.has(day);
     const value=hasImport?snapshotEntriesForDay(day).filter(e=>offenderBaseKey(e.base)===selectedKey).reduce((sum,e)=>sum+(Number(e.valor)||0),0):null;
     return {day,value,hasImport};
   });
   const measured=weekRows.filter(row=>row.hasImport), first=measured[0], last=measured[measured.length-1];
-  const peak=measured.reduce((best,row)=>row.value>best.value?row:best,measured[0]);
-  const band=offenderValueBand(last.value), delta=last.value-first.value;
-  const deltaLabel=delta>0.005?'+ '+fmtBRL(delta):delta<-.005?'− '+fmtBRL(Math.abs(delta)):fmtBRL(0);
-  const deltaSub=first.value>0?'desde '+fmtDateShort(new Date(first.day+'T00:00:00'))+' ('+((delta/first.value)*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%)':'desde o primeiro dia importado';
-  const weekOptions=weeks.map(w=>`<option value="${w}" ${w===start?'selected':''}>Semana ${w.split('-').reverse().join('/')} a ${isoShift(w,6).split('-').reverse().join('/')}</option>`).join('');
+  const minimum=measured.reduce((lowest,row)=>row.value<lowest.value?row:lowest,measured[0]);
+  const startBand=offenderValueBand(first.value), minimumBand=offenderValueBand(minimum.value), currentBand=offenderValueBand(last.value);
+  const weekOptions=weeks.map(w=>{const weekEnd=offenderWeekEndDate(w);return `<option value="${escHtml(w)}" ${w===start?'selected':''}>Semana ${w.split('-').reverse().join('/')} a ${weekEnd.split('-').reverse().join('/')}</option>`;}).join('');
   const labels=weekRows.map(row=>{const d=new Date(row.day+'T00:00:00');return WEEKDAY_ABBR[d.getDay()]+' '+fmtDateShort(d);});
+  const periodHint=end===todayStr()&&start===weekMondayOf(todayStr())?'de segunda até hoje':'de segunda a domingo';
   detail.hidden=false;
-  detail.innerHTML=`<div class="offender-weekly-head"><div><h4>Análise semanal · ${escHtml(selectedOffenderAnalysisBase)}</h4><p>Valor por dia nas planilhas importadas, de segunda a domingo.</p></div><label class="offender-week-select">Semana<select id="offenderAnalysisWeek">${weekOptions}</select></label></div>
-    <div class="offender-weekly-kpis"><div class="offender-weekly-kpi band-${band.key}"><div class="lbl">Último valor importado</div><div class="val">${fmtBRL(last.value)}</div><div class="sub">${fmtDateFullBR(last.day)} · ${band.label}</div></div><div class="offender-weekly-kpi"><div class="lbl">Variação no período</div><div class="val">${deltaLabel}</div><div class="sub">${deltaSub}</div></div><div class="offender-weekly-kpi"><div class="lbl">Maior valor na semana</div><div class="val">${fmtBRL(peak.value)}</div><div class="sub">${fmtDateFullBR(peak.day)} · ${offenderValueBand(peak.value).label}</div></div></div>
+  detail.innerHTML=`<div class="offender-weekly-head"><div><h4>Análise semanal · ${escHtml(selectedOffenderAnalysisBase)}</h4><p>Valor por dia nas planilhas importadas, ${periodHint}.</p></div><label class="offender-week-select">Semana<select id="offenderAnalysisWeek">${weekOptions}</select></label></div>
+    <div class="offender-weekly-kpis"><div class="offender-weekly-kpi band-${startBand.key}"><div class="lbl">Começo da semana</div><div class="val">${fmtBRL(first.value)}</div><div class="sub">${fmtDateFullBR(first.day)} · primeiro valor importado</div></div><div class="offender-weekly-kpi band-${minimumBand.key}"><div class="lbl">Menor valor</div><div class="val">${fmtBRL(minimum.value)}</div><div class="sub">${fmtDateFullBR(minimum.day)} · menor valor da semana</div></div><div class="offender-weekly-kpi band-${currentBand.key}"><div class="lbl">Valor atual</div><div class="val">${fmtBRL(last.value)}</div><div class="sub">${fmtDateFullBR(last.day)} · ${currentBand.label}</div></div></div>
     <div class="offender-band-legend"><span><i style="background:#8dc63f"></i>R$ 0–1.000 · tranquilo</span><span><i style="background:#c99c00"></i>R$ 1.001–5.000 · amarelo</span><span><i style="background:#ff9800"></i>Acima de R$ 5.000 e abaixo de R$ 10.000 · laranja</span><span><i style="background:#ff5252"></i>R$ 10.000 ou mais · vermelho</span></div>
     <div class="offender-weekly-chart"><canvas id="chartOffenderWeekly" role="img" aria-label="Gráfico semanal do valor da base ${escHtml(selectedOffenderAnalysisBase)}"></canvas></div><p class="offender-weekly-note">Os pontos representam o valor total da base em cada planilha diária importada. Dias sem planilha ficam sem ponto; os valores diários não são somados entre si.</p>`;
   const canvas=document.getElementById('chartOffenderWeekly');
   if(canvas&&typeof Chart!=='undefined'){
-    chartOffendersWeekly=new Chart(canvas,{type:'line',data:{labels,datasets:[{label:'Valor em risco',data:weekRows.map(row=>row.value),borderColor:'#8dc63f',segment:{borderColor:ctx=>offenderValueBand(Number(ctx.p1.parsed.y)||0).color},backgroundColor:'rgba(141,198,63,.10)',fill:true,tension:.32,spanGaps:false,borderWidth:3,pointRadius:5,pointHoverRadius:7,pointBorderWidth:2,pointBorderColor:'#111',pointBackgroundColor:weekRows.map(row=>row.value===null?'#737373':offenderValueBand(row.value).color)}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw===null?'Sem planilha importada':fmtBRL(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{color:cssColor('--text-secondary','#a3a3a3'),font:{size:10}}},y:{beginAtZero:true,grid:{color:'rgba(127,127,127,.13)'},ticks:{color:cssColor('--text-secondary','#a3a3a3'),callback:value=>fmtBRL(value)}}}}});
+    chartOffendersWeekly=new Chart(canvas,{type:'line',data:{labels,datasets:[{label:'Valor em risco',data:weekRows.map(row=>row.value),borderColor:'#8dc63f',segment:{borderColor:ctx=>offenderValueBand(Number(ctx.p1.parsed.y)||0).color},backgroundColor:'rgba(141,198,63,.10)',fill:true,tension:.32,spanGaps:true,borderWidth:4,pointRadius:6,pointHoverRadius:8,pointBorderWidth:2,pointBorderColor:'#111',pointBackgroundColor:weekRows.map(row=>row.value===null?'#737373':offenderValueBand(row.value).color)}]},options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:Math.min(3,Math.max(2,window.devicePixelRatio||1)),interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{titleFont:{size:13,weight:'700'},bodyFont:{size:13,weight:'600'},callbacks:{label:ctx=>ctx.raw===null?'Sem planilha importada':fmtBRL(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{color:cssColor('--text-secondary','#a3a3a3'),font:{size:12,weight:'600'}}},y:{beginAtZero:true,grid:{color:'rgba(127,127,127,.13)'},ticks:{color:cssColor('--text-secondary','#a3a3a3'),font:{size:12,weight:'600'},callback:value=>fmtBRL(value)}}}}});
   }
   document.getElementById('offenderAnalysisWeek')?.addEventListener('change',function(){selectedOffenderAnalysisWeek=this.value;renderConfirmedOffenders();});
 }
