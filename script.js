@@ -2181,9 +2181,8 @@ function renderConfirmedOffenders(){
   const labels=weekRows.map(row=>{const d=new Date(row.day+'T00:00:00');return WEEKDAY_ABBR[d.getDay()]+' '+fmtDateShort(d);});
   const periodHint=end===todayStr()&&start===weekMondayOf(todayStr())?'de segunda até hoje':'de segunda a domingo';
   detail.hidden=false;
-  detail.innerHTML=`<div class="offender-weekly-head"><div><h4>Análise semanal · ${escHtml(selectedOffenderAnalysisBase)}</h4><p>Valor por dia nas planilhas importadas, ${periodHint}.</p></div><label class="offender-week-select">Semana<select id="offenderAnalysisWeek">${weekOptions}</select></label></div>
+  detail.innerHTML=`<div class="offender-weekly-head"><div class="offender-weekly-title"><div><h4>Análise semanal · ${escHtml(selectedOffenderAnalysisBase)}</h4><p>Valor por dia nas planilhas importadas, ${periodHint}.</p></div><button type="button" class="offender-info-packages-btn" data-offender-info-packages="${escHtml(selectedOffenderAnalysisBase)}" aria-haspopup="dialog" aria-label="Ver detalhes dos pacotes da base ${escHtml(selectedOffenderAnalysisBase)}">INFO PACOTES <span aria-hidden="true">‹</span></button></div><label class="offender-week-select">Semana<select id="offenderAnalysisWeek">${weekOptions}</select></label></div>
     <div class="offender-weekly-kpis"><div class="offender-weekly-kpi band-${startBand.key}"><div class="lbl">Começo da semana</div><div class="val">${fmtBRL(first.value)}</div><div class="sub">${fmtDateFullBR(first.day)} · primeiro valor importado</div></div><div class="offender-weekly-kpi band-${minimumBand.key}"><div class="lbl">Menor valor</div><div class="val">${fmtBRL(minimum.value)}</div><div class="sub">${fmtDateFullBR(minimum.day)} · menor valor da semana</div></div><div class="offender-weekly-kpi band-${currentBand.key}"><div class="lbl">Valor atual</div><div class="val">${fmtBRL(last.value)}</div><div class="sub">${fmtDateFullBR(last.day)} · ${currentBand.label}</div></div></div>
-    <div class="offender-band-legend"><span><i style="background:#8dc63f"></i>R$ 0–1.000 · tranquilo</span><span><i style="background:#c99c00"></i>R$ 1.001–5.000 · amarelo</span><span><i style="background:#ff9800"></i>Acima de R$ 5.000 e abaixo de R$ 10.000 · laranja</span><span><i style="background:#ff5252"></i>R$ 10.000 ou mais · vermelho</span></div>
     <div class="offender-weekly-chart"><canvas id="chartOffenderWeekly" role="img" aria-label="Gráfico semanal do valor da base ${escHtml(selectedOffenderAnalysisBase)}"></canvas></div><p class="offender-weekly-note">Os pontos representam o valor total da base em cada planilha diária importada. Dias sem planilha ficam sem ponto; os valores diários não são somados entre si.</p>`;
   const canvas=document.getElementById('chartOffenderWeekly');
   if(canvas&&typeof Chart!=='undefined'){
@@ -2294,6 +2293,10 @@ document.getElementById('offenderConfirmedBases').addEventListener('click',funct
   const button=e.target.closest('[data-offender-analysis-base]'); if(!button)return;
   selectedOffenderAnalysisBase=button.dataset.offenderAnalysisBase||''; selectedOffenderAnalysisWeek=''; renderConfirmedOffenders();
   document.getElementById('offenderWeeklyDetail')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+});
+document.getElementById('offenderWeeklyDetail').addEventListener('click',function(e){
+  const button=e.target.closest('[data-offender-info-packages]'); if(!button)return;
+  openBaseOverlay(button.dataset.offenderInfoPackages||selectedOffenderAnalysisBase);
 });
 
 /* ===== PLANILHA DE RETORNO (.xlsx com cores, compatível com Excel/OneDrive) =====
