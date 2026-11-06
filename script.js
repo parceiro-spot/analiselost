@@ -2740,7 +2740,7 @@ function renderRegionalPage(){
     const filteredEntries=bucketFilterEntries(d.entries, regionalBaseBucket);
     const baseMap={};
     filteredEntries.forEach(e=>{ if(!baseMap[e.base]) baseMap[e.base]={base:e.base,valor:0,entries:[]}; baseMap[e.base].valor+=e.valor; baseMap[e.base].entries.push(e); });
-    const bases=Object.values(baseMap).sort((a,b)=>b.valor-a.valor);
+    const bases=Object.values(baseMap).sort((a,b)=>{const ta=classifyBaseCode(a.base,regionalFromBasePrefix(a.base))||'SVC',tb=classifyBaseCode(b.base,regionalFromBasePrefix(b.base))||'SVC';return (ta===tb?0:ta==='XPT'?-1:1)||b.valor-a.valor||a.base.localeCompare(b.base);});
     const max=bases.length?bases[0].valor:1;
     const counts=computeAgingCounts(d.entries);
     const regMetaHead=regMetaLine(metaBL,bs=>isAllBases||(regionalFromBasePrefix(bs)||'OUTROS')===r,isAllBases?'Meta de todas as bases':'Meta '+(REGIONAL_LABELS[r]||r)).replace('class="reg-meta"','class="reg-meta reg-meta-head"');
