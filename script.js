@@ -158,6 +158,7 @@ function classifyBaseCode(code, originRegional){
   if(XPT_BASES.has(code)) return 'XPT';
   if(originRegional==='BAHIA'||originRegional==='SÃO PAULO') return 'SVC';
   if(/^S(ES|MG|RJ|BA|SP)/.test(code)) return 'SVC';
+  if(/^E[A-Z]/.test(code)) return 'XPT';
   if(/^E(ES|MG|RJ|BA)/.test(code)) return 'XPT';
   return null;
 }
@@ -545,6 +546,14 @@ function lostSetsSummary(){
   return '<br>Importações: '+keys.map(k=>{const [d,t]=k.split('|');return escHtml(d.split('-').reverse().slice(0,2).join('/')+' '+t+' ('+fmtInt(g[k])+')');}).join(' · ');
 }
 function loadPersistedLostRoutes(){try{const raw=localStorage.getItem(LOST_ROUTES_KEY);return raw?JSON.parse(raw).map(e=>({...e,date:new Date(e.date)})):[];}catch(e){return [];}}
+function enrichImportsFromRouteHistory(){
+  const history=Array.isArray(LOST_ROUTES_ALL)?LOST_ROUTES_ALL:[];
+  if(!history.length||!IMPORTS.length)return false;
+  const byPackage=new Map(); history.forEach(row=>{const key=normalizePackageKey(row.pacote);if(key)byPackage.set(key,row);});
+  let changed=false;
+  IMPORTS.forEach(imp=>{imp.entries=(imp.entries||[]).map(entry=>{const route=byPackage.get(normalizePackageKey(entry.pacote));if(!route)return normalizeLostEntryRouting(entry);const next=normalizeLostEntryRouting({...entry,origem:route.origem||entry.origem,destino:route.destino||entry.destino,base:route.base||entry.base,tipo:route.tipo||entry.tipo});if(next.base!==entry.base||next.tipo!==entry.tipo||next.destino!==entry.destino)changed=true;return next;});});
+  return changed;
+}
 var EXPORT_CACHE=null;
 function buildExportCache(){
   const risk=new Map();
@@ -1229,6 +1238,8 @@ document.getElementById('btnConfirmDrivers').addEventListener('click',function()
 /* ===== NAVEGAÇÃO ===== */
 let setPageToken=0;
 function setPage(page){
+  /* Existe somente um painel operacional: Análise Lost. */
+  if(page==='lostroutes') page='analise';
   const wantsEmbeddedImports=page==='importados';
   if(wantsEmbeddedImports) page='configuracao';
   if(PUBLIC_VIEW_MODE && page!=='geral' && page!=='regional') page='geral';
@@ -1783,7 +1794,6 @@ function openOverlayEntries(title, prefix, entries, bucket){
     +'<button type="button" class="preset-btn period-preset justified-preset" data-period="JUSTIFICADOS">Justificados</button>'
     +'</div>'
     +'<button type="button" class="preset-btn" id="overlaySortBtn">'+sortBtnLabel('VALOR')+'</button>'
-    +(String(title||'').startsWith('Base ')?'<button type="button" class="preset-btn" id="overlayLostRoutesBtn" title="Ver pacotes em rota desta base">Pacote em Rota</button>':'')
     +'<button type="button" class="btn-reset" id="overlayResetFiltros">Mostrar todos</button>'
     +'<button type="button" class="dl-btn" id="overlayDownload" style="margin-left:0;" title="Baixar planilha de retorno destes pacotes" aria-label="Baixar planilha de retorno destes pacotes"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button></div>'
     +'<div class="aging-strip" id="overlayAging"></div><div id="overlayTable"></div>';
@@ -2845,13 +2855,13 @@ function availableImportDates(){ return Array.from(new Set(IMPORTS.map(i=>i.impo
 function snapshotEntriesForDay(day){
   const imps=IMPORTS.filter(i=>i.importDate===day).slice().sort((a,b)=>String(a.savedAt||'').localeCompare(String(b.savedAt||'')));
   const map=new Map();
-  imps.forEach(imp=>(imp.entries||[]).forEach(e=>{ const k=String(e.pacote||'').trim()||('__'+e.base+'|'+e.driverId+'|'+e.valor+'|'+e.date); map.set(k,e); }));
+  imps.forEach(imp=>(imp.entries||[]).forEach(e=>{ const normalized=normalizeLostEntryRouting(e); const k=String(normalized.pacote||'').trim()||('__'+normalized.base+'|'+normalized.driverId+'|'+normalized.valor+'|'+normalized.date); map.set(k,normalized); }));
   return Array.from(map.values());
 }
 function selectedPeriodEntries(){
   const de=document.getElementById('analiseDe').value, ate=document.getElementById('analiseAte').value, reg=document.getElementById('analiseRegional').value;
   const tipo=document.querySelector('#analiseTipoToggle .toggle-btn.active')?.dataset.mode||'TODOS';
-  return availableImportDates().filter(d=>(!de||d>=de)&&(!ate||d<=ate)).map(day=>({day,entries:snapshotEntriesForDay(day).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(tipo==='TODOS'||e.tipo===tipo))}));
+  return availableImportDates().filter(d=>(!de||d>=de)&&(!ate||d<=ate)).map(day=>({day,entries:snapshotEntriesForDay(day).map(normalizeLostEntryRouting).filter(e=>(reg==='TODOS'||regionalFromBasePrefix(e.base)===reg)&&(tipo==='TODOS'||e.tipo===tipo))}));
 }
 function dateInputSet(id,value){ const el=document.getElementById(id); if(el) el.value=value||''; }
 function enableNativeDatePickers(){
@@ -2896,7 +2906,7 @@ function renderAnalise(){
   if(!ateEl.value) dateInputSet('analiseAte',dates[dates.length-1]||todayStr());
   if(!deEl.value){const end=ateEl.value||todayStr();const weekday=new Date(end+'T00:00:00').getDay();dateInputSet('analiseDe',isoShift(end,weekday===0?-6:1-weekday));}
   if(!dates.length){ document.getElementById('analisePeriodo').textContent='Análise de Pacote Diário — sem dados importados'; return; }
-  const rows=selectedPeriodEntries(), all=rows.flatMap(x=>x.entries);
+  const rows=selectedPeriodEntries().map(row=>({...row,entries:row.entries.map(normalizeLostEntryRouting)})), all=rows.flatMap(x=>x.entries);
   const total=all.reduce((s,e)=>s+e.valor,0), svc=all.filter(e=>e.tipo==='SVC').reduce((s,e)=>s+e.valor,0), xpt=all.filter(e=>e.tipo==='XPT').reduce((s,e)=>s+e.valor,0);
   document.getElementById('anPacotes').textContent=fmtInt(all.length); document.getElementById('anValor').textContent=fmtBRL(total); document.getElementById('anSvc').textContent=fmtBRL(svc); document.getElementById('anXpt').textContent=fmtBRL(xpt);
   const de=deEl.value, ate=ateEl.value; document.getElementById('analisePeriodo').textContent='Análise Lost · Pacotes em rota · '+(de?fmtDateFullBR(new Date(de+'T00:00:00')):'—')+' a '+(ate?fmtDateFullBR(new Date(ate+'T00:00:00')):'—')+' ('+fmtInt(rows.length)+' dias com planilha)';
@@ -3659,7 +3669,7 @@ window.__spotRun(async function init(){
   seedWeekBaselines();
   RETURN_SHEETS=await loadPersistedReturnSheets();
   rebuildJustificationIndex();
-  if(ROUTE_ONLY_MODE){ LOST_ROUTES=loadPersistedRoutePackages().map(fixRouteRowXpt); } else { LOST_ROUTES_ALL=loadPersistedLostRoutesAll().map(fixRouteRowXpt); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); }
+  if(ROUTE_ONLY_MODE){ LOST_ROUTES=loadPersistedRoutePackages().map(fixRouteRowXpt); } else { LOST_ROUTES_ALL=loadPersistedLostRoutesAll().map(fixRouteRowXpt); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); if(enrichImportsFromRouteHistory()) await persistImports(); }
   if(ROUTE_ONLY_MODE&&!LOST_ROUTES.length){LOST_ROUTES=(await loadInitialRoutePackages()).map(fixRouteRowXpt);if(LOST_ROUTES.length)persistRoutePackages();}
   if(ROUTE_ONLY_MODE){ configureRouteOnlyUI(); rebuildRouteOnlyImports(); seedWeekBaselines(); } else { selectedImportId=loadSelectedImport(); }
   if(IMPORTS.length){ rebuildStateData(); document.getElementById('emptyState').style.display='none'; renderAll(); }
