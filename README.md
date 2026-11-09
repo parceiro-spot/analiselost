@@ -1,36 +1,85 @@
-# Análise PNR
+# VITORIA SPOT
 
-- **Análise PNR** (aba 1): LOGISTICS_PNR + SRM BSC, gráficos e prints.
-- **Análise Forms** (aba 2): suba o Forms baixado em .ods (ou .xlsx/.csv). Junta por ID, conta recusas, filtra por regional e tem a opção "Abrir Logistic" em duas versões: **Normal** (copia o ID do pacote e abre https://envios.adminml.com/logistics/case-center/cases) e **Anônimo** (copia o link; o navegador não deixa o site abrir janela anônima sozinho, então é só abrir uma com Ctrl+Shift+N e colar).
+Site estático pronto para publicação no GitHub Pages.
 
-Regionais (pelo prefixo da base): MG = EMG/SMG · ES = ES/SES/EES/EBA · BA = SBA · RJ = ERJ/SRJ · SP = SSP.
-Para mudar, edite a lista `REGIONAIS` no topo de `forms.js`.
+## Estrutura
 
-Na aba Forms cada pacote tem um seletor de status (RECUSADA, ANEXADA, ANULADA, FATURADA, EM ANÁLISE (sai como "EM ANÁLISE" no Forms)) e, se for recusada, um campo para escrever o motivo da recusa. O botão **BAIXAR FORMS** abre uma janela com **Hoje** / **Escolher data** e baixa (.xlsx) ou copia (para colar no Forms) todas as respostas daquele dia, com as mesmas colunas do Forms e com as marcações feitas aqui. A coluna Evidência mostra um botão 📷 que abre a foto do Drive.
+- `index.html`: estrutura da página (HTML).
+- `style.css`: todos os estilos (CSS).
+- `script.js`: toda a lógica do dashboard (JavaScript).
 
-O ⧉ ao lado do ID copia só o ID; o botão "Copiar mensagem ID, base e focal" copia `🚨 ID: ID - BASE - FOCAL` e, na linha seguinte, `Por favor, reenviar evidência.` O 📷 abre a foto direto no Drive. O motivo aparece resumido (ex.: "CLIENTE RECEBEU").
+Os três arquivos precisam ficar na mesma pasta.
 
-Regionais: clique para marcar várias (ou "Todas"). 📷/📋 Print gera a imagem da lista atual. Abaixo do status há o seletor de Validador (LUIZA FRANÇA, KETHELLY, EDUARDA CARVALHO, VITÓRIA), que também sai no BAIXAR FORMS.
+## Como usar
 
-O **validador do Forms tem prioridade**: ao baixar/subir o Forms de novo, se a resposta traz um validador diferente do que estava lá quando você alterou aqui (ex.: outra pessoa assumiu), vale o nome que está no Forms. Nomes que não estão na lista fixa aparecem normalmente no seletor.
+- Abra `index.html` para acessar a tela inicial.
+- A página inicial direciona para `original/index.html` e `dashboard/index.html`.
+- O projeto usa HTML, CSS e JavaScript; não há código Java neste pacote.
 
-**Filtro de Validador** (aba Forms): abaixo das regionais, clique no seu nome (pode marcar mais de um) para ver só os pacotes em que você é o validador, junto com a situação e a regional escolhidas. "Todos" limpa o filtro e "(sem validador)" mostra os que ainda não têm ninguém. A escolha fica salva no navegador.
+## Publicar no GitHub Pages
 
-**BAIXAR FORMS por período**: em "Escolher período" você define **De** (data + hora cheia, ex.: 18:00) e **Até** (data + hora, vai até o minuto 59, ex.: 12:59). Serve para o Forms que chega à noite e só é lançado no dia seguinte (ex.: de ontem 18:00 até hoje 12:59). "Hoje" pega o dia inteiro. **Incluir alteradas por mim no período (de outros dias)** (marcado por padrão) leva para o arquivo os pacotes de outra data que você alterou aqui *dentro do período escolhido* (a linha segue com o carimbo original do Forms). Alterações antigas (feitas antes do período) não voltam mais — por isso um caso velho, como um EMG39 que você marcou semanas atrás, deixa de aparecer; desmarque para baixar só o que tem carimbo dentro do período. Alterações salvas antes desta correção não têm data registrada e só voltam a entrar se você mexer no pacote de novo.
+1. Extraia este ZIP.
+2. Envie o conteúdo da pasta `vitoria-spot-site` para um repositório.
+3. Nas configurações do repositório, ative o GitHub Pages usando a branch principal e a pasta raiz.
 
-**Novidades (nov/2026)**
-- O Forms fica salvo no navegador (IndexedDB, sem o limite de ~5 MB do localStorage). Ao abrir, a Análise Forms já mostra a lista; a caixa de anexar fica pequena e só precisa ser usada quando houver informações novas.
-- **Copiar selecionadas para o Forms** (e Ctrl+C) e **BAIXAR FORMS → Copiar** agora copiam a partir da coluna **VALIDADOR** (sem o carimbo). Cole na célula VALIDADOR da primeira linha vazia. O .xlsx continua com o carimbo completo.
-- As mensagens da aba **Mensagem Logistic** aparecem como botões em cada linha da lista; um clique copia a mensagem (no lugar do seletor antigo).
-- Qualquer clique na linha (copiar ID, mensagem, Abrir Logistic, histórico…) primeiro executa a ação e só depois abre o pacote centralizado (TRATANDO). Em status/validador, abre ao escolher a opção.
+## Situação: dropdown e integração com o dashboard
 
-**Correção (cópia para o Forms)**: ao selecionar pacotes (Ctrl+clique) e copiar (Ctrl+C ou "Copiar selecionadas para o Forms"), sai **uma linha por pacote, sempre o envio ATUAL** (a evidência mais recente), nunca o histórico. 1 pacote selecionado = 1 linha; vários = várias linhas, uma embaixo da outra, em ordem cronológica, a partir da coluna VALIDADOR, prontas para colar no Forms.
+A lista suspensa da planilha é gerada a partir das mesmas 13 opções coloridas do dashboard. O importador reconhece cabeçalhos iniciados por `Situação`, `Situation`, `Status` ou `Fila` (por exemplo, `Situação (lista clicável)` e `Fila atual`). Se houver mais de uma dessas colunas, prioriza `Situação`/`Status` em vez de `Fila`. Depois de editar a planilha no Excel/OneDrive, importe o arquivo no dashboard por **Anexar planilha de retorno** e confirme com **OK**; não há sincronização automática do OneDrive para o dashboard.
 
-**✕ ao lado do ID**: só **oculta** o pacote. Ele some da lista e **não entra** na cópia para o Forms nem no BAIXAR FORMS, mas continua na análise (recusas, histórico e as alterações de status/validador que você fez ficam guardadas). Se chegar um envio **novo** desse ID, ele volta sozinho para a lista. O botão **👁 Mostrar ocultos (N)** traz todos de volta.
+## Aba Análise Base (corrigida)
 
-**Status novos e cores**: qualquer status que aparecer na coluna STATUS DA EVIDÊNCIA do arquivo vira sozinho uma aba, uma opção no seletor de cada pacote e ganha uma cor. O arquivo baixado do Forms (.ods/.xlsx) não leva a cor dos chips da planilha, então a cor se escolhe no botão **🎨 Status e cores** (também dá para criar um status novo ali). As escolhas ficam salvas no navegador.
+A aba estava em branco porque o `index.html` não tinha a lógica nem o CSS dessa aba (ela existia só no `script.js`, que a página não carrega). Agora a lógica está no `script.js` e o CSS no `style.css`: filtro por regional e base, calendário De/Até, atalhos de 3/6/12 meses, resumo por mês e, ao clicar no mês, o valor de cada dia. Os dados vêm das planilhas já importadas (arquivos antigos salvos no navegador).
+
+## Regra de Valor Revertido
+
+A configuração oficial do prazo fica no JavaScript do dashboard (`script.js`): na aba **Valor Revertido**, o valor é calculado pacote a pacote: pacote que desaparece até 48 horas entra como **Valor revertido**; pacote que continua presente após 48 horas entra como **Valor não revertido/ofensor**. O **Valor atual** mostra o total real atual. A aba **Pacote Revertido** usa a mesma regra própria de 48 horas.
+
+## Pacotes em Rota também no LOST
+
+Ao anexar uma planilha de **Pacotes em Rota** no painel LOST, ela continua salva e visível na aba **Pacotes em Rota**. Se ainda não existir uma planilha LOST para aquele dia, o dashboard cria automaticamente uma importação provisória com os mesmos pacotes para que ela apareça em **LOST > Todos**. Quando a planilha LOST real for anexada depois, ela substitui a importação provisória do dia. Arquivos cujo nome contém um intervalo de datas, como `2026-10-01_2026-10-31`, não alteram indevidamente o dia do arquivo: nesse caso, o dia selecionado no formulário (ou o dia atual) é usado.
+
+Os campos de planilha de Pacotes em Rota e de LOST/Risco LM aceitam vários arquivos de uma só vez. Cada arquivo é lido e salvo separadamente, respeitando o dia e o turno identificados no nome ou informados no formulário.
+
+No DASH LOST, o primeiro cartão em **Importados** é **LOST · 1) Pacotes perdidos** e reconhece automaticamente tanto o formato LOST/Risco LM quanto o formato Pacotes em Rota. Assim, quando o LOST do dia ainda não estiver disponível, basta anexar a planilha de Pacotes em Rota nesse mesmo cartão.
+
+## Valor Revertido: Ofensores da manhã
+
+O antigo bloco "Selecionar bases / Escolha as regionais" foi removido. No lugar, a aba **Valor Revertido** tem **Ofensores da manhã**:
+
+1. De manhã, com a planilha da manhã aberta, digite o valor (ex.: 10.000) e clique **Classificar como ofensores**. As bases com valor igual ou acima ficam guardadas para aquele dia.
+2. À tarde, não digite nada: clique em **Puxar ofensores da manhã (valor atual)**. A tela mostra essas bases com o valor atual de cada uma. Clique de novo (**Voltar para todas as bases**) para sair do filtro.
+3. **Limpar lista** apaga a lista do dia. A câmera captura só o nome das bases guardadas.
+
+O bloco permanece na tela **Valor Revertido** do DASH LOST. Ao classificar, o sistema usa a planilha da data selecionada; se essa data não estiver disponível, usa a planilha ativa ou a importação mais recente, evitando o erro de “Não há planilha importada nesta data”.
+
+## Ofensores por regionais: ocultar, confirmar e analisar
+
+Na tela **Ofensores por Regionais**, use **Ocultar** na base que não deve participar da seleção. As bases ocultadas ficam guardadas no navegador e podem ser restauradas em **Bases ocultadas** com **Mostrar novamente**. Depois de ajustar os filtros e ocultar o que não deseja, clique em **Confirmar ofensores**: a lista confirmada contém as bases ainda visíveis. A confirmação também é salva no navegador; **Editar seleção** reabre a escolha.
+
+Na lista confirmada, clique em uma base para ver o gráfico com o valor diário por semana. O botão **INFO PACOTES** ao lado do título abre os detalhes dos pacotes da base. Os indicadores mostram **Começo da semana** (primeiro dia com planilha), **Menor valor** e **Valor atual**, todos acompanhados da data. As faixas são: até R$ 1.000 (verde/tranquilo), acima de R$ 1.000 até R$ 5.000 (amarelo), acima de R$ 5.000 e abaixo de R$ 10.000 (laranja) e R$ 10.000 ou mais (vermelho). Dias sem planilha ficam sem marcador, a linha conecta os pontos importados e os valores diários não são somados entre si. Na semana atual, o período termina na data de hoje.
+
+## Meta semanal (igual em Regional e Base e em Valor Revertido)
+
+As duas abas calculam a meta sobre o valor da **primeira planilha da semana** (segunda-feira) ou, se a meta foi ativada no meio da semana, da primeira planilha a partir do dia da ativação. Na coluna **Meta da semana** do Valor Revertido aparecem: valor no início da semana, meta (quanto reduzir), quanto já reduziu e quanto falta. Pacotes que entraram há menos de 24h não contam na meta.
+
+## REPORT LOST: reconhecimento de XPT
+
+A planilha REPORT LOST (`report_lost_on_route_*.csv`) é a única necessária para Pacotes em Rota / LOST. Ela não tem coluna "XPT": a base XPT vem em **Centro de destino** (códigos iniciados por `E`, ex.: EMG40, ERJ2). Regra aplicada na importação:
+
+- Centro de destino com código `E...` → o pacote entra na **base XPT** (tipo XPT); o SVC de origem continua no campo Origem (ex.: SMG3 → EMG40: "EMG40 XPT de SMG3").
+- Destino vazio, `BRN...` ou `BRD...` → o pacote fica na **base SVC** de origem.
+- Bahia e São Paulo não têm XPT e ficam sempre em SVC.
+- Dados já salvos no navegador antes desta regra são corrigidos automaticamente ao abrir o dash.
+
+A tabela SVC ↔ XPT usada nos rótulos ("SVC de ...") vem da planilha BSC Delivery Success (`SVC_TO_XPT` no `script.js`). Se surgir um XPT novo, basta incluir a linha nessa tabela.
+
+A coluna **Produto** não existe no REPORT LOST; ela só é preenchida quando o mesmo pacote já foi importado em outra planilha que traga o item (SHP_ITEM_DESC).
 
 
-**Atualização do PNR (nov/2026)**
-- LOGISTICS_PNR e SRM BSC ficam salvos no navegador via IndexedDB e reaparecem automaticamente na tela inicial após F5 ou ao reabrir a página. A caixa informa o nome do arquivo e a quantidade de linhas salvas.
-- Os rótulos de data dos gráficos começam **ocultos por padrão somente no print**. O botão **Mostrar datas do gráfico** ativa ou desativa as datas do eixo X dos gráficos. As datas das tabelas, detalhes e subtítulos continuam sempre visíveis e não são alteradas.
+## Planilhas necessárias
+- **REPORT LOST** (`report_lost_on_route_*.csv`): obrigatório e suficiente para o Análise Lost/Pacotes em rota.
+- **REPORT DRIVER** (`report_driver_*.xlsx`): opcional; serve apenas para trocar o ID do transportador pelo nome do motorista. O arquivo enviado contém somente a lista de IDs, então não acrescenta nomes.
+- **Planilha de retorno**: opcional; só é necessária para registrar situação, justificativa ou foto.
+
+## Distribuição SVC/XPT
+No REPORT LOST, se `Centro de destino` começar com `E` (por exemplo `EMG40`, `ERJ2`, `EES8`), o pacote é contado na base de destino como **XPT**. Se o destino estiver vazio ou for `BRN/BRD`, o pacote permanece na base `Centro de origem` como **SVC**.
