@@ -448,7 +448,13 @@ function buildLostRoutesFromRawRows(rows){
   return out.length?out:null;
 }
 
+const ROUTE_DAYKEY_CACHE=new WeakMap();
 function routeDateKey(e){
+  /* Cache por linha: o histórico tem centenas de milhares de linhas e esta função rodava em todas, a cada arquivo importado. */
+  if(e&&typeof e==='object'){ const hit=ROUTE_DAYKEY_CACHE.get(e); if(hit!==undefined) return hit; const v=routeDateKeyCompute(e); ROUTE_DAYKEY_CACHE.set(e,v); return v; }
+  return routeDateKeyCompute(e);
+}
+function routeDateKeyCompute(e){
   const raw=e?.importDate||e?.date;
   if(raw instanceof Date&&!isNaN(raw)) return raw.toISOString().slice(0,10);
   const text=String(raw||'').trim();
@@ -1251,13 +1257,13 @@ function flushDeferredRouteSave(){
   if(!ROUTE_SAVE_DIRTY) return;
   ROUTE_SAVE_DIRTY=false; ROUTE_SAVE_CREATED_FALLBACK=false;
   if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();}
-  else {persistLostRoutes();}
+  else {LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL);persistLostRoutes();}
 }
 function saveLostRouteImport(rows,file,lostDay,lostTurno){
   const novosRota=dedupeRouteImportRows(rows.map(e=>normalizeLostEntryRouting({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'})));
   let createdLostDayFallback=false;
   if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); }
-  else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); createdLostDayFallback=ensureLostDayFromRouteSheet(novosRota,file.name,lostDay,lostTurno); }
+  else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); if(!ROUTE_SAVE_DEFERRED) LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); createdLostDayFallback=ensureLostDayFromRouteSheet(novosRota,file.name,lostDay,lostTurno); }
   if(ROUTE_SAVE_DEFERRED){ ROUTE_SAVE_DIRTY=true; if(createdLostDayFallback) ROUTE_SAVE_CREATED_FALLBACK=true; return novosRota.length; }
   if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();updateImportUI();}
   else {persistLostRoutes();if(createdLostDayFallback){rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();}else{updateImportUI();renderLostRoutesPage();}}
