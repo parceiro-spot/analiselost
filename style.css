@@ -1683,3 +1683,8 @@ body.is-importing .import-ok-btn{cursor:wait;opacity:.75}
 @media(max-width:1400px){#baseOverlay #overlayTable>.table-scroll .pkg-table{min-width:1180px}}
 /* Barra de rolagem horizontal sempre visível no rodapé da área da tabela */
 #baseOverlay #overlayTable>.table-scroll{scrollbar-gutter:stable both-edges}
+
+/* Garantia: no histórico em tela cheia a tabela SEMPRE ocupa o restante da tela, em qualquer zoom. */
+#baseOverlay .overlay-panel{height:100vh!important;max-height:none!important}
+#baseOverlay #overlayTable{flex:1 1 0!important;min-height:0!important;height:auto!important}
+#baseOverlay #overlayTable>.table-scroll{height:100%!important;max-height:none!important;min-height:0!important}
