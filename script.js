@@ -302,8 +302,8 @@ function normalizeReturnHeader(v){
 /* Cabeçalho só é reconhecido por nome EXATO da coluna. Antes usava includes(): uma linha de dados com
    'Pacote faltando' no MOTIVO e 'motivo/observação...' na justificativa virava "cabeçalho" e desalinhava
    todo o bloco da base (observações perdidas). */
-const RETURN_PKG_KEY_RE=/^(ID|ID_?(DO_)?(PACOTE|SHIPMENT)|PACOTE(_ID)?|N_?(DO_)?PACOTE|NUMERO_(DO_)?PACOTE|COD(IGO)?_(DO_)?PACOTE|SHIPMENT(_ID)?|SHP_SHIPMENT_ID)$/;
-const RETURN_JUST_KEY_RE=/^(JUSTIFICATIVAS?(_.*)?|OBSERVACAO|OBSERVACOES|OBS|RAZAO|MOTIVO)$/;
+const RETURN_PKG_KEY_RE=/^(ID|ID_?(DO_|DE_)?(PACOTE|SHIPMENT|ENVIO)|ENVIO|PACOTE(_ID)?|N_?(DO_)?PACOTE|NUMERO_(DO_)?PACOTE|COD(IGO)?_(DO_)?PACOTE|SHIPMENT(_ID)?|SHP_SHIPMENT_ID)$/;
+const RETURN_JUST_KEY_RE=/^(JUSTIFICATIVAS?(_.*)?|OBSERVACAO(_.*)?|OBSERVACOES(_.*)?|OBS|COMENTARIOS?|RAZAO|MOTIVO)$/;
 const RETURN_SITUATION_KEY_RE=/^(?:SITUACAO|SITUATION|STATUS|FILA)(?:_|$)/;
 const SITUATION_OPTIONS=[{label:'Para solução de problema',color:'#f3d316',font:'#1d1d1d'},{label:'Despachar',color:'#f3d316',font:'#1d1d1d'},{label:'Faltante',color:'#ff8a00',font:'#111111'},{label:'Não encontrado no ato do carregamento',color:'#ef3f56',font:'#ffffff'},{label:'Parado',color:'#ff8a00',font:'#111111'},{label:'Em rota de entrega',color:'#9be15d',font:'#163300'},{label:'Entregue',color:'#00a83b',font:'#ffffff'},{label:'Em outra base',color:'#f3d316',font:'#1d1d1d'},{label:'Para devolver',color:'#c7a0ff',font:'#24103f'},{label:'Devolução',color:'#8e44ad',font:'#ffffff'},{label:'Devolução | Comprador recusou',color:'#5b176f',font:'#ffffff'},{label:'Perdido',color:'#ef3f56',font:'#ffffff'},{label:'Outros',color:'#4da3ff',font:'#07182d'}];
 const SITUATION_BY_LABEL=Object.fromEntries(SITUATION_OPTIONS.map(item=>[item.label,item]));
@@ -333,9 +333,9 @@ function buildReturnRowsFromRawRows(rows,photosByRow){
   headers.forEach((header,headerIndex)=>{
     const idx={}; header.keys.forEach((key,i)=>{if(key&&!Object.prototype.hasOwnProperty.call(idx,key)) idx[key]=i;});
     const colPacote=idx['PACOTE']!==undefined?idx['PACOTE']:(Object.keys(idx).find(isReturnPackageKey)!==undefined?idx[Object.keys(idx).find(isReturnPackageKey)]:undefined);
-    const colBase=idx['BASE']!==undefined?idx['BASE']:(idx['SHP_LG_FACILITY_ID']!==undefined?idx['SHP_LG_FACILITY_ID']:undefined);
+    const colBase=idx['BASE']!==undefined?idx['BASE']:(idx['SHP_LG_FACILITY_ID']!==undefined?idx['SHP_LG_FACILITY_ID']:(idx['CENTRO_DE_ORIGEM']!==undefined?idx['CENTRO_DE_ORIGEM']:undefined));
     const colRota=idx['ROTA']!==undefined?idx['ROTA']:(idx['ID_DA_ROTA']!==undefined?idx['ID_DA_ROTA']:(idx['SHP_LG_ROUTE_ID']!==undefined?idx['SHP_LG_ROUTE_ID']:idx['ROUTE']));
-    const colDriver=idx['MOTORISTA']!==undefined?idx['MOTORISTA']:(idx['ID_DO_MOTORISTA']!==undefined?idx['ID_DO_MOTORISTA']:(idx['SHP_LG_DRIVER_ID']!==undefined?idx['SHP_LG_DRIVER_ID']:idx['DRIVER']));
+    const colDriver=idx['MOTORISTA']!==undefined?idx['MOTORISTA']:(idx['ID_DO_MOTORISTA']!==undefined?idx['ID_DO_MOTORISTA']:(idx['ID_DO_TRANSPORTADOR']!==undefined?idx['ID_DO_TRANSPORTADOR']:(idx['SHP_LG_DRIVER_ID']!==undefined?idx['SHP_LG_DRIVER_ID']:idx['DRIVER'])));
     const colJust=idx['OBSERVACAO']!==undefined?idx['OBSERVACAO']:(idx['JUSTIFICATIVA']!==undefined?idx['JUSTIFICATIVA']:(Object.keys(idx).find(isReturnJustKey)!==undefined?idx[Object.keys(idx).find(isReturnJustKey)]:undefined));
     const situationHeader=returnSituationColumnKey(Object.keys(idx)); const colSituation=situationHeader!==null?idx[situationHeader]:undefined;
     const colPhoto=Object.keys(idx).find(k=>k.includes('FOTO')||k.includes('IMAGEM')||k.includes('PHOTO'))!==undefined?idx[Object.keys(idx).find(k=>k.includes('FOTO')||k.includes('IMAGEM')||k.includes('PHOTO'))]:undefined;
