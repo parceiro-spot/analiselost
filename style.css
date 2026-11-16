@@ -1675,12 +1675,6 @@ body.is-importing .import-ok-btn{cursor:wait;opacity:.75}
 /* ===== Tabela de pacotes: acompanha a altura da tela (sem caixa fixa de 460px) e se ajusta ao zoom ===== */
 #baseOverlay #overlayTable>.table-scroll.pkg-table-scroll{height:100%;max-height:none}
 .table-scroll.pkg-table-scroll{max-height:calc(100vh - 220px);min-height:320px}
-/* Colunas de texto longo quebram linha, assim a tabela cabe na largura e a barra lateral só aparece se realmente precisar. */
-.pkg-table tbody td:nth-child(n+4){white-space:normal;overflow-wrap:anywhere}
-.pkg-table tbody td:has(.just-info),.pkg-table tbody td:has(.situation-select),.pkg-table tbody td:has(.tag),.pkg-table tbody td:has(.lost-risk-badge){white-space:nowrap}
-.pkg-table td:nth-child(4),.pkg-table td:nth-child(5){white-space:nowrap}
-#baseOverlay #overlayTable>.table-scroll .pkg-table{width:100%;min-width:0;max-width:100%}
-@media(max-width:1400px){#baseOverlay #overlayTable>.table-scroll .pkg-table{min-width:1180px}}
 /* Barra de rolagem horizontal sempre visível no rodapé da área da tabela */
 #baseOverlay #overlayTable>.table-scroll{scrollbar-gutter:stable both-edges}
 
@@ -1688,3 +1682,7 @@ body.is-importing .import-ok-btn{cursor:wait;opacity:.75}
 #baseOverlay .overlay-panel{height:100vh!important;max-height:none!important}
 #baseOverlay #overlayTable{flex:1 1 0!important;min-height:0!important;height:auto!important}
 #baseOverlay #overlayTable>.table-scroll{height:100%!important;max-height:none!important;min-height:0!important}
+
+/* Barra de rolagem horizontal: continua existindo e fica sempre visível no rodapé da tela. */
+#baseOverlay #overlayTable>.table-scroll{overflow-x:scroll!important;overflow-y:auto!important}
+#baseOverlay #overlayTable>.table-scroll table{width:max-content;min-width:max(100%,1500px);max-width:none}
