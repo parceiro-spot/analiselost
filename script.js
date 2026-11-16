@@ -644,14 +644,36 @@ async function flushPersistImports(){
   try{ await persistImportsNow(); }finally{ waiters.forEach(r=>r()); }
 }
 window.addEventListener('pagehide',()=>{ if(persistImportsTimer) flushPersistImports(); });
+let PERSISTED_IMPORT_SIG=new Map();
+function importRecordSig(imp){ return (imp.savedAt||'')+'|'+(imp.fileName||'')+'|'+(imp.importDate||'')+'|'+(imp.turno||'')+'|'+((imp.entries&&imp.entries.length)||0)+'|'+(imp.source||''); }
 async function persistImportsNow(){
-  /* O IndexedDB e o JSON já tratam Date; não precisa copiar cada linha antes de gravar. */
-  const payload=IMPORTS;
-  try{ const db=await openImportsDB(); await new Promise((resolve,reject)=>{const tx=db.transaction('app','readwrite');tx.objectStore('app').put({key:'imports',payload});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);}); }
-  catch(err){ try{localStorage.setItem(IMPORTS_KEY,JSON.stringify(payload));}catch(fallbackErr){console.warn('Planilhas mantidas nesta sessão; armazenamento local cheio.',fallbackErr);} }
+  /* Grava UMA planilha por registro e só as que mudaram; antes a página regravava todos os meses a cada importação. */
+  try{
+    const db=await openImportsDB();
+    const current=IMPORTS.slice();
+    const currentIds=new Set(current.map(i=>i.id));
+    const toWrite=current.filter(imp=>PERSISTED_IMPORT_SIG.get(imp.id)!==importRecordSig(imp));
+    const toDelete=Array.from(PERSISTED_IMPORT_SIG.keys()).filter(id=>!currentIds.has(id));
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction('app','readwrite'), st=tx.objectStore('app');
+      toWrite.forEach(imp=>st.put({key:'imp:'+imp.id,payload:imp}));
+      toDelete.forEach(id=>st.delete('imp:'+id));
+      st.put({key:'imports-index',ids:current.map(i=>i.id)});
+      st.delete('imports'); /* formato antigo (um registro gigante) */
+      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error); tx.onabort=()=>reject(tx.error);
+    });
+    toWrite.forEach(imp=>PERSISTED_IMPORT_SIG.set(imp.id,importRecordSig(imp)));
+    toDelete.forEach(id=>PERSISTED_IMPORT_SIG.delete(id));
+  }
+  catch(err){ console.warn('Falha ao gravar planilhas no IndexedDB; tentando armazenamento local.',err); try{localStorage.setItem(IMPORTS_KEY,JSON.stringify(IMPORTS));}catch(fallbackErr){console.warn('Planilhas mantidas nesta sessão; armazenamento local cheio.',fallbackErr);} }
 }
 async function loadPersistedImports(){
-  try{ const db=await openImportsDB(); const record=await new Promise((resolve,reject)=>{const tx=db.transaction('app','readonly'),req=tx.objectStore('app').get('imports');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);}); if(record&&Array.isArray(record.payload)) return record.payload.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>normalizeLostEntryRouting({...e,date:new Date(e.date)}))})); }
+  try{ const db=await openImportsDB();
+    const all=await new Promise((resolve,reject)=>{const tx=db.transaction('app','readonly'),req=tx.objectStore('app').getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);});
+    const idx=all.find(r=>r&&r.key==='imports-index');
+    if(idx&&Array.isArray(idx.ids)){ const byId=new Map(); all.forEach(r=>{ if(r&&typeof r.key==='string'&&r.key.startsWith('imp:')&&r.payload) byId.set(r.payload.id,r.payload); }); const list=idx.ids.map(id=>byId.get(id)).filter(Boolean); list.forEach(imp=>PERSISTED_IMPORT_SIG.set(imp.id,importRecordSig(imp))); return list.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>normalizeLostEntryRouting({...e,date:new Date(e.date)}))})); }
+    const record=all.find(r=>r&&r.key==='imports'); /* formato antigo: migra para o novo na próxima gravação */
+    if(record&&Array.isArray(record.payload)) return record.payload.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>normalizeLostEntryRouting({...e,date:new Date(e.date)}))})); }
   catch(err){ console.warn('IndexedDB indisponível; tentando armazenamento legado.',err); }
   try{ const raw=localStorage.getItem(IMPORTS_KEY); if(!raw)return []; const parsed=JSON.parse(raw); const result=parsed.map(imp=>({...imp,entries:(imp.entries||[]).map(e=>normalizeLostEntryRouting({...e,date:new Date(e.date)}))})); IMPORTS=result; persistImports(); return result; }catch(err){return [];}
 }
@@ -1036,6 +1058,7 @@ function rememberWeekBaseline(imp){
   if(!imp||!imp.importDate||!(imp.entries||[]).length) return false;
   const wk=weekMondayOf(imp.importDate), order=weekOrderKey(imp), cur=WEEK_BASELINES[wk];
   if(cur&&cur.order<order) return false; /* já existe uma planilha mais cedo nesta semana */
+  if(cur&&cur.order===order&&imp.id&&cur.srcId===imp.id) return false; /* já registrada: não recalcula */
   const byBase={}, keys=[];
   (imp.entries||[]).forEach(e=>{ byBase[e.base]=(byBase[e.base]||0)+(Number(e.valor)||0); const k=String(e.pacote||'').trim(); if(k) keys.push(k); });
   WEEK_BASELINES[wk]={order,importDate:imp.importDate,time:fmtClockMins(mainImportClockMinutes(imp)),fileName:imp.fileName||'',srcId:imp.id||'',byBase,keys};
@@ -1099,17 +1122,19 @@ document.getElementById('fileInput').addEventListener('change', function(e){
 document.getElementById('btnConfirmImport').addEventListener('click',async function(){
   if(!pendingImportFiles.length)return;const files=pendingImportFiles.slice(),items=describeMainImportBatch(files);this.disabled=true;let imported=0,replaced=0;const errors=[];
   setMainImportProgress('Lendo a planilha de REPORT LOST / Pacote em Rota…',true);
+  ROUTE_SAVE_DEFERRED=items.length>1; ROUTE_SAVE_DIRTY=false; ROUTE_SAVE_CREATED_FALLBACK=false;
   try{
     for(let i=0;i<items.length;i++){
       const item=items[i];this.textContent='Lendo '+(i+1)+'/'+items.length+'…';
       setMainImportProgress('Processando '+(i+1)+' de '+items.length+': '+item.file.name,true);
-      await new Promise(r=>setTimeout(r,30)); /* deixa o "Lendo…" aparecer antes de ler o arquivo */
+      await new Promise(r=>setTimeout(r,i%5===4?60:10)); /* deixa o "Lendo…" aparecer e a página respirar */
       try{const entries=await readMainImportFile(item.file);const result=finishImportMain(entries,item.file.name,item.importDate,item.turno,item.fileTime,'lost');if(entries.__routeRows?.length)saveLostRouteImport(entries.__routeRows,item.file,item.importDate,item.turno);imported++;if(result.replaced)replaced++;}
       catch(err){console.error('Erro ao importar '+item.file.name,err);errors.push(item.file.name+': '+(err.message||'erro de leitura'));}
     }
+    flushDeferredRouteSave();
     if(imported){setMainImportProgress('Atualizando o Análise Lost e a distribuição SVC/XPT…',true);const latest=IMPORTS.slice().sort((a,b)=>compareMainImports(b,a))[0];selectedImportId=latest?.id||null;saveSelectedImport();persistImports();rebuildStateData();document.getElementById('emptyState').style.display='none';currentTab='TODOS';currentBaseFilter='TODAS';topBasesMode='TODOS';document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.state==='TODOS'));updateImportUI();renderAll();}
   }finally{
-    setMainImportProgress('',false);importDateManuallySet=false;pendingImportFiles=[];renderMainImportBatchSummary([]);this.disabled=true;this.textContent='OK';
+    ROUTE_SAVE_DEFERRED=false;setMainImportProgress('',false);importDateManuallySet=false;pendingImportFiles=[];renderMainImportBatchSummary([]);this.disabled=true;this.textContent='OK';
   }
   await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0))); /* mostra a tela atualizada antes do aviso */
   const resultText=imported+' arquivo(s) importado(s)'+(replaced?' · '+replaced+' importação(ões) anterior(es) substituída(s)':'')+'.';
@@ -1219,11 +1244,21 @@ function readLostUploadFile(file){
     }
   });
 }
+let ROUTE_SAVE_DEFERRED=false, ROUTE_SAVE_DIRTY=false, ROUTE_SAVE_CREATED_FALLBACK=false;
+function flushDeferredRouteSave(){
+  /* Em importação em lote, grava UMA vez no fim (antes era a cada arquivo, o que travava com muitos arquivos). */
+  ROUTE_SAVE_DEFERRED=false;
+  if(!ROUTE_SAVE_DIRTY) return;
+  ROUTE_SAVE_DIRTY=false; ROUTE_SAVE_CREATED_FALLBACK=false;
+  if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();}
+  else {persistLostRoutes();}
+}
 function saveLostRouteImport(rows,file,lostDay,lostTurno){
   const novosRota=dedupeRouteImportRows(rows.map(e=>normalizeLostEntryRouting({...e,importDate:lostDay,turno:lostTurno,fileName:file.name,savedAt:new Date().toISOString(),tipo:e.tipo||classifyBaseCode(e.base,regionalFromBasePrefix(e.base))||'SVC'})));
   let createdLostDayFallback=false;
   if(ROUTE_ONLY_MODE){ LOST_ROUTES=LOST_ROUTES.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); }
   else { LOST_ROUTES_ALL=LOST_ROUTES_ALL.filter(x=>!(routeDateKey(x)===lostDay&&(x.turno||'Manhã')===lostTurno)).concat(novosRota); LOST_ROUTES=latestRouteSnapshot(LOST_ROUTES_ALL); createdLostDayFallback=ensureLostDayFromRouteSheet(novosRota,file.name,lostDay,lostTurno); }
+  if(ROUTE_SAVE_DEFERRED){ ROUTE_SAVE_DIRTY=true; if(createdLostDayFallback) ROUTE_SAVE_CREATED_FALLBACK=true; return novosRota.length; }
   if(ROUTE_ONLY_MODE){persistRoutePackages();rebuildRouteOnlyImports();rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();updateImportUI();}
   else {persistLostRoutes();if(createdLostDayFallback){rebuildStateData();document.getElementById('emptyState').style.display='none';renderAll();}else{updateImportUI();renderLostRoutesPage();}}
   return novosRota.length;
@@ -3220,10 +3255,21 @@ function revSnapshotImportForDay(day){
   const active=getSelectedImport();
   return active&&active.importDate===day?active:(dayImports[dayImports.length-1]||null);
 }
+let REV_FIRSTSEEN_CACHE={key:'',map:null};
+function importsSignature(){ let sig=IMPORTS.length+'#'; for(let i=0;i<IMPORTS.length;i++){ const m=IMPORTS[i]; sig+=(m.id||'')+':'+(m.savedAt||'')+':'+((m.entries&&m.entries.length)||0)+';'; } return sig; }
 function revFirstSeenMap(endDay,currentImport){
+  /* Cache: percorrer meses de planilhas a cada renderização é o que deixava a página lenta. Só recalcula se os dados mudarem. */
+  const cacheKey=endDay+'|'+(currentImport?(currentImport.id||'')+':'+(currentImport.savedAt||''):'-')+'|'+importsSignature();
+  if(REV_FIRSTSEEN_CACHE.map&&REV_FIRSTSEEN_CACHE.key===cacheKey) return REV_FIRSTSEEN_CACHE.map;
+  const result=revFirstSeenMapCompute(endDay,currentImport);
+  REV_FIRSTSEEN_CACHE={key:cacheKey,map:result};
+  return result;
+}
+function revFirstSeenMapCompute(endDay,currentImport){
   const map=new Map();
   const active=currentImport||revSnapshotImportForDay(endDay), cutoff=active?revImportTimestamp(active):Infinity;
-  const imports=IMPORTS.filter(i=>i.importDate<=endDay&&revImportTimestamp(i)<=cutoff).slice().sort((a,b)=>revImportTimestamp(a)-revImportTimestamp(b));
+  const tsOf=new Map(); IMPORTS.forEach(i=>tsOf.set(i,revImportTimestamp(i)));
+  const imports=IMPORTS.filter(i=>i.importDate<=endDay&&tsOf.get(i)<=cutoff).slice().sort((a,b)=>tsOf.get(a)-tsOf.get(b));
   imports.forEach(imp=>{
     const present=new Map(); (imp.entries||[]).forEach(e=>{const k=String(e.pacote||'').trim();if(k)present.set(k,e);});
     for(const k of map.keys())if(!present.has(k))map.delete(k);
