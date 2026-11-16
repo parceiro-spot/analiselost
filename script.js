@@ -2756,6 +2756,8 @@ document.addEventListener('click',function(e){
   }
 });
 /* ===== Meta semanal nas Regionais e Bases ===== */
+/* Meta semanal INVERTIDA: quanto MAIOR o %, MENOR a redução exigida (reduzir = 100% − meta%). Ex.: 45% → reduzir 55% da base; 65% → reduzir 35%. */
+function metaReducaoFrac(pct){ const p=Number(pct)||0; return Math.max(0,Math.min(100,100-p))/100; }
 const META_CAPTURA_KEY='spot_dashboard_meta_captura_v1'+MODE_SUFFIX;
 function regMetaPct(){ try{ const raw=localStorage.getItem('spot_dashboard_meta_semanal_v1'+MODE_SUFFIX)||''; const n=raw?parseBRNumber(raw):0; return n>0?n:0; }catch(e){ return 0; } }
 function regMetaCaptureOn(){ try{ return localStorage.getItem(META_CAPTURA_KEY)==='1'; }catch(e){ return false; } }
@@ -2794,7 +2796,7 @@ function regMetaLine(bl,filterFn,label){
   let base=0, atual=0, grace=0, cheio=0;
   Object.keys(bl.byBase).forEach(b=>{ if(!filterFn(b)) return; const cur=bl.currentByBase[b]||0, gr=Math.min(cur,bl.graceByBase[b]||0); base+=bl.byBase[b]; atual+=Math.max(0,cur-gr); grace+=gr; cheio+=cur; });
   if(!(base>0)) return '';
-  const meta=base*bl.pct/100, delta=base-atual, falta=Math.max(0,atual-(base-meta));
+  const meta=base*metaReducaoFrac(bl.pct), delta=base-atual, falta=Math.max(0,atual-(base-meta));
   const row=(l,v,c,x)=>'<span class=\"reg-meta-row'+(x?' reg-meta-extra':'')+'\"><span class=\"reg-meta-lbl\">'+l+'</span><strong class=\"'+(c||'')+'\">'+v+'</strong></span>';
   const reduziu=delta>0.005?row('REDUZIU',fmtBRL(delta),'meta-ok',1):(delta<-0.005?row('Aumentou','+'+fmtBRL(-delta),'meta-pending',1):row('REDUZIU',fmtBRL(0),'',1));
   const batida=falta<=0.005;
@@ -2803,7 +2805,7 @@ function regMetaLine(bl,filterFn,label){
   const semRow=row('Pacote sem 24h',fmtBRL(atual),'',1);
   const grRow=row('Pacote 24h',fmtBRL(grace),grace>0.005?'meta-pending':'',1);
   const badge='<span class=\"reg-meta-badge '+(batida?'ok':'pending')+'\">'+(batida?'META BATIDA':'META NÃO BATIDA')+'</span>';
-  return '<div class=\"reg-meta\" title=\"Meta de '+String(bl.pct).replace('.',',')+'% sobre '+fmtBRL(base)+' da primeira planilha da semana ('+metaBaselineLabel(bl)+(bl.startFile?' · '+escHtml(bl.startFile):'')+'), válida até sexta. Pacote 24h: entrou há menos de 24h (fora da 1ª planilha da semana) e não conta na meta. Pacote sem 24h: valor que conta na meta.\">'+row((label||'META'),fmtBRL(meta),'')+reduziu+semRow+grRow+faltaRow+badge+'</div>';
+  return '<div class=\"reg-meta\" title=\"Meta de '+String(bl.pct).replace('.',',')+'% (reduzir '+String(Math.round((100-bl.pct)*100)/100).replace('.',',')+'%) sobre '+fmtBRL(base)+' da primeira planilha da semana ('+metaBaselineLabel(bl)+(bl.startFile?' · '+escHtml(bl.startFile):'')+'), válida até sexta. Pacote 24h: entrou há menos de 24h (fora da 1ª planilha da semana) e não conta na meta. Pacote sem 24h: valor que conta na meta.\">'+row((label||'META'),fmtBRL(meta),'')+reduziu+semRow+grRow+faltaRow+badge+'</div>';
 }
 function regMetaToggleHtml(){
   if(!regMetaPct()) return '';
@@ -3413,7 +3415,7 @@ function renderRevertido(){
   const metaBaseOf=b=>metaBL?(metaBL.byBase[b]||0):(beforeByBase[b]||0);
   const metaBasesList=(metaBL?Object.keys(metaBL.byBase):Object.keys(beforeByBase)).filter(b=>baseOk(b)&&metaBaseOf(b)>0);
   const metaBeforeTotal=metaBasesList.reduce((n,b)=>n+metaBaseOf(b),0);
-  const metaReductionTotal=metaBeforeTotal*configuredMetaPct/100;
+  const metaReductionTotal=metaBeforeTotal*metaReducaoFrac(configuredMetaPct);
   const metaMonday=isoShift(endDay,(()=>{const wd=new Date(endDay+'T00:00:00').getDay();return wd===0?-6:1-wd;})());
   const metaFridayIso=isoShift(metaMonday,4), metaFridayTxt=metaFridayIso.slice(8,10)+'/'+metaFridayIso.slice(5,7);
   const metaPctTxt=String(configuredMetaPct).replace('.',',')+'%';
@@ -3442,7 +3444,7 @@ function renderRevertido(){
     const graceValue=Math.min(baseCurrent,graceSrc[r.base]||0), metaCurrent=Math.max(0,baseCurrent-graceValue);
     const metaBase=metaBaseOf(r.base);
     const reducedForMeta=Math.max(0,metaBase-metaCurrent);
-    const targetForMeta=metaBase*configuredMetaPct/100;
+    const targetForMeta=metaBase*metaReducaoFrac(configuredMetaPct);
     const status=r.ofmVazio?'green':packageMode
       ? ((basePackageReverted[r.base]||0)>0?'green':(baseRiskValue>0?'red':((basePackageRemoved[r.base]||0)>0?'removed':'orange')))
       : (configuredMetaPct>0
@@ -3551,7 +3553,7 @@ function renderRevertido(){
     const hideRevertido=!packageMode&&configuredMetaPct>0;
     const metaPct=metaRaw?Math.max(0,parseBRNumber(metaRaw)):0;
     const metaBaseV=(b.metaBase!==undefined?b.metaBase:b.baseBefore);
-    const metaReduction=metaBaseV*metaPct/100;
+    const metaReduction=metaBaseV*metaReducaoFrac(metaPct);
     const metaValueTarget=Math.max(0,metaBaseV-metaReduction);
     const metaNow=(b.metaCurrent!==undefined?b.metaCurrent:b.baseCurrent);
     const reducedValue=Math.max(0,metaBaseV-metaNow);
