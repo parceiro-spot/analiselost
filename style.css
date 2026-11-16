@@ -1686,3 +1686,6 @@ body.is-importing .import-ok-btn{cursor:wait;opacity:.75}
 /* Barra de rolagem horizontal: continua existindo e fica sempre visível no rodapé da tela. */
 #baseOverlay #overlayTable>.table-scroll{overflow-x:scroll!important;overflow-y:auto!important}
 #baseOverlay #overlayTable>.table-scroll table{width:max-content;min-width:max(100%,1500px);max-width:none}
+
+/* Valores em R$ nunca quebram linha (centavos ficam na mesma linha do valor). */
+.pkg-table td strong,.table-scroll td strong,.rev-table td strong{white-space:nowrap!important;overflow-wrap:normal!important;word-break:keep-all!important}
