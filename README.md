@@ -62,6 +62,8 @@ Na lista confirmada, clique em uma base para ver o gráfico com o valor diário 
 
 As duas abas calculam a meta sobre o valor da **primeira planilha da semana** (segunda-feira) ou, se a meta foi ativada no meio da semana, da primeira planilha a partir do dia da ativação. Na coluna **Meta da semana** do Valor Revertido aparecem: valor no início da semana, meta (quanto reduzir), quanto já reduziu e quanto falta. Pacotes que entraram há menos de 24h não contam na meta.
 
+Quando uma base não existe na primeira planilha da semana, ela começa com base zero e passa a ter sua própria base de cálculo na primeira planilha em que aparece com valor. Na captura do Valor Revertido, a câmera e o botão **Copiar print** mostram somente os nomes das bases exibidas pelo filtro de situação e regional selecionados, sem aplicar o filtro de valor mínimo.
+
 ## REPORT LOST: reconhecimento de XPT
 
 A planilha REPORT LOST (`report_lost_on_route_*.csv`) é a única necessária para Pacotes em Rota / LOST. Ela não tem coluna "XPT": a base XPT vem em **Centro de destino** (códigos iniciados por `E`, ex.: EMG40, ERJ2). Regra aplicada na importação:

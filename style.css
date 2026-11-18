@@ -1266,6 +1266,11 @@ img,svg,canvas,video{max-width:100%}
 #revOfmNames .rev-sel-names-title{font-size:11px;margin-bottom:4px}
 #revOfmNames .rev-sel-names-row{font-size:10.5px;line-height:1.45}
 #revOfmNames .rev-sel-names-row b{margin-right:6px}
+.rev-capture-names{box-sizing:border-box;padding:24px 28px;background:var(--bg-main);color:var(--text-primary);font-family:inherit;min-width:420px;max-width:900px}
+.rev-capture-names .rev-capture-title{font-size:18px;font-weight:800;margin-bottom:14px;color:var(--spot-green)}
+.rev-capture-names .rev-capture-regional{font-size:15px;line-height:1.8;padding:8px 0;border-bottom:1px solid var(--border-color)}
+.rev-capture-names .rev-capture-regional:last-child{border-bottom:0}
+.rev-capture-names .rev-capture-regional b{display:block;color:var(--spot-green);font-size:13px;text-transform:uppercase;letter-spacing:.5px}
 
 /* Célula da meta: linhas com rótulo e valor */
 .rev-meta-column{min-width:230px}

@@ -2808,30 +2808,51 @@ function regMetaSince(){ try{ return localStorage.getItem('spot_dashboard_meta_s
 function regMetaBaseline(activeImp){
   const pct=regMetaPct(); if(!pct||!activeImp||!activeImp.importDate) return null;
   const D=activeImp.importDate, monday=weekMondayOf(D);
-  /* Reconhecida automaticamente: a PRIMEIRA planilha da semana (segunda-feira ou, se não houver planilha de
-     segunda, a primeira que existir depois), pelo horário do arquivo. Vale mesmo colando vários arquivos de uma vez. */
-  const seq=IMPORTS.filter(i=>i.importDate>=monday&&i.importDate<=D).slice().sort(compareMainImports);
-  const first=seq[0];
-  const stored=WEEK_BASELINES[monday];
-  const useStored=!!stored&&stored.importDate<=D&&(!first||stored.order<=weekOrderKey(first));
-  if(!useStored&&!first) return null;
-  let byBase={}, firstKeys=new Set(), startDay, startTime, startFile;
-  if(useStored){
-    byBase={...stored.byBase}; firstKeys=new Set(stored.keys||[]); startDay=stored.importDate; startTime=stored.time; startFile=stored.fileName;
-  } else {
-    (first.entries||[]).forEach(e=>{byBase[e.base]=(byBase[e.base]||0)+(Number(e.valor)||0); const k=String(e.pacote||'').trim(); if(k) firstKeys.add(k);});
-    startDay=first.importDate; startTime=fmtClockMins(mainImportClockMinutes(first)); startFile=first.fileName||'';
+  /* A base pode nascer depois da primeira planilha da semana. Nesse caso,
+     o zero inicial não é uma base de cálculo: a meta começa na primeira
+     planilha em que aquela base realmente aparece com valor. */
+  const seq=IMPORTS.filter(i=>i.importDate>=monday&&i.importDate<=D).slice().sort((a,b)=>weekOrderKey(a).localeCompare(weekOrderKey(b)));
+  const stored=WEEK_BASELINES[monday], byBase={}, firstKeysByBase={}, baseStart={};
+  if(stored){
+    Object.keys(stored.byBase||{}).forEach(base=>{
+      const value=Number(stored.byBase[base])||0; if(value<=0)return;
+      byBase[base]=value;
+      /* O registro antigo guarda os pacotes da primeira planilha, mesmo se
+         essa planilha já tiver sido substituída no armazenamento atual. */
+      firstKeysByBase[base]=new Set(stored.keys||[]);
+      baseStart[base]={day:stored.importDate,time:stored.time,file:stored.fileName||''};
+    });
   }
-  /* Valor atual e carência de 24h (pacote novo na semana não conta), iguais ao Valor Revertido. */
-  const currentByBase={}, graceByBase={}, activeTs=revImportTimestamp(activeImp), firstSeen=revFirstSeenMap(D,activeImp);
-  (activeImp.entries||[]).forEach(e=>{
-    const v=Number(e.valor)||0; currentByBase[e.base]=(currentByBase[e.base]||0)+v;
-    const k=String(e.pacote||'').trim(), fs=firstSeen.get(k);
-    if(k&&!firstKeys.has(k)&&fs&&(activeTs-fs.timestamp)/3600000<24) graceByBase[e.base]=(graceByBase[e.base]||0)+v;
+  seq.forEach(imp=>{
+    const sums={}, keys={};
+    (imp.entries||[]).forEach(e=>{
+      const base=String(e.base||'').trim(), value=Number(e.valor)||0, key=String(e.pacote||'').trim();
+      if(!base||value<=0)return;
+      sums[base]=(sums[base]||0)+value;
+      if(key)(keys[base]||(keys[base]=[])).push(key);
+    });
+    Object.keys(sums).forEach(base=>{
+      if(byBase[base]!==undefined)return;
+      byBase[base]=sums[base];
+      firstKeysByBase[base]=new Set(keys[base]||[]);
+      baseStart[base]={day:imp.importDate,time:fmtClockMins(mainImportClockMinutes(imp)),file:imp.fileName||''};
+    });
   });
-  return {pct,byBase,startDay,startTime,startFile,currentByBase,graceByBase};
+  if(!Object.keys(byBase).length)return null;
+  const starts=Object.values(baseStart).sort((a,b)=>(a.day+'|'+a.time).localeCompare(b.day+'|'+b.time));
+  const start=starts[0]||{};
+  const currentByBase={}, graceByBase={}, activeTs=revImportTimestamp(activeImp);
+  const firstSeen=revFirstSeenMap(D,activeImp);
+  (activeImp.entries||[]).forEach(e=>{
+    const base=String(e.base||'').trim(), v=Number(e.valor)||0;
+    if(!base)return;
+    currentByBase[base]=(currentByBase[base]||0)+v;
+    const k=String(e.pacote||'').trim(), fs=firstSeen.get(k), baselineKeys=firstKeysByBase[base]||new Set();
+    if(k&&!baselineKeys.has(k)&&fs&&(activeTs-fs.timestamp)/3600000<24) graceByBase[base]=(graceByBase[base]||0)+v;
+  });
+  return {pct,byBase,startDay:start.day||'',startTime:start.time||'',startFile:start.file||'',baseStart,currentByBase,graceByBase};
 }
-function metaBaselineLabel(bl){ if(!bl||!bl.startDay) return ''; return bl.startDay.slice(8,10)+'/'+bl.startDay.slice(5,7)+(bl.startTime?' · '+bl.startTime:''); }
+function metaBaselineLabel(bl,base){ const item=base&&bl?.baseStart?.[base]||bl; if(!item||!item.day) return ''; return item.day.slice(8,10)+'/'+item.day.slice(5,7)+(item.time?' · '+item.time:''); }
 function regMetaLine(bl,filterFn,label){
   if(!bl) return '';
   let base=0, atual=0, grace=0, cheio=0;
@@ -2983,7 +3004,8 @@ document.getElementById('diariaRegional').addEventListener('change', renderDiari
 document.getElementById('diariaOrigem').addEventListener('change', renderDiaria);
 document.getElementById('diariaOrdem').addEventListener('change', renderDiaria);
 document.getElementById('diariaTipoToggle').addEventListener('click', function(e){ const btn=e.target.closest('.toggle-btn'); if(!btn) return; document.querySelectorAll('#diariaTipoToggle .toggle-btn').forEach(b=>b.classList.toggle('active',b===btn)); renderDiaria(); });
-[['btnCapturaGeral','#page-geral','pagina-inicial'],['btnCapturaOfensores','#page-ofensores','ofensores-por-regional'],['btnCapturaDiaria','#page-diaria','visao-diaria'],['btnCapturaAnalise','#page-analise','analise'],['btnCapturaAnaliseTopo','#page-analise','analise'],['btnCapturaRevertido','#page-revertido','pacote-revertido']].forEach(([id,selector,name])=>document.getElementById(id)?.addEventListener('click',()=>captureDashboardElement(selector,name)));
+[['btnCapturaGeral','#page-geral','pagina-inicial'],['btnCapturaOfensores','#page-ofensores','ofensores-por-regional'],['btnCapturaDiaria','#page-diaria','visao-diaria'],['btnCapturaAnalise','#page-analise','analise'],['btnCapturaAnaliseTopo','#page-analise','analise']].forEach(([id,selector,name])=>document.getElementById(id)?.addEventListener('click',()=>captureDashboardElement(selector,name)));
+document.getElementById('btnCapturaRevertido')?.addEventListener('click',()=>{ const box=document.getElementById('revCaptureNames'); if(!box||box.hidden){alert('Nenhuma base encontrada para os filtros selecionados.');return;} captureDashboardElement('#revCaptureNames','valor-revertido-bases'); });
 
 /* ===== Botão COPIAR PRINT ao lado de cada botão de câmera (mesma captura, sem salvar) ===== */
 (function(){
@@ -3321,6 +3343,17 @@ function dayTimestampForEntry(entry,day,horaMin){
   const imp=entry?IMPORTS.find(i=>i.importDate===entry.importDate&&i.turno===entry.turno):null;
   return imp?revImportTimestamp(imp):(new Date(day+'T00:00:00').getTime()+(Number(horaMin)||0)*60000);
 }
+function renderRevCaptureNames(rows,status,reg){
+  const box=document.getElementById('revCaptureNames'); if(!box)return;
+  const names=Array.from(new Set((rows||[]).map(r=>String(r.base||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  if(!names.length){box.hidden=true;box.innerHTML='';return;}
+  const groups={}; names.forEach(base=>{const regional=regionalFromBasePrefix(base)||'OUTROS';(groups[regional]||(groups[regional]=[])).push(base);});
+  const order=REGIONAL_ORDER.concat(Object.keys(groups).filter(r=>!REGIONAL_ORDER.includes(r)));
+  const statusLabel=status==='red'?'Não bateu a meta':status==='green'?'Atingiu a meta':status==='removed'?'Saiu sem confirmação':status==='orange'?'Em prazo':'Todas as situações';
+  const regionalLabel=reg&&reg!=='TODOS'?(REGIONAL_LABELS[reg]||reg):'Todas as regionais';
+  box.innerHTML='<div class="rev-capture-title">Bases · '+escHtml(statusLabel)+' · '+escHtml(regionalLabel)+'</div>'+order.filter(r=>groups[r]?.length).map(r=>'<div class="rev-capture-regional"><b>'+escHtml(REGIONAL_LABELS[r]||r)+'</b><span>'+groups[r].map(escHtml).join(' · ')+'</span></div>').join('');
+  box.hidden=false;
+}
 function renderRevertido(){
   
   const dates=availableImportDates(), atual=document.getElementById('revAtual'), comp=document.getElementById('revComparar'), regSel=document.getElementById('revRegional'), baseSel=document.getElementById('revBase'), origemSel=document.getElementById('revOrigem');
@@ -3522,6 +3555,9 @@ function renderRevertido(){
   const valueMinRaw=document.getElementById('revValorMin')?.value.trim()||'';
   const valueMin=valueMinRaw?parseBRNumber(valueMinRaw):null;
   const selectedStatus=revStatusFilter;
+  /* A captura usa o filtro de situação/regional, mas ignora o limite em R$:
+     ela serve para enviar apenas os nomes das bases, independentemente do valor. */
+  renderRevCaptureNames(categoryRows,selectedStatus,reg);
   const visibleRows=categoryRows.filter(r=>{const amount=selectedStatus==='red'?(packageMode?(r.nonRevertedValue||0):(r.valueNonReverted||0)):(selectedStatus==='green'?(packageMode?(r.reverted||0):(r.valueReverted||0)):(selectedStatus==='removed'?(r.removedUnconfirmed||0):(r.baseCurrent||0)));return valueMin===null||ofmAtivo||amount>=valueMin;});
   const sumBy=f=>visibleRows.reduce((s,r)=>s+f(r),0);
   const totalPackages=sumBy(r=>(r.packageTotal||0));
@@ -3626,7 +3662,7 @@ function renderRevertido(){
       : '';
     const metaCell=(metaPct>0
       ? '<td class="rev-meta-column"><div class="meta-box">'
-        +metaLinha('Início da semana'+(metaBL&&metaBL.startDay?' ('+metaBaselineLabel(metaBL)+')':''),fmtBRL(metaBaseV),'')
+        +metaLinha('Início da semana'+(metaBL&&metaBL.startDay?' ('+metaBaselineLabel(metaBL,b.base)+')':''),fmtBRL(metaBaseV),'')
         +metaLinha('META',fmtBRL(metaReduction),'meta-alvo')
         +metaJaReduziu+metaFalta
         +'<span class="meta-badge '+(metaHit?'meta-badge-ok':'meta-badge-pending')+'">'+(metaHit?'Meta atingida':'Meta não atingida')+'</span>'
