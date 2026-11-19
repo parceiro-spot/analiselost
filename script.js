@@ -308,7 +308,10 @@ function normalizeReturnHeader(v){
 const RETURN_PKG_KEY_RE=/^(ID|ID_?(DO_|DE_)?(PACOTE|SHIPMENT|ENVIO)|ENVIO|PACOTE(_ID)?|N_?(DO_)?PACOTE|NUMERO_(DO_)?PACOTE|COD(IGO)?_(DO_)?PACOTE|SHIPMENT(_ID)?|SHP_SHIPMENT_ID)$/;
 const RETURN_JUST_KEY_RE=/^(JUSTIFICATIVAS?(_.*)?|OBSERVACAO(_.*)?|OBSERVACOES(_.*)?|OBS|COMENTARIOS?|RAZAO|MOTIVO)$/;
 const RETURN_SITUATION_KEY_RE=/^(?:SITUACAO|SITUATION|STATUS|FILA)(?:_|$)/;
-const SITUATION_OPTIONS=[{label:'Para solução de problema',color:'#f3d316',font:'#1d1d1d'},{label:'Despachar',color:'#f3d316',font:'#1d1d1d'},{label:'Faltante',color:'#ff8a00',font:'#111111'},{label:'Não encontrado no ato do carregamento',color:'#ef3f56',font:'#ffffff'},{label:'Parado',color:'#ff8a00',font:'#111111'},{label:'Em rota de entrega',color:'#9be15d',font:'#163300'},{label:'Entregue',color:'#00a83b',font:'#ffffff'},{label:'Em outra base',color:'#f3d316',font:'#1d1d1d'},{label:'Para devolver',color:'#c7a0ff',font:'#24103f'},{label:'Devolução',color:'#8e44ad',font:'#ffffff'},{label:'Devolução | Comprador recusou',color:'#5b176f',font:'#ffffff'},{label:'Perdido',color:'#ef3f56',font:'#ffffff'},{label:'Outros',color:'#4da3ff',font:'#07182d'}];
+const DEFAULT_SITUATION_OPTIONS=[{label:'Para solução de problema',color:'#f3d316',font:'#1d1d1d'},{label:'Despachar',color:'#f3d316',font:'#1d1d1d'},{label:'Faltante',color:'#ff8a00',font:'#111111'},{label:'Não encontrado no ato do carregamento',color:'#ef3f56',font:'#ffffff'},{label:'Parado',color:'#ff8a00',font:'#111111'},{label:'Em rota de entrega',color:'#9be15d',font:'#163300'},{label:'Entregue',color:'#00a83b',font:'#ffffff'},{label:'Em outra base',color:'#f3d316',font:'#1d1d1d'},{label:'Para devolver',color:'#c7a0ff',font:'#24103f'},{label:'Devolução',color:'#8e44ad',font:'#ffffff'},{label:'Devolução | Comprador recusou',color:'#5b176f',font:'#ffffff'},{label:'Perdido',color:'#ef3f56',font:'#ffffff'},{label:'Outros',color:'#4da3ff',font:'#07182d'}];
+const SITUATION_STORAGE_KEY='spot-situation-options-v1';
+let SITUATION_OPTIONS=(()=>{try{const saved=JSON.parse(localStorage.getItem(SITUATION_STORAGE_KEY)||'null');return Array.isArray(saved)&&saved.length?saved:DEFAULT_SITUATION_OPTIONS;}catch(_){return DEFAULT_SITUATION_OPTIONS;}})();
+function saveSituationOptions(){try{localStorage.setItem(SITUATION_STORAGE_KEY,JSON.stringify(SITUATION_OPTIONS));}catch(e){console.warn('Não foi possível salvar as situações',e);}}
 const SITUATION_BY_LABEL=Object.fromEntries(SITUATION_OPTIONS.map(item=>[item.label,item]));
 function isReturnSituationKey(k){ return RETURN_SITUATION_KEY_RE.test(k); }
 const RETURN_SITUATION_PRIMARY_RE=/^(?:SITUACAO|SITUATION|STATUS)(?:_|$)/;
@@ -1777,7 +1780,7 @@ function infoLogisticFocusMatches(entry){
   }catch(_){return false;}
 }
 function situationClass(value){ const i=SITUATION_OPTIONS.findIndex(item=>item.label===String(value||'')); return i>=0?'situation-'+i:'situation-empty'; }
-function situationSelectHtml(entry,row){ const value=String(row?.situacao||''); const options='<option value="">Selecionar</option>'+SITUATION_OPTIONS.map(item=>'<option value="'+escHtml(item.label)+'" '+(item.label===value?'selected':'')+'>'+escHtml(item.label)+'</option>').join(''); return '<select class="situation-select '+situationClass(value)+'" data-situation-pacote="'+escHtml(entry.pacote||'')+'" data-situation-base="'+escHtml(entry.base||'')+'" aria-label="Situação (lista clicável)">'+options+'</select>'; }
+function situationSelectHtml(entry,row){ const value=String(row?.situacao||''); const item=SITUATION_OPTIONS.find(o=>o.label===value); const inline=item?' style="background:'+escHtml(item.color)+';color:'+escHtml(item.font||'#111111')+'"':''; const options='<option value="">Selecionar</option>'+SITUATION_OPTIONS.map(item=>'<option value="'+escHtml(item.label)+'" '+(item.label===value?'selected':'')+'>'+escHtml(item.label)+'</option>').join(''); return '<select class="situation-select '+situationClass(value)+'"'+inline+' data-situation-pacote="'+escHtml(entry.pacote||'')+'" data-situation-base="'+escHtml(entry.base||'')+'" aria-label="Situação (lista clicável)">'+options+'</select>'; }
 function situationStyle(value){ return situationClass(value); }
 const OVERLAY_PAGE_SIZE=100;
 function renderPackageTable(entries, limit=entries.length, rowsOnly=false, tableFlags={}){
@@ -2005,7 +2008,7 @@ function renderOverlayDriverDetail(driverId, faixa){
   document.getElementById('overlayBody').appendChild(panel); document.getElementById('overlayDriverClose').addEventListener('click',()=>panel.remove()); setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),20);
 }
 document.getElementById('overlayBody').addEventListener('change', function(e){ if(e.target?.dataset?.justPhoto){ attachJustificationPhoto(e.target); return; } if(e.target?.dataset?.situationPacote) updateSituation(e.target); });
-async function updateSituation(select){ const scroll=captureOverlayScroll(); const pacote=select.dataset.situationPacote||'',base=select.dataset.situationBase||'',value=SITUATION_BY_LABEL[select.value]?select.value:''; select.className='situation-select '+situationClass(value); const sheet=ensureReturnSheetForActiveDate(); let row=findReturnRow(pacote,base); if(!row){row={pacote:normalizePackageKey(pacote),base:normalizeBaseCode(base||''),justificativa:'',situacao:'',photo:null};sheet.rows.push(row);} row.situacao=value; row.manualEditedAt=new Date().toISOString(); row.updatedAt=new Date().toISOString(); await persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI(); }
+async function updateSituation(select){ const scroll=captureOverlayScroll(); const pacote=select.dataset.situationPacote||'',base=select.dataset.situationBase||'',value=SITUATION_BY_LABEL[select.value]?select.value:''; select.className='situation-select '+situationClass(value); const colorItem=SITUATION_BY_LABEL[value]; select.style.backgroundColor=colorItem?.color||''; select.style.color=colorItem?.font||''; const sheet=ensureReturnSheetForActiveDate(); let row=findReturnRow(pacote,base); if(!row){row={pacote:normalizePackageKey(pacote),base:normalizeBaseCode(base||''),justificativa:'',situacao:'',photo:null};sheet.rows.push(row);} row.situacao=value; row.manualEditedAt=new Date().toISOString(); row.updatedAt=new Date().toISOString(); await persistReturnSheets(); renderOverlayBody(); restoreOverlayScroll(scroll); updateImportUI(); }
 
 const renderOverlayBodyDebounced=debounceFn(()=>renderOverlayBody(),160);
 document.getElementById('overlayBody').addEventListener('input', function(e){
@@ -2509,7 +2512,7 @@ function buildSituationDxfs(){
   /* No dxf (formatação condicional) o preenchimento sólido usa bgColor; só com fgColor o Excel pinta de preto. Uma entrada por opção, na mesma ordem de SITUATION_OPTIONS (dxfId = índice). */
   return '<dxfs count="'+SITUATION_OPTIONS.length+'">'+SITUATION_OPTIONS.map(item=>'<dxf><font><b/><color rgb="'+argb(item.font)+'"/></font><fill><patternFill patternType="solid"><fgColor rgb="'+argb(item.color)+'"/><bgColor rgb="'+argb(item.color)+'"/></patternFill></fill></dxf>').join('')+'</dxfs>';
 }
-function situationStyleId(value){ const v=String(value||''); if(!v)return 4; if(v==='Para solução de problema'||v==='Despachar'||v==='Em outra base')return 23; if(v==='Faltante'||v==='Parado')return 24; if(v==='Não encontrado no ato do carregamento'||v==='Perdido')return 25; if(v==='Em rota de entrega')return 26; if(v==='Entregue')return 27; if(v==='Para devolver')return 28; if(v==='Devolução')return 29; if(v==='Devolução | Comprador recusou')return 30; if(v==='Outros')return 31; return 4; }
+function situationStyleId(value){ const v=String(value||''); return SITUATION_OPTIONS.some(item=>item.label===v)?4:4; }
 function diasStyle(dias){ if(dias<=2) return 5; if(dias===3) return 6; if(dias===4) return 7; if(dias===5) return 8; if(dias===6) return 12; if(dias===7) return 13; return 14; }
 function buildSheetXml(grupos, contexto, opts){
   const lost=Boolean(opts&&opts.lost), COLS=lost?LOST_XLSX_COLS:XLSX_COLS, N=COLS.length, LASTC=colName(N-1), valCol=lost?8:7;
@@ -3957,9 +3960,22 @@ const WEEKDAY_ABBR=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 document.getElementById('impDia').value=todayStr(); { const ld=document.getElementById('lostDia'); if(ld) ld.value=todayStr(); }
 
+
+function situationManagerHtml(){return '<section id="situationManager" class="situation-manager" hidden><div class="situation-manager-card" role="dialog" aria-modal="true" aria-labelledby="situationManagerTitle"><button type="button" class="situation-close" id="situationClose" aria-label="Fechar">×</button><h2 id="situationManagerTitle">Situações da planilha de retorno</h2><p>Adicione opções e escolha a cor de fundo. As alterações ficam salvas neste navegador e serão usadas no menu e na próxima planilha gerada.</p><div id="situationList" class="situation-list"></div><form id="situationForm" class="situation-form"><input id="situationNewLabel" maxlength="50" placeholder="Nova situação" aria-label="Nome da nova situação" required><label>Cor de fundo <input id="situationNewColor" type="color" value="#4da3ff" aria-label="Cor de fundo"></label><button type="submit">Adicionar situação</button></form></div></section><button type="button" id="situationManagerOpen" class="situation-manager-open">⚙ Situações</button>';}
+function initSituationManager(){
+ if(!document.getElementById('situationManager'))document.body.insertAdjacentHTML('beforeend',situationManagerHtml());
+ const modal=document.getElementById('situationManager'), list=document.getElementById('situationList');
+ const render=()=>{list.innerHTML=SITUATION_OPTIONS.map((o,i)=>'<div class="situation-option-row"><span class="situation-color-chip" style="background:'+escHtml(o.color)+';color:'+escHtml(o.font||'#111111')+'">'+escHtml(o.label)+'</span><button type="button" class="situation-delete" data-situation-delete="'+i+'" title="Excluir '+escHtml(o.label)+'" aria-label="Excluir '+escHtml(o.label)+'">×</button></div>').join('');};
+ document.getElementById('situationManagerOpen').addEventListener('click',()=>{render();modal.hidden=false;});
+ document.getElementById('situationClose').addEventListener('click',()=>modal.hidden=true);
+ modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true;const b=e.target.closest('[data-situation-delete]');if(!b)return;SITUATION_OPTIONS.splice(Number(b.dataset.situationDelete),1);Object.keys(SITUATION_BY_LABEL).forEach(k=>delete SITUATION_BY_LABEL[k]);SITUATION_OPTIONS.forEach(o=>SITUATION_BY_LABEL[o.label]=o);saveSituationOptions();render();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')modal.hidden=true;});
+ document.getElementById('situationForm').addEventListener('submit',e=>{e.preventDefault();const input=document.getElementById('situationNewLabel'),label=input.value.trim(),color=document.getElementById('situationNewColor').value;if(!label)return;if(SITUATION_OPTIONS.some(o=>o.label.toLocaleLowerCase()===label.toLocaleLowerCase())){alert('Essa situação já existe.');return;}if((SITUATION_OPTIONS.map(o=>o.label).concat(label).join(',')).length>250){alert('O limite de caracteres da lista de opções do Excel foi atingido. Exclua uma opção ou use nomes mais curtos.');return;}const hex=color.replace('#','');const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);const font=(r*299+g*587+b*114)/1000>150?'#111111':'#ffffff';SITUATION_OPTIONS.push({label,color,font});SITUATION_BY_LABEL[label]=SITUATION_OPTIONS[SITUATION_OPTIONS.length-1];saveSituationOptions();input.value='';render();});
+}
 /* ===== INICIALIZAÇÃO ===== */
 window.__spotRun(async function init(){
   initThemePicker();
+  initSituationManager();
   setupConfigurationPage();
   if(PUBLIC_VIEW_MODE) setPage('geral');
   const savedDrv=loadPersistedDriverMap();
