@@ -49,6 +49,9 @@ let offendersConfirmedBases=null;
 let selectedOffenderAnalysisBase='';
 let selectedOffenderAnalysisWeek='';
 let offendersHiddenPanelOpen=false;
+const REV_HIDDEN_KEY='spot_revertido_hidden_bases_v1'+MODE_SUFFIX;
+let revHiddenBases=new Set();
+let revHiddenPanelOpen=false;
 let chartOffendersWeekly=null;
 let regionalNav={level:'list', regional:null};
 let lostRouteNav={level:'list', regional:null};
@@ -436,11 +439,12 @@ function buildLostRoutesFromRawRows(rows){
   const colData=first('DATA','DATE','DATA_DE_ENTRADA_NO_LOR','DATA_INSUCESSO');
   const colMotivo=first('MOTIVO','MOTIVO_DA_NAO_ENTREGA','REASON','STATUS');
   const out=[];
+  const riskIdx=getRiskIndex(); /* índice único pacote→registro (antes: varria todas as planilhas a cada linha e travava o navegador) */
   for(let r=headerIndex+1;r<rows.length;r++){
     const row=rows[r]||[], pacote=normalizePackageKey(colPacote!==undefined?row[colPacote]:''); if(!pacote) continue;
     const origem=normalizeBaseCode(colOrig!==undefined?row[colOrig]:''); const destino=normalizeBaseCode(colDest!==undefined?row[colDest]:'');
     const resolved=resolveRouteBase(origem,destino,colBase!==undefined?row[colBase]:''); const base=resolved.base;
-    const risk=IMPORTS.flatMap(i=>i.entries||[]).find(e=>normalizePackageKey(e.pacote)===pacote);
+    const risk=riskIdx.get(pacote);
     const parsedDias=colDias!==undefined?parsePlanilhaDias(row[colDias]):null;
     const rawMotivo=colMotivo!==undefined?String(row[colMotivo]??'').trim():'';
     out.push({pacote,origem,destino,tipo:resolved.tipo,base:base||risk?.base||'',rota:colRota!==undefined?normalizePackageKey(row[colRota]):(risk?.rota||''),driverId:colDriver!==undefined?normalizePackageKey(row[colDriver]):(risk?.driverId||''),produto:colProduto!==undefined?String(row[colProduto]||'').trim():(risk?.produto||''),motivo:rawMotivo?friendlyReason(rawMotivo):(risk?.motivo||'Perdido em rota'),date:colData!==undefined?parseDateBR(row[colData]):new Date(),valor:colValor!==undefined?parseBRNumber(row[colValor]):Number(risk?.valor||0),dias:parsedDias??Number(risk?.dias||0),diasPlanilha:parsedDias,riskBase:risk?.base||'',riskDriverId:risk?.driverId||''});
@@ -788,6 +792,8 @@ function saveOffendersBucket(){ try{ localStorage.setItem(OFF_BUCKET_KEY, offend
 function loadOffendersBucket(){ try{ return localStorage.getItem(OFF_BUCKET_KEY)||'TODOS'; }catch(e){ return 'TODOS'; } }
 function offenderBaseKey(base){ return String(base||'').trim().toUpperCase(); }
 function loadOffendersHiddenBases(){ try{ const v=JSON.parse(localStorage.getItem(OFFENDERS_HIDDEN_KEY)||'[]'); return new Set(Array.isArray(v)?v.map(offenderBaseKey).filter(Boolean):[]); }catch(e){ return new Set(); } }
+function loadRevHiddenBases(){ try{ const v=JSON.parse(localStorage.getItem(REV_HIDDEN_KEY)||'[]'); return new Set(Array.isArray(v)?v.map(offenderBaseKey).filter(Boolean):[]); }catch(e){ return new Set(); } }
+function saveRevHiddenBases(){ try{ localStorage.setItem(REV_HIDDEN_KEY,JSON.stringify(Array.from(revHiddenBases).sort())); }catch(e){} }
 function saveOffendersHiddenBases(){ try{ localStorage.setItem(OFFENDERS_HIDDEN_KEY,JSON.stringify(Array.from(offendersHiddenBases).sort())); }catch(e){} }
 function loadConfirmedOffendersBases(){ try{ const raw=localStorage.getItem(OFFENDERS_CONFIRMED_KEY); if(!raw)return null; const v=JSON.parse(raw); return Array.isArray(v)?Array.from(new Map(v.map(x=>[offenderBaseKey(x),String(x||'').trim()]).filter(x=>x[0]&&x[1])).values()):null; }catch(e){ return null; } }
 function saveConfirmedOffendersBases(){ try{ if(Array.isArray(offendersConfirmedBases))localStorage.setItem(OFFENDERS_CONFIRMED_KEY,JSON.stringify(offendersConfirmedBases)); else localStorage.removeItem(OFFENDERS_CONFIRMED_KEY); }catch(e){} }
@@ -805,6 +811,10 @@ function extractFileTime(fileName){
 }
 function extractFileTurno(fileName){
   const name=String(fileName||'');
+  /* Palavra no nome do arquivo: ...19.11.2026-manhã.csv / ...-tarde.csv (com ou sem acento). */
+  const plainName=name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  if(/(^|[^a-z])manha([^a-z]|$)/.test(plainName)) return 'Manhã';
+  if(/(^|[^a-z])tarde([^a-z]|$)/.test(plainName)) return 'Tarde';
   const exact=extractFileTime(name);
   const withoutDate=name.replace(/20\d{2}[-_.]\d{1,2}[-_.]\d{1,2}/g,' ').replace(/(?:^|[^\d])\d{1,2}[-_.]\d{1,2}(?:[^\d]|$)/g,' ');
   const match=withoutDate.match(/(?:^|[_ ])([01]?\d)(?::([0-5]\d)|h([0-5]\d)?)?(?=[ _.-]|$)/i);
@@ -1128,7 +1138,7 @@ document.getElementById('fileInput').addEventListener('change', function(e){
 document.getElementById('btnConfirmImport').addEventListener('click',async function(){
   if(!pendingImportFiles.length)return;const files=pendingImportFiles.slice(),items=describeMainImportBatch(files);this.disabled=true;let imported=0,replaced=0;const errors=[];
   setMainImportProgress('Lendo a planilha de REPORT LOST / Pacote em Rota…',true);
-  ROUTE_SAVE_DEFERRED=items.length>1; ROUTE_SAVE_DIRTY=false; ROUTE_SAVE_CREATED_FALLBACK=false;
+  ROUTE_SAVE_DEFERRED=true; ROUTE_SAVE_DIRTY=false; ROUTE_SAVE_CREATED_FALLBACK=false;
   try{
     for(let i=0;i<items.length;i++){
       const item=items[i];this.textContent='Lendo '+(i+1)+'/'+items.length+'…';
@@ -1206,8 +1216,10 @@ document.getElementById('btnConfirmReturn').addEventListener('click',function(){
 ['input','change'].forEach(evt=>document.getElementById('lostDia').addEventListener(evt,()=>{lostDateManuallySet=true;}));
 function extractSingleFileDate(fileName){
   const name=String(fileName||'');
-  const dates=name.match(/20\d{2}[-_.]\d{1,2}[-_.]\d{1,2}/g)||[];
-  return dates.length===1?extractFileDate(name):null;
+  /* Aceita AAAA-MM-DD e também DD.MM.AAAA / DD_MM_AAAA / DD-MM-AAAA (ex.: 19.11.2026-manhã). */
+  const iso=name.match(/20\d{2}[-_.]\d{1,2}[-_.]\d{1,2}/g)||[];
+  const br=name.match(/(?:^|[^\d])\d{1,2}[-_.]\d{1,2}[-_.]20\d{2}(?![\d])/g)||[];
+  return (iso.length+br.length)===1?extractFileDate(name):null;
 }
 function bindLostUploadInput(id){
   const input=document.getElementById(id); if(!input)return;
@@ -1456,8 +1468,46 @@ function safeCaptureScale(width,height,isHome,dpr){
 /* Ajustes feitos só na cópia da página usada para gerar o PNG (a tela real não muda).
    O html2canvas não desenha direito: texto dentro de <select>, bordas laterais grossas
    com cantos arredondados, sombras com spread, gradientes finos e transições em andamento. */
-function prepareCaptureClone(doc){
+/* html2canvas 1.4.1 não entende cores modernas (color(srgb …) gerada por color-mix(), oklch, lab…): dá erro e o print não sai.
+   Aqui elas viram rgba() fixas, só na cópia usada para gerar o PNG. */
+function fixUnsupportedCaptureColors(doc,root){
   try{
+    const win=doc.defaultView; if(!win||!root) return;
+    const BAD=/(?:^|[^a-z-])(?:color-mix|color|oklch|oklab|lab|lch|hwb)\(/i;
+    const ALL=/(?:color-mix|color|oklch|oklab|lab|lch|hwb)\([^()]*\)/gi;
+    const cv=document.createElement('canvas'); cv.width=cv.height=1;
+    const ctx=cv.getContext('2d',{willReadFrequently:true});
+    const cache=new Map();
+    const conv=str=>{
+      if(cache.has(str)) return cache.get(str);
+      let out='rgba(0,0,0,0)';
+      const m=str.match(/^color\(\s*srgb\s+(-?[\d.]+(?:e-?\d+)?)\s+(-?[\d.]+(?:e-?\d+)?)\s+(-?[\d.]+(?:e-?\d+)?)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i);
+      if(m){
+        const c=v=>Math.max(0,Math.min(255,Math.round(parseFloat(v)*255)));
+        const a=m[4]===undefined?1:(m[4].endsWith('%')?parseFloat(m[4])/100:parseFloat(m[4]));
+        out='rgba('+c(m[1])+','+c(m[2])+','+c(m[3])+','+(+a.toFixed(3))+')';
+      }else if(ctx){
+        try{ ctx.clearRect(0,0,1,1); ctx.fillStyle='rgba(0,0,0,0)'; ctx.fillStyle=str; ctx.fillRect(0,0,1,1); const d=ctx.getImageData(0,0,1,1).data; out='rgba('+d[0]+','+d[1]+','+d[2]+','+(+(d[3]/255).toFixed(3))+')'; }catch(e){}
+      }
+      cache.set(str,out); return out;
+    };
+    const PROPS=['color','background-color','border-top-color','border-right-color','border-bottom-color','border-left-color','outline-color','text-decoration-color','caret-color','box-shadow','text-shadow','background-image','fill','stroke'];
+    const els=[root].concat(Array.from(root.querySelectorAll('*')));
+    els.forEach(el=>{
+      let cs; try{cs=win.getComputedStyle(el);}catch(e){return;}
+      PROPS.forEach(prop=>{
+        const v=cs.getPropertyValue(prop);
+        if(v&&BAD.test(v)) el.style.setProperty(prop,v.replace(ALL,conv),'important');
+      });
+    });
+  }catch(err){console.warn('Ajuste de cores da captura ignorado:',err);}
+}
+function prepareCaptureClone(doc,selector){
+  try{
+    const target=selector?doc.querySelector(selector):null;
+    /* Deixa a cópia leve: sem scripts (inclui o JSON grande de dados) e sem as outras abas da página. */
+    doc.querySelectorAll('script,noscript').forEach(n=>n.remove());
+    if(target) doc.querySelectorAll('.page').forEach(pg=>{ if(pg!==target&&!pg.contains(target)&&!target.contains(pg)) pg.remove(); });
     const st=doc.createElement('style');
     st.textContent='*{transition:none!important;animation:none!important}'+
       '.offenders-row{box-shadow:none!important;border:1px solid var(--border-color)!important;border-radius:14px!important;background:transparent!important;position:relative!important;overflow:hidden}'+
@@ -1471,6 +1521,8 @@ function prepareCaptureClone(doc){
     doc.querySelectorAll('.dashboard-planilha-toolbar,.active-planilha-controls,.active-planilha-badge').forEach(n=>n.remove());
     /* O botão Copiar print não aparece na imagem (a câmera continua como antes). */
     doc.querySelectorAll('.copy-print-btn').forEach(n=>n.remove());
+    /* Botões Ocultar / painel de bases ocultas são só da tela, não saem no print. */
+    doc.querySelectorAll('.offender-hide-btn,.rev-hide-btn,.offender-hidden-panel,.rev-hidden-panel,.rev-actions-col').forEach(n=>n.remove());
     if(!regMetaCaptureOn()) doc.querySelectorAll('.reg-meta').forEach(n=>n.remove());
     else doc.querySelectorAll('.reg-meta-extra').forEach(n=>n.remove());
     doc.querySelectorAll('.offenders-row').forEach(row=>{
@@ -1488,6 +1540,7 @@ function prepareCaptureClone(doc){
         'font:'+cs.font+';min-width:'+cs.minWidth+';max-width:'+cs.maxWidth;
       sel.parentNode.replaceChild(box,sel);
     });
+    fixUnsupportedCaptureColors(doc,target||doc.body);
   }catch(err){console.warn('Ajuste da captura ignorado:',err);}
 }
 const CAPTURE_LAYOUT_WIDTH=1600;
@@ -1495,6 +1548,10 @@ const CAPTURE_LAYOUT_WIDTH=1600;
    A captura é a mesma; só muda o destino (área de transferência em vez de arquivo). */
 let captureCopyMode=false;
 function showCaptureToast(msg,ms){ showExportBusy(msg); if(ms) setTimeout(hideExportBusy,ms); }
+function downloadCaptureBlob(blob,filename){
+  const a=document.createElement('a'), url=URL.createObjectURL(blob);
+  a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=url; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
 async function captureDashboardElement(selector,filename){
   const copyMode=captureCopyMode; captureCopyMode=false;
   const alvo=document.querySelector(selector); if(!alvo)return;
@@ -1503,13 +1560,17 @@ async function captureDashboardElement(selector,filename){
   let copyDeferred=null;
   if(copyMode){
     if(!(navigator.clipboard&&window.ClipboardItem&&window.isSecureContext)){
-      alert('Seu navegador não permite copiar imagem aqui. Use a câmera para salvar o print (copiar funciona em https e em navegadores atuais).');return;
+      /* Sem permissão para copiar (ex.: arquivo aberto direto do computador): salva o PNG em vez de falhar. */
+      showCaptureToast('Este navegador não permite copiar imagem aqui; vou salvar o print como arquivo PNG…');
+    }else{
+      try{
+        let res,rej; const promise=new Promise((a,b)=>{res=a;rej=b;});
+        copyDeferred={promise,res,rej};
+        copyDeferred.written=navigator.clipboard.write([new ClipboardItem({'image/png':promise})]);
+        copyDeferred.written.catch(()=>{});
+        showCaptureToast('Gerando print para copiar…');
+      }catch(clipErr){ console.warn('Clipboard indisponível, vou salvar o arquivo:',clipErr); copyDeferred=null; showCaptureToast('Gerando print…'); }
     }
-    let res,rej; const promise=new Promise((a,b)=>{res=a;rej=b;});
-    copyDeferred={promise,res,rej};
-    copyDeferred.written=navigator.clipboard.write([new ClipboardItem({'image/png':promise})]);
-    copyDeferred.written.catch(()=>{});
-    showCaptureToast('Gerando print para copiar…');
   }
   const previous={overflow:alvo.style.overflow,height:alvo.style.height,maxHeight:alvo.style.maxHeight,display:alvo.style.display,position:alvo.style.position,padding:alvo.style.padding,boxSizing:alvo.style.boxSizing,background:alvo.style.background};
   const isHome=selector==='#page-geral';
@@ -1530,9 +1591,10 @@ async function captureDashboardElement(selector,filename){
     const estWidth=fixedLayout?captureWindowWidth:scrollWidth, estHeight=fixedLayout?scrollHeight*Math.max(1,captureWindowWidth/Math.max(1,scrollWidth)):scrollHeight; /* só para limitar a resolução */
     const baseScale=safeCaptureScale(estWidth,estHeight,isHome,window.devicePixelRatio), scales=Array.from(new Set([baseScale,Math.min(baseScale,1),Math.min(baseScale,.7)]));
     let blob=null,lastError=null;
-    for(const scale of scales){
+    for(const scale of scales.concat([-1])){
       try{
-        const canvas=await html2canvas(alvo,{backgroundColor:cssColor('--bg-main','#080808'),scale,useCORS:true,logging:false,allowTaint:false,...(fixedLayout?{}:{width:scrollWidth,height:scrollHeight}),windowWidth:captureWindowWidth,windowHeight:Math.max(scrollHeight,window.innerHeight),scrollX:0,scrollY:0,onclone:prepareCaptureClone});
+        const lastTry=scale===-1; /* última tentativa: renderização alternativa do navegador */
+        const canvas=await html2canvas(alvo,{foreignObjectRendering:lastTry,backgroundColor:cssColor('--bg-main','#080808'),scale:lastTry?1:scale,useCORS:true,logging:false,allowTaint:false,...(fixedLayout?{}:{width:scrollWidth,height:scrollHeight}),windowWidth:captureWindowWidth,windowHeight:Math.max(scrollHeight,window.innerHeight),scrollX:0,scrollY:0,onclone:d=>prepareCaptureClone(d,selector)});
         blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
         if(!blob)throw new Error('O navegador não conseguiu gerar a imagem PNG.');
         break;
@@ -1541,16 +1603,24 @@ async function captureDashboardElement(selector,filename){
     if(!blob)throw lastError||new Error('Não foi possível gerar a captura.');
     if(copyDeferred){
       copyDeferred.res(blob);
-      await copyDeferred.written;
-      showCaptureToast('Print copiado! É só colar (Ctrl+V).',2500);
+      try{
+        await copyDeferred.written;
+        showCaptureToast('Print copiado! É só colar (Ctrl+V).',2500);
+      }catch(clipErr){
+        /* O navegador recusou copiar: não perde o print, salva o PNG. */
+        console.warn('Não deu para copiar para a área de transferência; salvando arquivo.',clipErr);
+        downloadCaptureBlob(blob,filename);
+        showCaptureToast('Não consegui copiar automaticamente. O print foi salvo como arquivo PNG.',4500);
+      }
     }else{
-      const a=document.createElement('a'), url=URL.createObjectURL(blob);
-      a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.png'; a.href=url; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),10000);
+      downloadCaptureBlob(blob,filename);
+      hideExportBusy();
     }
   }catch(err){
     console.error('Erro ao capturar '+filename+':',err);
-    if(copyDeferred){copyDeferred.rej(err);hideExportBusy();alert('Não foi possível copiar o print. Tente novamente ou use a câmera para salvar.');}
-    else alert('Não foi possível capturar a tela. Tente novamente; a captura agora ajusta a resolução automaticamente.');
+    const detail=err&&err.message?'\n\nDetalhe técnico: '+err.message:'';
+    if(copyDeferred){copyDeferred.rej(err);hideExportBusy();alert('Não foi possível gerar o print para copiar. Tente a câmera para salvar.'+detail);}
+    else{hideExportBusy();alert('Não foi possível capturar a tela. Tente novamente.'+detail);}
   }
   finally{alvo.style.overflow=previous.overflow;alvo.style.height=previous.height;alvo.style.maxHeight=previous.maxHeight;alvo.style.display=previous.display;alvo.style.position=previous.position;alvo.style.padding=previous.padding;alvo.style.boxSizing=previous.boxSizing;alvo.style.background=previous.background;}
 }
@@ -2190,9 +2260,12 @@ function renderOffenderConfirmBar(candidates,hasData){
   edit.hidden=!confirmed;
 }
 function renderHiddenOffendersPanel(data){
-  const hidden=(data||[]).flatMap(reg=>reg.bases.filter(b=>offendersHiddenBases.has(offenderBaseKey(b.base))).map(b=>({base:b.base,regional:reg.regional,valor:b.valor}))).sort((a,b)=>a.base.localeCompare(b.base));
+  const info=new Map();
+  (data||[]).forEach(reg=>reg.bases.forEach(b=>info.set(offenderBaseKey(b.base),{regional:reg.regional,valor:b.valor})));
+  const hidden=Array.from(offendersHiddenBases).sort().map(k=>({base:k,...(info.get(k)||{})}));
   if(!hidden.length) return '';
-  return `<section class="offender-hidden-panel"><button type="button" class="offender-hidden-toggle" data-toggle-offender-hidden aria-expanded="${String(offendersHiddenPanelOpen)}">Bases ocultadas (${fmtInt(hidden.length)}) · ${offendersHiddenPanelOpen?'recolher':'mostrar'}</button><div class="offender-hidden-list" style="display:${offendersHiddenPanelOpen?'flex':'none'}">${hidden.map(b=>`<div class="offender-hidden-row"><strong>${escHtml(b.base)}</strong><span>${escHtml(REGIONAL_LABELS[b.regional]||b.regional)}</span><span>${fmtBRL(b.valor)}</span><button type="button" class="offender-restore-btn" data-restore-offender="${escHtml(b.base)}">Mostrar novamente</button></div>`).join('')}</div></section>`;
+  const open=offendersHiddenPanelOpen;
+  return `<section class="offender-hidden-panel"><div class="hidden-panel-head"><button type="button" class="offender-hidden-toggle" data-toggle-offender-hidden aria-expanded="${String(open)}">Mostrar bases ocultas (${fmtInt(hidden.length)}) · ${open?'recolher lista':'ver lista'}</button><button type="button" class="offender-restore-btn" data-restore-all-offenders>Mostrar todas</button></div><div class="offender-hidden-list" style="display:${open?'flex':'none'}">${hidden.map(b=>`<div class="offender-hidden-row"><strong>${escHtml(b.base)}</strong><span>${b.regional?escHtml(REGIONAL_LABELS[b.regional]||b.regional):'fora da planilha atual'}</span><span>${b.valor===undefined?'—':fmtBRL(b.valor)}</span><button type="button" class="offender-restore-btn" data-restore-offender="${escHtml(b.base)}">Mostrar novamente</button></div>`).join('')}</div></section>`;
 }
 function offenderWeekEndDate(start){ const today=todayStr(); return start===weekMondayOf(today)?today:isoShift(start,6); }
 function renderConfirmedOffenders(){
@@ -2271,8 +2344,7 @@ function renderOffenders(){
     </div>`;
   });
   if(!algum) html='<div class="history-empty" style="padding:30px 0 10px;">Nenhuma base atende aos filtros atuais ou todas foram ocultadas. Ajuste os filtros ou mostre novamente uma base.</div>';
-  html+=renderHiddenOffendersPanel(data);
-  container.innerHTML=html;
+  container.innerHTML=renderHiddenOffendersPanel(data)+html;
   renderConfirmedOffenders();
 }
 const renderOffendersDebounced=debounceFn(()=>renderOffenders(),160);
@@ -2309,6 +2381,7 @@ document.getElementById('offendersList').addEventListener('click', function(e){
   if(hide){ offendersHiddenBases.add(offenderBaseKey(hide.dataset.hideOffender)); saveOffendersHiddenBases(); clearOffenderConfirmation(); renderOffenders(); return; }
   const restore=e.target.closest('[data-restore-offender]');
   if(restore){ offendersHiddenBases.delete(offenderBaseKey(restore.dataset.restoreOffender)); saveOffendersHiddenBases(); clearOffenderConfirmation(); renderOffenders(); return; }
+  if(e.target.closest('[data-restore-all-offenders]')){ offendersHiddenBases.clear(); saveOffendersHiddenBases(); clearOffenderConfirmation(); renderOffenders(); return; }
   const hiddenToggle=e.target.closest('[data-toggle-offender-hidden]');
   if(hiddenToggle){ offendersHiddenPanelOpen=!offendersHiddenPanelOpen; renderOffenders(); return; }
   const baseHead=e.target.closest('[data-open-base]');
@@ -3354,6 +3427,22 @@ function renderRevCaptureNames(rows,status,reg){
   box.innerHTML='<div class="rev-capture-title">Bases · '+escHtml(statusLabel)+' · '+escHtml(regionalLabel)+'</div>'+order.filter(r=>groups[r]?.length).map(r=>'<div class="rev-capture-regional"><b>'+escHtml(REGIONAL_LABELS[r]||r)+'</b><span>'+groups[r].map(escHtml).join(' · ')+'</span></div>').join('');
   box.hidden=false;
 }
+function renderRevHiddenPanel(allRows){
+  const el=document.getElementById('revHiddenPanel'); if(!el) return;
+  const list=Array.from(revHiddenBases).sort();
+  if(!list.length){ el.innerHTML=''; return; }
+  const info=new Map((allRows||[]).map(r=>[offenderBaseKey(r.base),r]));
+  const open=revHiddenPanelOpen;
+  el.innerHTML=`<section class="offender-hidden-panel rev-hidden-panel"><div class="hidden-panel-head"><button type="button" class="offender-hidden-toggle" data-toggle-rev-hidden aria-expanded="${String(open)}">Mostrar bases ocultas (${fmtInt(list.length)}) · ${open?'recolher lista':'ver lista'}</button><button type="button" class="offender-restore-btn" data-restore-all-rev>Mostrar todas</button></div><div class="offender-hidden-list" style="display:${open?'flex':'none'}">${list.map(k=>{const r=info.get(k),reg=r?r.reg:regionalFromBasePrefix(k);return `<div class="offender-hidden-row"><strong>${escHtml(k)}</strong><span>${reg?escHtml(REGIONAL_LABELS[reg]||reg):'—'}</span><span>${r?'Valor atual '+fmtBRL(r.baseCurrent):'fora do período/planilha atual'}</span><button type="button" class="offender-restore-btn" data-restore-rev="${escHtml(k)}">Mostrar novamente</button></div>`;}).join('')}</div></section>`;
+}
+document.addEventListener('click',function(e){
+  const hide=e.target.closest('[data-hide-rev]');
+  if(hide){ revHiddenBases.add(offenderBaseKey(hide.dataset.hideRev)); saveRevHiddenBases(); renderRevertido(); return; }
+  const restore=e.target.closest('[data-restore-rev]');
+  if(restore){ revHiddenBases.delete(offenderBaseKey(restore.dataset.restoreRev)); saveRevHiddenBases(); renderRevertido(); return; }
+  if(e.target.closest('[data-restore-all-rev]')){ revHiddenBases.clear(); saveRevHiddenBases(); renderRevertido(); return; }
+  if(e.target.closest('[data-toggle-rev-hidden]')){ revHiddenPanelOpen=!revHiddenPanelOpen; renderRevertido(); return; }
+});
 function renderRevertido(){
   
   const dates=availableImportDates(), atual=document.getElementById('revAtual'), comp=document.getElementById('revComparar'), regSel=document.getElementById('revRegional'), baseSel=document.getElementById('revBase'), origemSel=document.getElementById('revOrigem');
@@ -3365,7 +3454,7 @@ function renderRevertido(){
   if(!atual.value)atual.value=todayStr();
   if(typeof revSyncPlanilha==='function')revSyncPlanilha();
   if(!comp.value){const todayWeekday=new Date(atual.value+'T00:00:00').getDay();comp.value=isoShift(atual.value,todayWeekday===0?-6:1-todayWeekday);}
-  if(!dates.length){setRevPeriodo((revViewMode==='pacote'?'Pacote Revertido':'Valor Revertido')+' — sem dados importados');document.getElementById('revBody').innerHTML='<tr><td colspan="13" class="history-empty">Escolha datas no calendário; importe os pacotes para comparar.</td></tr>';return;}
+  if(!dates.length){setRevPeriodo((revViewMode==='pacote'?'Pacote Revertido':'Valor Revertido')+' — sem dados importados');document.getElementById('revBody').innerHTML='<tr><td colspan="14" class="history-empty">Escolha datas no calendário; importe os pacotes para comparar.</td></tr>';return;}
   if(atual.value<comp.value){const temp=atual.value;atual.value=comp.value;comp.value=temp;}
   const reg=regSel.value;
   const origem=origemSel.value;
@@ -3389,7 +3478,7 @@ function renderRevertido(){
     setRevPeriodo('Valor Revertido · '+fmtFull(comp.value)+' até '+fmtFull(atual.value)+' · nenhuma planilha importada neste intervalo');
     document.getElementById('revValorEstava').textContent=revViewMode==='valor'?'R$ 0,00':'0';document.getElementById('revValor').textContent=revViewMode==='valor'?'R$ 0,00':'0';document.getElementById('revRisco').textContent=revViewMode==='valor'?'R$ 0,00':'0,0%';
     ['revBases','revPersistentesSemRisco','revPersistentesComRisco'].forEach(id=>{document.getElementById(id).textContent=fmtInt(0);});
-    document.getElementById('revBody').innerHTML='<tr><td colspan="11" class="history-empty">Não há planilha importada entre as datas selecionadas.</td></tr>';
+    document.getElementById('revBody').innerHTML='<tr><td colspan="14" class="history-empty">Não há planilha importada entre as datas selecionadas.</td></tr>';
     renderRevResumo([],()=>true,comp.value,atual.value,revStatusFilter);
     return;
   }
@@ -3517,7 +3606,7 @@ function renderRevertido(){
       metaHelp.textContent='Meta '+metaPctTxt+' · as '+metaBasesList.length+' bases terão que diminuir '+fmtBRL(metaReductionTotal)+' no total até sexta ('+metaFridayTxt+')';
     }
   }
-  const rows=Array.from(oneRowPerBase.values()).map(r=>{
+  const rowsBeforeHide=Array.from(oneRowPerBase.values()).map(r=>{
     const baseBefore=beforeByBase[r.base]||0, baseCurrent=currentByBase[r.base]||0;
     const baseDelta=baseCurrent-baseBefore, baseWithinValue=baseWithin[r.base]||0, baseRiskValue=baseRisk[r.base]||0;
     /* Remoções sem confirmação ficam separadas. Na visão de pacotes, a prioridade histórica é preservada. Na visão por valor,
@@ -3541,6 +3630,8 @@ function renderRevertido(){
   /* Ofensores da manhã: só ficam as bases que AINDA NÃO bateram a meta (quem já atingiu sai da listagem). */
   .filter(r=>!ofmAtivo||r.status!=='green')
   .sort((a,b)=>b.reverted-a.reverted||b.baseCurrent-a.baseCurrent||a.base.localeCompare(b.base));
+  /* Bases que a pessoa ocultou (botão Ocultar) saem da tabela, dos totais e do print; voltam em “Bases ocultas”. */
+  const rows=rowsBeforeHide.filter(r=>!revHiddenBases.has(offenderBaseKey(r.base)));
   /* No Valor Revertido, cada base pertence a uma única situação.
      Como o risco vencido tem prioridade, uma base mista fica somente em
      Não revertido e não aparece também no filtro Revertido. */
@@ -3565,7 +3656,7 @@ function renderRevertido(){
   const totalWithin=sumBy(r=>(r.baseWithin||0));
   const totalRisk=sumBy(r=>(r.baseRisk||0));
   const percent=(n,d)=>d?((n/d)*100).toFixed(1).replace('.',',')+'%':'0,0%';
-  const metricBases=revStatusFilter==='TODOS'?new Set([...visibleRows.map(r=>r.base),...Object.keys(baseWithin),...Object.keys(baseRisk)]):new Set(visibleRows.map(r=>r.base));
+  const metricBases=revStatusFilter==='TODOS'?new Set([...visibleRows.map(r=>r.base),...Object.keys(baseWithin),...Object.keys(baseRisk)].filter(b=>!revHiddenBases.has(offenderBaseKey(b)))):new Set(visibleRows.map(r=>r.base));
   const allPackages=Array.from(metricBases).reduce((n,base)=>n+(basePackageTotals[base]||0),0);
   const allReverted=Array.from(metricBases).reduce((n,base)=>n+(basePackageReverted[base]||0),0);
   const allWithin=Array.from(metricBases).reduce((n,base)=>n+(baseWithin[base]||0),0);
@@ -3622,10 +3713,11 @@ function renderRevertido(){
   document.getElementById('revColPercent').textContent=packageMode?'% Pacote Revertido':'';
   setRevPeriodo((packageMode?'Pacote Revertido':'Valor Revertido')+' · '+fmtFull(startDay)+' até '+fmtFull(endDay)+((startDay!==comp.value||endDay!==atual.value)?' · só há planilha de '+fmtFull(startDay)+' a '+fmtFull(endDay)+' dentro do intervalo pedido':''));
   const pkgSet=revStatusFilter==='TODOS'?null:new Set(visibleRows.flatMap(r=>Array.from(r.pkgs)));
-  renderRevResumo(rangeDates,e=>baseOk(e.base)&&valOk(e)&&(!pkgSet||pkgSet.has(pkgKey(e))),comp.value,atual.value,revStatusFilter);
+  renderRevResumo(rangeDates,e=>baseOk(e.base)&&!revHiddenBases.has(offenderBaseKey(e.base))&&valOk(e)&&(!pkgSet||pkgSet.has(pkgKey(e))),comp.value,atual.value,revStatusFilter);
   /* Acompanhamento é uma faixa intermediária usada no cálculo, mas não
      aparece como linha na tabela da visão por valor. */
   const tableRows=packageMode?visibleRows:visibleRows.filter(r=>r.status!=='orange');
+  renderRevHiddenPanel(rowsBeforeHide);
   document.getElementById('revBody').innerHTML=tableRows.length?tableRows.map(b=>{
     const total=b.packageTotal||0, reverted=b.packageReverted||0;
     const rowStatus=revStatusFilter==='green'?'green':(revStatusFilter==='red'?'red':b.status);
@@ -3669,8 +3761,8 @@ function renderRevertido(){
         +metaGraceTxt+'</div></td>'
       : '<td class="rev-meta-column">—</td>');
     const currentValueCell='<td class="rev-current-column '+(packageMode?'rev-value-hidden':'')+'">'+fmtBRL(b.baseCurrent)+'</td>';
-    return '<tr class="status-'+rowStatus+'"><td><span class="rev-status '+rowStatus+'"><i class="rev-dot '+rowStatus+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(b.baseBefore))+'</strong></td><td class="rev-col-revertido'+(hideRevertido?' rev-value-hidden':'')+'">'+(packageMode?fmtInt(reverted):'<span class="rev-value-trend '+valueTrend+'">'+valueText+'</span>')+'</td>'+currentValueCell+nonRevertedCell+metaCell+'<td class="rev-summary-col '+(packageMode?'':'rev-value-hidden')+'"><strong>'+(packageMode?percent(reverted,total):'')+'</strong></td><td class="'+(packageMode?'':'rev-value-hidden')+'">'+fmtInt(b.baseWithin)+'</td><td class="'+(packageMode?'':'rev-value-hidden')+'">'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td></tr>';
-  }).join(''):'<tr><td colspan="13" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
+    return '<tr class="status-'+rowStatus+'"><td><span class="rev-status '+rowStatus+'"><i class="rev-dot '+rowStatus+'"></i>'+statusLabel+'</span></td><td>'+escHtml(REGIONAL_LABELS[b.reg]||b.reg)+'</td><td><button type="button" class="rev-base-link" data-rev-base="'+escHtml(b.base)+'" title="Ver histórico da base">'+escHtml(b.base)+'</button></td><td><strong>'+(packageMode?fmtInt(total):fmtBRL(b.baseBefore))+'</strong></td><td class="rev-col-revertido'+(hideRevertido?' rev-value-hidden':'')+'">'+(packageMode?fmtInt(reverted):'<span class="rev-value-trend '+valueTrend+'">'+valueText+'</span>')+'</td>'+currentValueCell+nonRevertedCell+metaCell+'<td class="rev-summary-col '+(packageMode?'':'rev-value-hidden')+'"><strong>'+(packageMode?percent(reverted,total):'')+'</strong></td><td class="'+(packageMode?'':'rev-value-hidden')+'">'+fmtInt(b.baseWithin)+'</td><td class="'+(packageMode?'':'rev-value-hidden')+'">'+fmtInt(b.baseRisk)+'</td><td><button type="button" class="driver-link" data-driver="'+escHtml(b.driverId)+'">'+escHtml(b.driverName)+'</button></td><td>'+fmtInt(b.driverCount)+'</td><td class="rev-actions-col"><button type="button" class="rev-hide-btn" data-hide-rev="'+escHtml(b.base)+'" aria-label="Ocultar base '+escHtml(b.base)+'">Ocultar</button></td></tr>';
+  }).join(''):'<tr><td colspan="14" class="history-empty">Nenhuma base encontrada para as datas e filtros selecionados.</td></tr>';
 }
 ['revAtual','revComparar','revRegional','revBase','revOrigem'].forEach(id=>document.getElementById(id).addEventListener('change',renderRevertido));
 document.getElementById('revQuick').addEventListener('click',e=>{const b=e.target.closest('[data-days]');if(!b)return;const ds=availableImportDates(),idx=ds.indexOf(document.getElementById('revAtual').value);const i=idx<0?ds.length-1:idx;
@@ -3874,6 +3966,7 @@ window.__spotRun(async function init(){
   if(savedDrv && savedDrv.map && Object.keys(savedDrv.map).length){ DRIVER_MAP=savedDrv.map; driverFileName=savedDrv.fileName; driverSavedAt=savedDrv.savedAt; driverRows=savedDrv.rows||Object.keys(savedDrv.map).length; }
   offendersBucket=loadOffendersBucket();
   offendersHiddenBases=loadOffendersHiddenBases();
+  revHiddenBases=loadRevHiddenBases();
   offendersConfirmedBases=loadConfirmedOffendersBases();
   IMPORTS=await loadPersistedImports();
   seedWeekBaselines();

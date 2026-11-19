@@ -1694,3 +1694,10 @@ body.is-importing .import-ok-btn{cursor:wait;opacity:.75}
 
 /* Valores em R$ nunca quebram linha (centavos ficam na mesma linha do valor). */
 .pkg-table td strong,.table-scroll td strong,.rev-table td strong{white-space:nowrap!important;overflow-wrap:normal!important;word-break:keep-all!important}
+
+/* Ocultar base (Valor Revertido) e painel de bases ocultas */
+.rev-actions-col{width:1%;white-space:nowrap;text-align:right}
+.rev-hide-btn{border:1px solid rgba(255,82,82,.45);border-radius:8px;padding:7px 12px;background:transparent;color:#ff8a80;font:800 11px 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.rev-hide-btn:hover{background:rgba(255,82,82,.12);border-color:#ff5252}
+.hidden-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#revHiddenPanel .offender-hidden-panel{margin:0 0 14px}

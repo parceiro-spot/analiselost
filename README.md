@@ -85,3 +85,15 @@ A coluna **Produto** não existe no REPORT LOST; ela só é preenchida quando o 
 
 ## Distribuição SVC/XPT
 No REPORT LOST, se `Centro de destino` começar com `E` (por exemplo `EMG40`, `ERJ2`, `EES8`), o pacote é contado na base de destino como **XPT**. Se o destino estiver vazio ou for `BRN/BRD`, o pacote permanece na base `Centro de origem` como **SVC**.
+
+## Ocultar bases (Valor Revertido e Ofensores por Regional)
+
+Cada linha do **Valor Revertido** tem o botão **Ocultar** (a base sai da tabela, dos totais e do print). Acima da tabela aparece **Mostrar bases ocultas (N)** com a lista e os botões **Mostrar novamente** / **Mostrar todas**. O mesmo painel aparece no topo de **Ofensores por Regional**. As bases ocultas ficam salvas no navegador (separadas para cada aba).
+
+## Importação da planilha LOST
+
+O nome do arquivo reconhece data e turno automaticamente, por exemplo `report_lost_on_route_472463006_19.11.2026-manhã.csv` (também `19_11_2026`, `19-11-2026`, `2026-11-19`, e `manhã`/`manha`/`tarde`). Se a data for escolhida manualmente, ela tem prioridade. A leitura foi acelerada: antes cada linha varria todas as planilhas já importadas; agora usa um índice único, e a gravação acontece uma vez no fim.
+
+## Copiar / salvar print
+
+O print ignora botões Ocultar e o painel de ocultas, converte cores modernas que o html2canvas não entende e, se o navegador recusar copiar, salva o PNG automaticamente. Em caso de erro, a mensagem mostra o detalhe técnico.
